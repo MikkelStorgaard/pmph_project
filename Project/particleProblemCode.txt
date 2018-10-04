@@ -1,0 +1,157 @@
+// Runs time forward by dT
+void Simulation::TimeUpdate() {
+
+    // Run over the phages to infect the cells
+    int M = phages.size();
+
+    for (int m = M-1; m >= 0; m--) {
+
+
+	// Finds the neighbours of the m'th phage
+	// Computes the distance to the neighbours
+	// Checks for overlap, and stochastically infects
+        int SuccessfullInfection =  PhageInfection(m); 
+				
+	// Delete the infecting phages			
+	if (SuccessfullInfection)
+
+            phages.erase(phages.begin() + m);
+            M--;
+
+        }
+    }
+
+
+    // Run over the cells to grow the cells
+    int N = cells.size();
+
+    for (int n = 0; n < N; n++) {
+
+	// Grow the n'th cell, check if it is larger than max radius
+	// If so, divide cell into two cells (i.e. spawn new cell)
+        GrowCell(n);
+
+    }
+
+    // Run the over cells to compute movement for the cells
+    N = cells.size();   // Update N, as new cells might have been added
+    double** C_movement = new double*[N];
+
+    for (int n = 0; n < N; n++) {
+        C_movement[n] = new double[6];
+        CellMovement(n,C_movement[n]);
+    }
+
+    // Run the over phages to get movement for the phage
+    double** P_movement = new double*[M];
+
+    for (int m = 0; m < M; m++) {
+        P_movement[m] = new double[3];
+        PhageMovement(m,P_movement[m]);
+
+    }
+
+
+    // Step 4 ///
+    if (debugBool) deb(4);
+    // Run the over cells to apply the movement step
+    time(&timer);
+    for (int n = 0; n < N; n++) {
+        for (int j = 0; j < 6; j++) {
+            cells[n][j] += C_movement[n][j];
+        }
+    }
+    benchMark[8] += difftime(time(NULL),timer);
+
+    // Run the over cells to check if they moved to a new gridpoint
+    time(&timer);
+    for (int n = 0; n < N; n++) {
+
+        // Detect which grid point cell belongs to now
+        int i = (int)round( ( cells[n][0] + cells[n][3] ) / (2 * L / res));
+        int j = (int)round( ( cells[n][1] + cells[n][4] ) / (2 * L / res));
+        int k = (int)round( ( cells[n][2] + cells[n][5] ) / (2 * L / res));
+
+        // Check if outer bondary is reached
+        if ( (i < 0) or (i >= res) or (j < 0) or (j >= res) or (k < 0) or (k >= res) ) {
+            cerr << "\t>>Colony extends simulation grid size! Exiting...<<" << endl;
+            f_log << ">>Colony extends simulation grid size! Exiting...<<" << endl;
+            exit = true;
+            return;
+        }
+
+        // Get the old gridpoint
+        int io = (int)cells[n][10];
+        int jo = (int)cells[n][11];
+        int ko = (int)cells[n][12];
+
+        // Check if cell moved to new point
+        if ( (not ( io == i)) or (not ( jo == j)) or (not ( ko == k))) {
+
+            // Erase from old grid point
+            CN[io][jo][ko].erase(std::remove(CN[io][jo][ko].begin(), CN[io][jo][ko].end(), n), CN[io][jo][ko].end());
+
+            // Update location information
+            cells[n][10] = (double)i;
+            cells[n][11] = (double)j;
+            cells[n][12] = (double)k;
+
+            // Add cell to new CN grid point
+            CN[i][j][k].push_back(n);
+
+        }
+    }
+    benchMark[7] += difftime(time(NULL),timer);
+
+    // Run the over phages to apply the movement step
+    time(&timer);
+    for (int m = M-1; m >= 0; m--) {
+
+        // Kill phages according to the decay rate
+        if (rand(rng) < delta*dT) {
+            phages.erase(phages.begin() + m);
+            continue;
+        }
+
+        // Apply the movement step
+        for (int j = 0; j < 3; j++) {
+            phages[m][j] += P_movement[m][j];
+        }
+
+        // Apply boundary conditions to the phage
+        ApplyBoundaryConditions(m);
+
+    }
+    benchMark[8] += difftime(time(NULL),timer);
+
+
+    // Step 5 ///
+    if (debugBool) deb(5);
+    // Spawns phages, if the infection time has been passed
+    time(&timer);
+    if (not exit) {
+        SpawnPhages();
+    }
+    benchMark[9] += difftime(time(NULL),timer);
+
+
+    // Increment the time tracker
+    Time++;
+
+    // Clean up
+    if (debugBool) deb(6);
+    time(&timer);
+    for (int n = 0; n < N; n++) {
+        delete[] C_movement[n];
+    }
+    delete[] C_movement;
+
+    for (int m = 0; m < M; m++) {
+        delete[] P_movement[m];
+    }
+    delete[] P_movement;
+
+    benchMark[10] += difftime(time(NULL),timer);
+    if (debugBool) deb(7);
+}
+

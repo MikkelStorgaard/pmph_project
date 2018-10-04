@@ -1,0 +1,112 @@
+for (int n = 0; n < nSamplings; n++) {
+    for (int t = 0; t < nStepsPerSample; t++) {
+
+        T += dT;
+
+        for (uword k = 0; k < nGridZ; k++ ) {
+            for (uword j = 0; j < nGridXY; j++ ) {
+                for (uword i = 0; i < nGridXY; i++) {
+
+                    // Each lattice point contains some numbers
+                    // n, B, I0, ... I9, P, ...
+
+                    // Update the numbers based on some rules
+                    ....
+
+
+                    // Compute diffusion
+                    uword ip, jp, kp, im, jm, km;
+
+                    if (i + 1 >= nGridXY/s) ip = i + 1 - nGridXY/s;
+                    else ip = i + 1;
+
+                    if (i == 0) im = nGridXY/s - 1;
+                    else im = i - 1;
+
+                    if (j + 1 >= nGridXY/s) jp = j + 1 - nGridXY/s;
+                    else jp = j + 1;
+
+                    if (j == 0) jm = nGridXY/s - 1;
+                    else jm = j - 1;
+
+                    if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+                    else kp = k + 1;
+
+                    if (k == 0) km = nGridZ - 1;
+                    else km = k - 1;
+
+                    double n_0; // No movement
+                    double n_u; // Up
+                    double n_d; // Down
+                    double n_l; // Left
+                    double n_r; // Right
+                    double n_f; // Front
+                    double n_b; // Back
+
+                    ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b);
+                    B_new(i, j, k) += n_0; B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
+
+                    ComputeDiffusion(I0(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b);
+                    I0_new(i, j, k) += n_0; I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
+
+                    ...
+
+                    ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b);
+                    I9_new(i, j, k) += n_0; I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
+
+
+                    ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b);
+                    P_new(i, j, k) += n_0; P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
+
+                }
+            }
+        }
+
+        B.swap(B_new);      B_new.zeros();
+        I0.swap(I0_new);    I0_new.zeros();
+        I1.swap(I1_new);    I1_new.zeros();
+        I2.swap(I2_new);    I2_new.zeros();
+        I3.swap(I3_new);    I3_new.zeros();
+        I4.swap(I4_new);    I4_new.zeros();
+        I5.swap(I5_new);    I5_new.zeros();
+        I6.swap(I6_new);    I6_new.zeros();
+        I7.swap(I7_new);    I7_new.zeros();
+        I8.swap(I8_new);    I8_new.zeros();
+        I9.swap(I9_new);    I9_new.zeros();
+        P.swap(P_new);      P_new.zeros();
+
+        Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
+
+
+        cube nn = n;
+
+        for (uword k = 0; k < nGridZ; k++) {
+            n.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
+        }
+
+        for (uword i = 0; i < nGridXY; i++) {
+            mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
+
+            for (uword k = 0; k < Q.n_cols; k++) {
+                for (uword j = 0; j < Q.n_rows; j++) {
+                    n(i, j, k) += Q(j,k);
+                    n(i, j, k) = max(0.0, n(i, j, k));
+                }
+            }
+        }
+    }
+}
+
+
+Where ComputeDiffusion goes like:
+
+void ComputeDiffusion(double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag) {
+
+    *n_u = RandP(0.5*lambda*n);
+    *n_d = RandP(0.5*lambda*n);
+    *n_l = RandP(0.5*lambda*n);
+    *n_r = RandP(0.5*lambda*n);
+    *n_f = RandP(0.5*lambda*n);
+    *n_b = RandP(0.5*lambda*n);
+    *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+}

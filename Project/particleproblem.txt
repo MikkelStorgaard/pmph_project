@@ -1,0 +1,65 @@
+for ( t = 0; t < nsamp; t++) {
+  for ( k = 0; k < steps_per_sample; k++) {
+
+
+    for ( n = 0; n < cells.size(); n++) {
+
+      GrowCell(n); // Increases size and may create new offspring
+
+      UpdateState(n); // Includes removing cells and adding phages
+
+      CellMovement[n] = {0,0,0};
+      neighbours = FindNeighbours(n);
+
+      for ( j = 0; j < neighbours.size(); j++) {
+
+        d = distance(n,neighbours(j));
+
+				if (d < D) {
+					CellMovement[n] += NewtonianMechanics(n,neighbours(j))
+				}
+
+      }
+    }
+
+    for ( m = phages.size() - 1; m >= 0; m--) {
+
+      PhageMovement[m] = {0,0,0};
+      neighbours = FindNeighbours(m);
+
+      for ( j = 0; j < neighbours.size(); j++) {
+
+        d = distance(m,neighbours(j));
+
+				if (d < D) {
+          SuccesFullInfection[m] = HitDetection(m,neighbours(j));
+	  			PhageMovement[m] += NewtonianMechanics(m,neighbours(j))
+				}
+      }
+    }
+
+    for (int n = 0; n < cells.size(); n++) {
+      for (int j = 0; j < 3; j++) {
+        cells[n][j] += CellMovement[n][j];
+      }
+    }
+
+    for (int m = phages.size()-1; m >= 0; n--) {
+      for (int j = 0; j < 3; j++) {
+        if (SuccesFullInfection) {
+          phages.erase(phages.begin() + m);
+
+				} else if (rand(rng) < delta*dT) {
+          phages.erase(phages.begin() + m);
+
+        } else {
+          phages[m][j] += PhgeMovement[m][j];
+
+          ApplyBoundaryConditions(m);
+        }
+      }
+    }
+  }
+  ExportData();
+}
+
