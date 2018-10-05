@@ -48,7 +48,7 @@ int main(int argc, char** argv){
     s.ExportAll();
 
     // Start the simulation
-    s.Run(T);
+    s.Run_Original(T);
 
     return 0;
 }
