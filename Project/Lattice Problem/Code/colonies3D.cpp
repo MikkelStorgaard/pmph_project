@@ -846,34 +846,52 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                 for (uword j = 0; j < nGridXY; j++ ) {
                     for (uword i = 0; i < nGridXY; i++) {
 
+                        // Update positions
+                        uword ip, jp, kp, im, jm, km;
 
+                        if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+                        else ip = i + 1;
 
+                        if (i == 0) im = nGridXY - 1;
+                        else im = i - 1;
+
+                        if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+                        else jp = j + 1;
+
+                        if (j == 0) jm = nGridXY - 1;
+                        else jm = j - 1;
+
+                        if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+                            if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+                            else kp = k + 1;
+
+                            if (k == 0) km = nGridZ - 1;
+                            else km = k - 1;
+
+                        } else {    // Reflective boundaries in Z direction
+
+                            if (k + 1 >= nGridZ) kp = k - 1;
+                            else kp = k + 1;
+
+                            if (k == 0) km = k + 1;
+                            else km = k - 1;
+
+                        }
+
+                        double tmp = nutrient(i,j,k);
+                        nutrient_new(i, j, k)  -= 6 * alphaXY * tmp;
+                        nutrient_new(ip, j, k) += alphaXY * tmp;
+                        nutrient_new(im, j, k) += alphaXY * tmp;
+                        nutrient_new(i, jp, k) += alphaXY * tmp;
+                        nutrient_new(i, jm, k) += alphaXY * tmp;
+                        nutrient_new(i, j, kp) += alphaZ  * tmp;
+                        nutrient_new(i, j, km) += alphaZ  * tmp;
                     }
                 }
             }
-
-
-            // Create copy of nutrient to store the diffusion update
-            cube nn = nutrient;
-            assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
-            assert(2 * D_n * dT / pow( H / (double)nGridZ, 2) <= 1);
-
-            // Compute the X & Y diffusion
-            for (uword k = 0; k < nGridZ; k++) {
-                nutrient.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
-            }
-
-            // Compute the Z diffusion
-            for (uword i = 0; i < nGridXY; i++) {
-                mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
-
-                for (uword k = 0; k < Q.n_cols; k++) {
-                    for (uword j = 0; j < Q.n_rows; j++) {
-                        nutrient(i, j, k) += Q(j,k);
-                        nutrient(i, j, k) = max(0.0, nutrient(i, j, k));
-                    }
-                }
-            }
+            nutrient.swap(nutrient_new);
+            nutrient_new.zeros();
 
             if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
                 cout << "\tWarning: Maximum Density Large!" << "\n";
