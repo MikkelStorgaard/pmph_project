@@ -133,6 +133,7 @@ class Colonies3D {
 
     // Nutrient matrix
     arma::cube   nutrient;
+    arma::cube   nutrient_new;
 
     // Occupancy of grid
     arma::Cube<double> Occ;
@@ -146,7 +147,8 @@ class Colonies3D {
     explicit    Colonies3D(double B_0, double P_0);                           // Direct constructer
 
     // Driver
-    int         Run(double T_end);                                              // Controls the evaluation of the simulation
+    int         Run_Original(double T_end);                                              // Controls the evaluation of the simulation
+    int         Run_NoMatrixMatrixMultiplication(double T_end);                                              // Controls the evaluation of the simulation
 
  private:
     void        Initialize();                                                   // Initialize the simulation

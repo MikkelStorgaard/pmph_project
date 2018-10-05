@@ -70,7 +70,7 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 
 
 // Controls the evaluation of the simulation
-int Colonies3D::Run(double T_end) {
+int Colonies3D::Run_Original(double T_end) {
 
     this->T_end = T_end;
 
@@ -514,7 +514,7 @@ int Colonies3D::Run(double T_end) {
     }
 }
 
-int Colonies3D::Run_noMatrixMatrixMultiplication(double T_end) {
+int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
     this->T_end = T_end;
 
@@ -837,6 +837,19 @@ int Colonies3D::Run_noMatrixMatrixMultiplication(double T_end) {
             Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
 
             // NUTRIENT DIFFUSION
+            double alphaXY = 2 * D_n * dT / pow( L / (double)nGridXY, 2);
+            double alphaZ  = 2 * D_n * dT / pow( L / (double)nGridZ, 2);
+            for (uword k = 0; k < nGridZ; k++ ) {
+                for (uword j = 0; j < nGridXY; j++ ) {
+                    for (uword i = 0; i < nGridXY; i++) {
+
+
+
+                    }
+                }
+            }
+
+
             // Create copy of nutrient to store the diffusion update
             cube nn = nutrient;
             assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
@@ -1007,6 +1020,7 @@ void Colonies3D::Initialize() {
     P_new.zeros(nGridXY, nGridXY, nGridZ);
 
     nutrient.zeros(nGridXY, nGridXY, nGridZ);
+    nutrient_new.zeros(nGridXY, nGridXY, nGridZ);
 
     Occ.zeros(nGridXY, nGridXY, nGridZ);
 
