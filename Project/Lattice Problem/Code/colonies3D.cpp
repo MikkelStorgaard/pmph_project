@@ -840,8 +840,8 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
             Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
 
             // NUTRIENT DIFFUSION
-            double alphaXY = 2 * D_n * dT / pow( L / (double)nGridXY, 2);
-            double alphaZ  = 2 * D_n * dT / pow( L / (double)nGridZ, 2);
+            double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
+            double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
             for (uword k = 0; k < nGridZ; k++ ) {
                 for (uword j = 0; j < nGridXY; j++ ) {
                     for (uword i = 0; i < nGridXY; i++) {
@@ -879,8 +879,8 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
                         }
 
-                        double tmp = nutrient(i,j,k);
-                        nutrient_new(i, j, k)  -= 6 * alphaXY * tmp;
+                        double tmp = nutrient(i, j, k);
+                        nutrient_new(i, j, k)  += tmp - 6 * alphaXY * tmp;
                         nutrient_new(ip, j, k) += alphaXY * tmp;
                         nutrient_new(im, j, k) += alphaXY * tmp;
                         nutrient_new(i, jp, k) += alphaXY * tmp;
@@ -892,6 +892,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
             }
             nutrient.swap(nutrient_new);
             nutrient_new.zeros();
+
 
             if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
                 cout << "\tWarning: Maximum Density Large!" << "\n";

@@ -6,9 +6,9 @@ using namespace std;
 int main(int argc, char** argv){
 
     // Default parameters
-    int nGrid = 20;
+    int nGrid = 100;
 
-    double T = 20; 	// Simulation length
+    double T = 5; 	// Simulation length
 
     char buffer[80];                                  // Create a buffer to store the date
     time_t t = time(0);                               // Get time now
@@ -25,7 +25,7 @@ int main(int argc, char** argv){
         pathName += dateFolder;
         pathName += "/";
 
-        pathName += "Growthcurve_Original";
+        pathName += "Growthcurve_NoMatrixMatrixMultiplication";
 
         pathName += "/nGrid_";
         pathName += to_string(nGrid);
@@ -60,7 +60,7 @@ int main(int argc, char** argv){
         s.SetSamples(100);
 
         // Start the simulation
-        s.Run_Original(T);
+        s.Run_NoMatrixMatrixMultiplication(T);
     }
 
     return 0;
