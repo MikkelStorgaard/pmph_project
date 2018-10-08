@@ -152,9 +152,9 @@ class Colonies3D {
     explicit    Colonies3D(double B_0, double P_0);                           // Direct constructer
 
     // Driver
-    int         Run_Original(double T_end);                                              // Controls the evaluation of the simulation
-    int         Run_NoMatrixMatrixMultiplication(double T_end);                          // Controls the evaluation of the simulationA
-    int         Run_LoopDistributed_Sequential(double T_end);                          // Controls the evaluation of the simulation
+    int         Run_Original(double T_end);                                     // Controls the evaluation of the simulation
+    int         Run_NoMatrixMatrixMultiplication(double T_end);                 // Controls the evaluation of the simulationA
+    int         Run_LoopDistributed_CPU(double T_end);                          // Controls the evaluation of the simulation
 
  private:
     void        Initialize();                                                   // Initialize the simulation
@@ -218,7 +218,7 @@ class Colonies3D {
     void        ExportAll();                                                    // Sets the simulation to export everything
 
  private:
-    void        ExportData(double t);                                           // Master function to export the data
+    void        ExportData(double t, std::string filename_suffix);              // Master function to export the data
 
     // Data handling
     void        OpenFileStream(std::ofstream& stream,                           // Open filstream if not allready opened

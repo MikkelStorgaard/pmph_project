@@ -88,7 +88,7 @@ int Colonies3D::Run_Original(double T_end) {
     Initialize();
 
     // Export data
-    ExportData(T);
+    ExportData(T, "original");
 
     // Determine the number of samples to take
     int nSamplings = nSamp*T_end;
@@ -460,7 +460,7 @@ int Colonies3D::Run_Original(double T_end) {
         }
 
         // Store the state
-        ExportData(T);
+        ExportData(T, "original");
 
         // Check for nutrient stability
         assert(accu(nutrient) >= 0);
@@ -487,8 +487,13 @@ int Colonies3D::Run_Original(double T_end) {
     std::ofstream f_out;
     f_out.open(GetPath() + "/Completed.txt",fstream::trunc);
     f_out << "\tSimulation complete after ";
-    if (hours > 0.0)   f_out << hours   << " hours and ";
-    if (minutes > 0.0) f_out << minutes << " minutes and ";
+    if (hours > 0.0){
+        f_out << hours   << " hours and ";
+    }
+
+    if (minutes > 0.0){
+        f_out << minutes << " minutes and ";
+    }
     f_out  << seconds << " seconds." << "\n";
     f_out.flush();
     f_out.close();
@@ -500,15 +505,10 @@ int Colonies3D::Run_Original(double T_end) {
         f_log << ">>Simulation completed without exit flag<<" << "\n";
     }
 
-    if (true) {
     std::ofstream f_timing;
-    // cout << "\n";
-    f_timing << "\t"       << setw(3) << difftime(toc, tic) << " s of total time" << "\n";
-
+    f_timing << "\t" << setw(3) << difftime(toc, tic) << " s of total time" << "\n";
     f_timing.flush();
     f_timing.close();
-    // cout << "\t----------------------------------------------------"<< "\n" << "\n" << "\n";
-    }
 
     if (exit) {
         return 1;
@@ -532,7 +532,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
     Initialize();
 
     // Export data
-    ExportData(T);
+    ExportData(T, "noMMM");
 
     // Determine the number of samples to take
     int nSamplings = nSamp*T_end;
@@ -634,15 +634,42 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             M = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
-                            N = ComputeEvents(I8(i, j, k), p, 2); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
-                            N = ComputeEvents(I7(i, j, k), p, 2); I7(i, j, k) = max(0.0, I7(i, j, k) - N); I8(i, j, k) += N;
-                            N = ComputeEvents(I6(i, j, k), p, 2); I6(i, j, k) = max(0.0, I6(i, j, k) - N); I7(i, j, k) += N;
-                            N = ComputeEvents(I5(i, j, k), p, 2); I5(i, j, k) = max(0.0, I5(i, j, k) - N); I6(i, j, k) += N;
-                            N = ComputeEvents(I4(i, j, k), p, 2); I4(i, j, k) = max(0.0, I4(i, j, k) - N); I5(i, j, k) += N;
-                            N = ComputeEvents(I3(i, j, k), p, 2); I3(i, j, k) = max(0.0, I3(i, j, k) - N); I4(i, j, k) += N;
-                            N = ComputeEvents(I2(i, j, k), p, 2); I2(i, j, k) = max(0.0, I2(i, j, k) - N); I3(i, j, k) += N;
-                            N = ComputeEvents(I1(i, j, k), p, 2); I1(i, j, k) = max(0.0, I1(i, j, k) - N); I2(i, j, k) += N;
-                            N = ComputeEvents(I0(i, j, k), p, 2); I0(i, j, k) = max(0.0, I0(i, j, k) - N); I1(i, j, k) += N;
+                            N = ComputeEvents(I8(i, j, k), p, 2);
+                            I8(i, j, k) = max(0.0, I8(i, j, k) - N);
+                            I9(i, j, k) += N;
+
+                            N = ComputeEvents(I7(i, j, k), p, 2);
+                            I7(i, j, k) = max(0.0, I7(i, j, k) - N);
+                            I8(i, j, k) += N;
+
+                            N = ComputeEvents(I6(i, j, k), p, 2);
+                            I6(i, j, k) = max(0.0, I6(i, j, k) - N);
+                            I7(i, j, k) += N;
+
+                            N = ComputeEvents(I5(i, j, k), p, 2);
+                            I5(i, j, k) = max(0.0, I5(i, j, k) - N);
+                            I6(i, j, k) += N;
+
+                            N = ComputeEvents(I4(i, j, k), p, 2);
+                            I4(i, j, k) = max(0.0, I4(i, j, k) - N);
+                            I5(i, j, k) += N;
+
+                            N = ComputeEvents(I3(i, j, k), p, 2);
+                            I3(i, j, k) = max(0.0, I3(i, j, k) - N);
+                            I4(i, j, k) += N;
+
+                            N = ComputeEvents(I2(i, j, k), p, 2);
+                            I2(i, j, k) = max(0.0, I2(i, j, k) - N);
+                            I3(i, j, k) += N;
+
+                            N = ComputeEvents(I1(i, j, k), p, 2);
+                            I1(i, j, k) = max(0.0, I1(i, j, k) - N);
+                            I2(i, j, k) += N;
+
+                            N = ComputeEvents(I0(i, j, k), p, 2);
+                            I0(i, j, k) = max(0.0, I0(i, j, k) - N);
+                            I1(i, j, k) += N;
+
                         }
 
                         // Infectons //////////////////////////////////////////////////////////////////
@@ -936,7 +963,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
         }
 
         // Store the state
-        ExportData(T);
+        ExportData(T, "noMMM");
 
         // Check for nutrient stability
         assert(accu(nutrient) >= 0);
@@ -976,15 +1003,11 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
         f_log << ">>Simulation completed without exit flag<<" << "\n";
     }
 
-    if (true) {
     std::ofstream f_timing;
-    // cout << "\n";
     f_timing << "\t"       << setw(3) << difftime(toc, tic) << " s of total time" << "\n";
 
     f_timing.flush();
     f_timing.close();
-    // cout << "\t----------------------------------------------------"<< "\n" << "\n" << "\n";
-    }
 
     if (exit) {
         return 1;
@@ -993,8 +1016,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
     }
 }
 
-// Controls the evaluation of the simulation
-int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
+int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
     this->T_end = T_end;
 
@@ -1009,7 +1031,7 @@ int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
     Initialize();
 
     // Export data
-    ExportData(T);
+    ExportData(T,"loopDistributedCPU");
 
     // Determine the number of samples to take
     int nSamplings = nSamp*T_end;
@@ -1111,15 +1133,42 @@ int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
                             M = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
-                            N = ComputeEvents(I8(i, j, k), p, 2); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
-                            N = ComputeEvents(I7(i, j, k), p, 2); I7(i, j, k) = max(0.0, I7(i, j, k) - N); I8(i, j, k) += N;
-                            N = ComputeEvents(I6(i, j, k), p, 2); I6(i, j, k) = max(0.0, I6(i, j, k) - N); I7(i, j, k) += N;
-                            N = ComputeEvents(I5(i, j, k), p, 2); I5(i, j, k) = max(0.0, I5(i, j, k) - N); I6(i, j, k) += N;
-                            N = ComputeEvents(I4(i, j, k), p, 2); I4(i, j, k) = max(0.0, I4(i, j, k) - N); I5(i, j, k) += N;
-                            N = ComputeEvents(I3(i, j, k), p, 2); I3(i, j, k) = max(0.0, I3(i, j, k) - N); I4(i, j, k) += N;
-                            N = ComputeEvents(I2(i, j, k), p, 2); I2(i, j, k) = max(0.0, I2(i, j, k) - N); I3(i, j, k) += N;
-                            N = ComputeEvents(I1(i, j, k), p, 2); I1(i, j, k) = max(0.0, I1(i, j, k) - N); I2(i, j, k) += N;
-                            N = ComputeEvents(I0(i, j, k), p, 2); I0(i, j, k) = max(0.0, I0(i, j, k) - N); I1(i, j, k) += N;
+                            N = ComputeEvents(I8(i, j, k), p, 2);
+                            I8(i, j, k) = max(0.0, I8(i, j, k) - N);
+                            I9(i, j, k) += N;
+
+                            N = ComputeEvents(I7(i, j, k), p, 2);
+                            I7(i, j, k) = max(0.0, I7(i, j, k) - N);
+                            I8(i, j, k) += N;
+
+                            N = ComputeEvents(I6(i, j, k), p, 2);
+                            I6(i, j, k) = max(0.0, I6(i, j, k) - N);
+                            I7(i, j, k) += N;
+
+                            N = ComputeEvents(I5(i, j, k), p, 2);
+                            I5(i, j, k) = max(0.0, I5(i, j, k) - N);
+                            I6(i, j, k) += N;
+
+                            N = ComputeEvents(I4(i, j, k), p, 2);
+                            I4(i, j, k) = max(0.0, I4(i, j, k) - N);
+                            I5(i, j, k) += N;
+
+                            N = ComputeEvents(I3(i, j, k), p, 2);
+                            I3(i, j, k) = max(0.0, I3(i, j, k) - N);
+                            I4(i, j, k) += N;
+
+                            N = ComputeEvents(I2(i, j, k), p, 2);
+                            I2(i, j, k) = max(0.0, I2(i, j, k) - N);
+                            I3(i, j, k) += N;
+
+                            N = ComputeEvents(I1(i, j, k), p, 2);
+                            I1(i, j, k) = max(0.0, I1(i, j, k) - N);
+                            I2(i, j, k) += N;
+
+                            N = ComputeEvents(I0(i, j, k), p, 2);
+                            I0(i, j, k) = max(0.0, I0(i, j, k) - N);
+                            I1(i, j, k) += N;
+
                         }
 
                         // Infectons //////////////////////////////////////////////////////////////////
@@ -1317,27 +1366,59 @@ int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
             Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
 
             // NUTRIENT DIFFUSION
-            // Create copy of nutrient to store the diffusion update
-            cube nn = nutrient;
-            assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
-            assert(2 * D_n * dT / pow( H / (double)nGridZ, 2) <= 1);
+            double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
+            double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
+            for (uword k = 0; k < nGridZ; k++ ) {
+                for (uword j = 0; j < nGridXY; j++ ) {
+                    for (uword i = 0; i < nGridXY; i++) {
 
-            // Compute the X & Y diffusion
-            for (uword k = 0; k < nGridZ; k++) {
-                nutrient.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
-            }
+                        // Update positions
+                        uword ip, jp, kp, im, jm, km;
 
-            // Compute the Z diffusion
-            for (uword i = 0; i < nGridXY; i++) {
-                mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
+                        if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+                        else ip = i + 1;
 
-                for (uword k = 0; k < Q.n_cols; k++) {
-                    for (uword j = 0; j < Q.n_rows; j++) {
-                        nutrient(i, j, k) += Q(j,k);
-                        nutrient(i, j, k) = max(0.0, nutrient(i, j, k));
+                        if (i == 0) im = nGridXY - 1;
+                        else im = i - 1;
+
+                        if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+                        else jp = j + 1;
+
+                        if (j == 0) jm = nGridXY - 1;
+                        else jm = j - 1;
+
+                        if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+                            if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+                            else kp = k + 1;
+
+                            if (k == 0) km = nGridZ - 1;
+                            else km = k - 1;
+
+                        } else {    // Reflective boundaries in Z direction
+
+                            if (k + 1 >= nGridZ) kp = k - 1;
+                            else kp = k + 1;
+
+                            if (k == 0) km = k + 1;
+                            else km = k - 1;
+
+                        }
+
+                        double tmp = nutrient(i, j, k);
+                        nutrient_new(i, j, k)  += tmp - 6 * alphaXY * tmp;
+                        nutrient_new(ip, j, k) += alphaXY * tmp;
+                        nutrient_new(im, j, k) += alphaXY * tmp;
+                        nutrient_new(i, jp, k) += alphaXY * tmp;
+                        nutrient_new(i, jm, k) += alphaXY * tmp;
+                        nutrient_new(i, j, kp) += alphaZ  * tmp;
+                        nutrient_new(i, j, km) += alphaZ  * tmp;
                     }
                 }
             }
+            nutrient.swap(nutrient_new);
+            nutrient_new.zeros();
+
 
             if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
                 cout << "\tWarning: Maximum Density Large!" << "\n";
@@ -1381,7 +1462,7 @@ int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
         }
 
         // Store the state
-        ExportData(T);
+        ExportData(T,"loopDistributedCPU");
 
         // Check for nutrient stability
         assert(accu(nutrient) >= 0);
@@ -1406,7 +1487,7 @@ int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
     cout  << seconds << " seconds." << "\n";
 
     std::ofstream f_out;
-    f_out.open(GetPath() + "/Completed.txt",fstream::trunc);
+    f_out.open(GetPath() + "/Completed_LOOP_DISTRIBUTED.txt",fstream::trunc);
     f_out << "\tSimulation complete after ";
     if (hours > 0.0)   f_out << hours   << " hours and ";
     if (minutes > 0.0) f_out << minutes << " minutes and ";
@@ -1421,15 +1502,11 @@ int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
         f_log << ">>Simulation completed without exit flag<<" << "\n";
     }
 
-    if (true) {
     std::ofstream f_timing;
-    // cout << "\n";
     f_timing << "\t"       << setw(3) << difftime(toc, tic) << " s of total time" << "\n";
 
     f_timing.flush();
     f_timing.close();
-    // cout << "\t----------------------------------------------------"<< "\n" << "\n" << "\n";
-    }
 
     if (exit) {
         return 1;
@@ -1437,7 +1514,6 @@ int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
         return 0;
     }
 }
-
 
 // Initialize the simulation
 void Colonies3D::Initialize() {
@@ -1856,15 +1932,29 @@ void Colonies3D::ComputeTimeStep() {
     else if (r >= 2) dT = 2*pow(10, m);
     else             dT =   pow(10, m);
 
-    if ( not (dT == this->dT)) {
+    if (this->dT != dT) {
         this->dT = dT;
 
-        if (limiter == 1)      cout << "\tdT is Limited by D_P" << "\n";
-        else if (limiter == 2) cout << "\tdT is Limited by D_B" << "\n";
-        else if (limiter == 3) cout << "\tdT is Limited by D_n" << "\n";
-        else if (limiter == 4) cout << "\tdT is Limited by r" << "\n";
-        else if (limiter == 5) cout << "\tdT is Limited by g" << "\n";
-        else if (limiter == 6) cout << "\tdT is Limited by delta" << "\n";
+        switch(limiter){
+            case 1:
+                cout << "\tdT is Limited by D_P" << "\n";
+                break;
+            case 2:
+                cout << "\tdT is Limited by D_B" << "\n";
+                break;
+            case 3:
+                cout << "\tdT is Limited by D_n" << "\n";
+                break;
+            case 4:
+                cout << "\tdT is Limited by r" << "\n";
+                break;
+            case 5:
+                cout << "\tdT is Limited by g" << "\n";
+                break;
+            case 6:
+                cout << "\tdT is Limited by delta" << "\n";
+                break;
+        }
     }
 
     // Compute the jumping probabilities
@@ -2104,10 +2194,10 @@ void Colonies3D::FastExit(){fastExit=true;}
 void Colonies3D::ExportAll(){exportAll=true;}
 
 // Master function to export the data
-void Colonies3D::ExportData(double t){
+void Colonies3D::ExportData(double t, std::string filename_suffix){
 
     // Verify the file stream is open
-    string fileName = "PopulationSize";
+    string fileName = "PopulationSize"+filename_suffix;
     OpenFileStream(f_N, fileName);
 
     // Writes the time, number of cells, number of infected cells, number of phages
@@ -2125,16 +2215,16 @@ void Colonies3D::ExportData(double t){
     if (exportAll) {
         // Save the position data
         // Verify the file stream is open
-        fileName = "CellDensity";
+        fileName = "CellDensity"+filename_suffix;
         OpenFileStream(f_B, fileName);
 
-        fileName = "InfectedDensity";
+        fileName = "InfectedDensity"+filename_suffix;
         OpenFileStream(f_I, fileName);
 
-        fileName = "PhageDensity";
+        fileName = "PhageDensity"+filename_suffix;
         OpenFileStream(f_P, fileName);
 
-        fileName = "NutrientDensity";
+        fileName = "NutrientDensity"+filename_suffix;
         OpenFileStream(f_n, fileName);
 
         // Write file as MATLAB would a 3D matrix!
@@ -2171,6 +2261,8 @@ void Colonies3D::ExportData(double t){
                 f_I << setw(6) << nI                        << "\n";
                 f_n << setw(6) << round(nutrient(x,nGridXY - 1,z)) << "\n";
             }
+
+            f_N << setw(12) << round(accu(I0) + accu(I1) + accu(I2) + accu(I3) + accu(I4) + accu(I5) + accu(I6) + accu(I7) + accu(I8) + accu(I9))    << "\t";
         }
     }
 
