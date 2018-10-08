@@ -4,3 +4,23 @@
 \.vs/ProjectSettings\.json
 
 \.vs/slnx\.sqlite
+
+Project/Lattice Problem/Code/\.idea/
+
+Project/Lattice Problem/Code/cmake-build-debug/
+
+Project/\.vscode/
+
+Project/Lattice Problem/Code/data/
+
+Project/Lattice Problem/Code/Lattice problem\.sln
+
+Project/Lattice Problem/Code/Lattice problem\.vcxproj
+
+Project/Lattice Problem/Code/Lattice problem\.vcxproj\.filters
+
+Project/Lattice Problem/Code/Lattice problem\.vcxproj\.user
+
+*.o
+
+Project/lattice problem/
