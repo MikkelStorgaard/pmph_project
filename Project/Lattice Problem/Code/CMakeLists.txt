@@ -2,6 +2,9 @@ project(colonies3D)
 
 #Can manually add the sources using the set command as follows:
 set(SOURCES colonies3D.hpp colonies3D.cpp example3D.cpp)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
 
 #However, the file(GLOB...) allows for wildcard additions:
 
