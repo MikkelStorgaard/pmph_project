@@ -1,5 +1,5 @@
 #include "colonies3D.hpp"
-
+#include <time.h>
 //Adding a test comment
 
 
@@ -2279,8 +2279,11 @@ void Colonies3D::OpenFileStream(ofstream& stream, string& fileName) {
 
         // Check if the output file exists
         struct stat info;
+        time_t theTime = time(NULL);
+        struct tm *aTime = localtime(&theTime);
+
         string streamPath;
-        streamPath = path + "/" + fileName + ".txt";
+        streamPath = path+"/"+fileName+"_"+std::to_string(aTime->tm_hour)+"_"+std::to_string(aTime->tm_min)+".txt";
 
         // Open the file stream
         stream.open(streamPath, fstream::trunc);
