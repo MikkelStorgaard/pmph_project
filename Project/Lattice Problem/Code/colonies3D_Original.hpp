@@ -1,9 +1,13 @@
-#ifndef COLONIES3DDEF
-#define COLONIES3DDEF
+#ifndef COLONIES3DORIGNALDEF
+#define COLONIES3DORGINALDEF
+
+#define ARMA_NO_DEBUG
 
 #include <iostream>         // Input and output
 #include <iomanip>          // Input and output formatting
 #include <fstream>          // File streams
+
+#include <armadillo>        // Matrix library
 
 #include <random>           // Random numbers
 #include <math.h>           // Mathmatical constants
@@ -99,40 +103,49 @@ class Colonies3D {
     std::string path;               // Sets the path to store in
 
     // Coordinates of agents in the simulation
-    double*** arr_B;           // Sensitive bacteria
-    double*** arr_P;           // Phages
-    double*** arr_I0;          // Infected bacteria
-    double*** arr_I1;          // Infected bacteria
-    double*** arr_I2;          // Infected bacteria
-    double*** arr_I3;          // Infected bacteria
-    double*** arr_I4;          // Infected bacteria
-    double*** arr_I5;          // Infected bacteria
-    double*** arr_I6;          // Infected bacteria
-    double*** arr_I7;          // Infected bacteria
-    double*** arr_I8;          // Infected bacteria
-    double*** arr_I9;          // Infected bacteria
-    double*** arr_nC;          // Number of colonies in gridpoint
+    arma::Cube<double> B;           // Sensitive bacteria
+    arma::Cube<double> P;           // Phages
+    arma::Cube<double> I0;          // Infected bacteria
+    arma::Cube<double> I1;          // Infected bacteria
+    arma::Cube<double> I2;          // Infected bacteria
+    arma::Cube<double> I3;          // Infected bacteria
+    arma::Cube<double> I4;          // Infected bacteria
+    arma::Cube<double> I5;          // Infected bacteria
+    arma::Cube<double> I6;          // Infected bacteria
+    arma::Cube<double> I7;          // Infected bacteria
+    arma::Cube<double> I8;          // Infected bacteria
+    arma::Cube<double> I9;          // Infected bacteria
+    arma::Cube<double> nC;          // Number of colonies in gridpoint
 
-    double*** arr_B_new;       // Sensitive bacteria
-    double*** arr_P_new;       // Phages
-    double*** arr_I0_new;      // Infected bacteria
-    double*** arr_I1_new;      // Infected bacteria
-    double*** arr_I2_new;      // Infected bacteria
-    double*** arr_I3_new;      // Infected bacteria
-    double*** arr_I4_new;      // Infected bacteria
-    double*** arr_I5_new;      // Infected bacteria
-    double*** arr_I6_new;      // Infected bacteria
-    double*** arr_I7_new;      // Infected bacteria
-    double*** arr_I8_new;      // Infected bacteria
-    double*** arr_I9_new;      // Infected bacteria
+    arma::Cube<double> B_new;       // Sensitive bacteria
+    arma::Cube<double> P_new;       // Phages
+    arma::Cube<double> I0_new;      // Infected bacteria
+    arma::Cube<double> I1_new;      // Infected bacteria
+    arma::Cube<double> I2_new;      // Infected bacteria
+    arma::Cube<double> I3_new;      // Infected bacteria
+    arma::Cube<double> I4_new;      // Infected bacteria
+    arma::Cube<double> I5_new;      // Infected bacteria
+    arma::Cube<double> I6_new;      // Infected bacteria
+    arma::Cube<double> I7_new;      // Infected bacteria
+    arma::Cube<double> I8_new;      // Infected bacteria
+    arma::Cube<double> I9_new;      // Infected bacteria
+
+    double*** Arr_B; //  B[i][j][k]
+    double*** Arr_P;
+    double*** Arr_I0;
+    // ...
 
 
     // Nutrient matrix
-    double*** arr_nutrient;
-    double*** arr_nutrient_new;
+    arma::cube   nutrient;
+    arma::cube   nutrient_new;
 
     // Occupancy of grid
-    double*** arr_Occ;
+    arma::Cube<double> Occ;
+
+    // Laplacian for nutrient diffusion
+    arma::mat   lapXY;
+    arma::mat   lapZ;
 
  public:
     // Constructers

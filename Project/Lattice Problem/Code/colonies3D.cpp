@@ -1,9 +1,5 @@
 #include "colonies3D.hpp"
 
-//Adding a test comment
-
-
-using namespace arma;
 using namespace std;
 
 // Constructers /////////////////////////////////////////////////////////////////////////
@@ -72,451 +68,6 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 };
 
 
-// Controls the evaluation of the simulation
-int Colonies3D::Run_Original(double T_end) {
-
-    this->T_end = T_end;
-
-    // Get start time
-    time_t  tic;
-    time(&tic);
-
-    // Generate a path
-    path = GeneratePath();
-
-    // Initilize the simulation matrices
-    Initialize();
-
-    // Export data
-    ExportData(T);
-
-    // Determine the number of samples to take
-    int nSamplings = nSamp*T_end;
-
-    // Loop over samplings
-    for (int n = 0; n < nSamplings; n++) {
-        if (exit) break;
-
-        // Determine the number of timesteps between sampings
-        int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
-
-        for (int t = 0; t < nStepsPerSample; t++) {
-            if (exit) break;
-
-            // Increase time
-            T += dT;
-
-            // Spawn phages
-            if ((T_i >= 0) and (abs(T - T_i) < dT / 2)) {
-                spawnPhages();
-                T_i = -1;
-            }
-
-            // Reset density counter
-            double maxOccupancy = 0.0;
-
-            for (uword k = 0; k < nGridZ; k++ ) {
-                if (exit) break;
-
-                for (uword j = 0; j < nGridXY; j++ ) {
-                    if (exit) break;
-
-                    for (uword i = 0; i < nGridXY; i++) {
-                        if (exit) break;
-
-                        // Ensure nC is updated
-                        if (Occ(i, j, k) < nC(i, j, k)) nC(i,j,k) = Occ(i, j, k);
-
-                        // Skip empty sites
-                        if ((Occ(i, j, k) < 1) and (P(i, j, k) < 1)) continue;
-
-                        // Record the maximum observed density
-                        if (Occ(i, j, k) > maxOccupancy) maxOccupancy = Occ(i, j, k);
-
-                        // Compute the growth modifier
-                        double growthModifier = nutrient(i, j, k) / (nutrient(i, j, k) + K);
-
-                        // Compute beta
-                        double Beta = beta;
-                        if (reducedBeta) {
-                            Beta *= growthModifier;
-                        }
-
-                        double p = 0;
-                        double N = 0;
-                        double M = 0;
-
-                        // Birth //////////////////////////////////////////////////////////////////////
-                        p = g*growthModifier*dT;
-                        if (nutrient(i, j, k) < 1) p = 0;
-
-                        if ((p > 0.1) and (!Warn_g)) {
-                            cout << "\tWarning: Birth Probability Large!" << "\n";
-                            f_log  << "Warning: Birth Probability Large!" << "\n";
-                            Warn_g = true;
-                        }
-
-                        N = ComputeEvents(B(i, j, k), p, 1);
-
-                        // Ensure there is enough nutrient
-                        if ( N > nutrient(i, j, k) ) {
-                            if (!Warn_fastGrowth) {
-                                cout << "\tWarning: Colonies growing too fast!" << "\n";
-                                f_log  << "Warning: Colonies growing too fast!" << "\n";
-                                Warn_fastGrowth = true;
-                            }
-
-                            N = round( nutrient(i, j, k) );
-                        }
-
-                        // Update count
-                        B_new(i, j, k) += N;
-                        nutrient(i, j, k) = max(0.0, nutrient(i, j, k) - N);
-
-                        // Increase Infections ////////////////////////////////////////////////////////
-                        if (r > 0.0) {
-                            p = r*growthModifier*dT;
-                            if ((p > 0.25) and (!Warn_r)) {
-                                cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-                                f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-                                Warn_r = true;
-                            }
-                            N = ComputeEvents(I9(i, j, k), p, 2);  // Bursting events
-
-                            // Update count
-                            I9(i, j, k)    = max(0.0, I9(i, j, k) - N);
-                            Occ(i, j, k)   = max(0.0, Occ(i, j, k) - N);
-                            P_new(i, j, k) += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-                            M = round(alpha * Beta * N);                        // Phages which reinfect the colony
-
-                            // Non-bursting events
-                            N = ComputeEvents(I8(i, j, k), p, 2); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
-                            N = ComputeEvents(I7(i, j, k), p, 2); I7(i, j, k) = max(0.0, I7(i, j, k) - N); I8(i, j, k) += N;
-                            N = ComputeEvents(I6(i, j, k), p, 2); I6(i, j, k) = max(0.0, I6(i, j, k) - N); I7(i, j, k) += N;
-                            N = ComputeEvents(I5(i, j, k), p, 2); I5(i, j, k) = max(0.0, I5(i, j, k) - N); I6(i, j, k) += N;
-                            N = ComputeEvents(I4(i, j, k), p, 2); I4(i, j, k) = max(0.0, I4(i, j, k) - N); I5(i, j, k) += N;
-                            N = ComputeEvents(I3(i, j, k), p, 2); I3(i, j, k) = max(0.0, I3(i, j, k) - N); I4(i, j, k) += N;
-                            N = ComputeEvents(I2(i, j, k), p, 2); I2(i, j, k) = max(0.0, I2(i, j, k) - N); I3(i, j, k) += N;
-                            N = ComputeEvents(I1(i, j, k), p, 2); I1(i, j, k) = max(0.0, I1(i, j, k) - N); I2(i, j, k) += N;
-                            N = ComputeEvents(I0(i, j, k), p, 2); I0(i, j, k) = max(0.0, I0(i, j, k) - N); I1(i, j, k) += N;
-                        }
-
-                        // Infectons //////////////////////////////////////////////////////////////////
-                        if ((Occ(i, j, k) >= 1) and (P(i, j, k) >= 1)) {
-                            double s;   // The factor which modifies the adsorption rate
-                            double n;   // The number of targets the phage has
-
-                            if (clustering) {   // Check if clustering is enabled
-                                s = pow(Occ(i, j, k) / nC(i, j, k), 1.0 / 3.0);
-                                n = nC(i, j, k);
-                            } else {            // Else use mean field computation
-                                s = 1.0;
-                                n = Occ(i, j, k);
-                            }
-
-                            // Compute the number of hits
-                            if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
-                                N = P(i, j, k);
-                            } else {
-                                p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(P(i, j, k), p, 4);     // Number of targets hit
-                            }
-
-                            // If bacteria were hit, update events
-                            if ((N + M) >= 1) {
-
-                                P(i, j, k)    = max(0.0, P(i, j, k) - N);     // Update count
-
-                                double S;
-                                if (shielding) {
-                                    // Absorbing medium model
-                                    double d = pow(Occ(i, j, k) / nC(i, j, k), 1.0 / 3.0) - pow(B(i, j, k) / nC(i, j, k), 1.0 / 3.0);
-                                    S = exp(-zeta*d); // Probability of hitting succebtible target
-
-                                } else {
-                                    // Well mixed model
-                                    S = B(i, j, k) / Occ(i, j, k);
-                                }
-
-                                p = max(0.0, min(B(i, j, k) / Occ(i, j, k), S)); // Probability of hitting succebtible target
-                                N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
-
-                                if (N > B(i, j, k)) N = B(i, j, k);              // If more bacteria than present are set to be infeced, round down
-
-                                // Update the counts
-                                B(i, j, k)      = max(0.0, B(i, j, k) - N);
-                                if (r > 0.0) {
-                                    I0_new(i, j, k) += N;
-                                } else {
-                                    P_new(i, k, k) += N * (1 - alpha) * Beta;
-                                }
-                            }
-                        }
-
-                        // Phage Decay ////////////////////////////////////////////////////////////////
-                        p = delta*dT;
-                        if ((p > 0.1) and (!Warn_delta)) {
-                            cout << "\tWarning: Decay Probability Large!" << "\n";
-                            f_log  << "Warning: Decay Probability Large!" << "\n";
-                            Warn_delta = true;
-                        }
-                        N = ComputeEvents(P(i, j, k), p, 5);
-
-                        // Update count
-                        P(i, j, k)    = max(0.0, P(i, j, k) - N);
-
-
-                        // Movement ///////////////////////////////////////////////////////////////////
-                        if (nGridXY > 1) {
-
-                            // Update positions
-                            uword ip, jp, kp, im, jm, km;
-
-                            if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-                            else ip = i + 1;
-
-                            if (i == 0) im = nGridXY - 1;
-                            else im = i - 1;
-
-                            if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-                            else jp = j + 1;
-
-                            if (j == 0) jm = nGridXY - 1;
-                            else jm = j - 1;
-
-                            if (not experimentalConditions) {   // Periodic boundaries in Z direction
-
-                                if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-                                else kp = k + 1;
-
-                                if (k == 0) km = nGridZ - 1;
-                                else km = k - 1;
-
-                            } else {    // Reflective boundaries in Z direction
-
-                                if (k + 1 >= nGridZ) kp = k - 1;
-                                else kp = k + 1;
-
-                                if (k == 0) km = k + 1;
-                                else km = k - 1;
-
-                            }
-
-                            // Update counts
-                            double n_0; // No movement
-                            double n_u; // Up
-                            double n_d; // Down
-                            double n_l; // Left
-                            double n_r; // Right
-                            double n_f; // Front
-                            double n_b; // Back
-
-
-                            // CELLS
-                            ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
-                            B_new(i, j, k) += n_0; B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
-
-                            if (r > 0.0) {
-                                ComputeDiffusion(I0(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I0_new(i, j, k) += n_0; I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I1(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I1_new(i, j, k) += n_0; I1_new(ip, j, k) += n_u; I1_new(im, j, k) += n_d; I1_new(i, jp, k) += n_r; I1_new(i, jm, k) += n_l; I1_new(i, j, kp) += n_f; I1_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I2(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I2_new(i, j, k) += n_0; I2_new(ip, j, k) += n_u; I2_new(im, j, k) += n_d; I2_new(i, jp, k) += n_r; I2_new(i, jm, k) += n_l; I2_new(i, j, kp) += n_f; I2_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I3(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I3_new(i, j, k) += n_0; I3_new(ip, j, k) += n_u; I3_new(im, j, k) += n_d; I3_new(i, jp, k) += n_r; I3_new(i, jm, k) += n_l; I3_new(i, j, kp) += n_f; I3_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I4(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I4_new(i, j, k) += n_0; I4_new(ip, j, k) += n_u; I4_new(im, j, k) += n_d; I4_new(i, jp, k) += n_r; I4_new(i, jm, k) += n_l; I4_new(i, j, kp) += n_f; I4_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I5(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I5_new(i, j, k) += n_0; I5_new(ip, j, k) += n_u; I5_new(im, j, k) += n_d; I5_new(i, jp, k) += n_r; I5_new(i, jm, k) += n_l; I5_new(i, j, kp) += n_f; I5_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I6(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I6_new(i, j, k) += n_0; I6_new(ip, j, k) += n_u; I6_new(im, j, k) += n_d; I6_new(i, jp, k) += n_r; I6_new(i, jm, k) += n_l; I6_new(i, j, kp) += n_f; I6_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I7(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I7_new(i, j, k) += n_0; I7_new(ip, j, k) += n_u; I7_new(im, j, k) += n_d; I7_new(i, jp, k) += n_r; I7_new(i, jm, k) += n_l; I7_new(i, j, kp) += n_f; I7_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I8(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I8_new(i, j, k) += n_0; I8_new(ip, j, k) += n_u; I8_new(im, j, k) += n_d; I8_new(i, jp, k) += n_r; I8_new(i, jm, k) += n_l; I8_new(i, j, kp) += n_f; I8_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I9_new(i, j, k) += n_0; I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
-                            }
-
-                            // PHAGES
-                            ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
-                            P_new(i, j, k) += n_0; P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
-
-
-
-                        } else {
-                            // CELLS
-                            B_new += B;
-
-                            if (r > 0.0) {
-                                I0_new += I0;
-                                I1_new += I1;
-                                I2_new += I2;
-                                I3_new += I3;
-                                I4_new += I4;
-                                I5_new += I5;
-                                I6_new += I6;
-                                I7_new += I7;
-                                I8_new += I8;
-                                I9_new += I9;
-                            }
-
-                            // PHAGES
-                            P_new += P;
-                        }
-                    }
-                }
-            }
-
-            // Update arrays
-            B.swap(B_new);      B_new.zeros();
-            I0.swap(I0_new);    I0_new.zeros();
-            I1.swap(I1_new);    I1_new.zeros();
-            I2.swap(I2_new);    I2_new.zeros();
-            I3.swap(I3_new);    I3_new.zeros();
-            I4.swap(I4_new);    I4_new.zeros();
-            I5.swap(I5_new);    I5_new.zeros();
-            I6.swap(I6_new);    I6_new.zeros();
-            I7.swap(I7_new);    I7_new.zeros();
-            I8.swap(I8_new);    I8_new.zeros();
-            I9.swap(I9_new);    I9_new.zeros();
-            P.swap(P_new);      P_new.zeros();
-
-            // Update occupancy
-            Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
-
-            // NUTRIENT DIFFUSION
-            // Create copy of nutrient to store the diffusion update
-            cube nn = nutrient;
-            assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
-            assert(2 * D_n * dT / pow( H / (double)nGridZ, 2) <= 1);
-
-            // Compute the X & Y diffusion
-            for (uword k = 0; k < nGridZ; k++) {
-                nutrient.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
-            }
-
-            // Compute the Z diffusion
-            for (uword i = 0; i < nGridXY; i++) {
-                mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
-
-                for (uword k = 0; k < Q.n_cols; k++) {
-                    for (uword j = 0; j < Q.n_rows; j++) {
-                        nutrient(i, j, k) += Q(j,k);
-                        nutrient(i, j, k) = max(0.0, nutrient(i, j, k));
-                    }
-                }
-            }
-
-            if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
-                cout << "\tWarning: Maximum Density Large!" << "\n";
-                f_log  << "Warning: Maximum Density Large!" << "\n";
-                Warn_density = true;
-            }
-        }
-
-        // Fast exit conditions
-        // 1) There are no more sucebtible cells
-        // -> Convert all infected cells to phages and stop simulation
-        if ((fastExit) and (accu(B) < 1)) {
-            P += (1-alpha)*beta * (I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9);
-            I0.zeros();
-            I1.zeros();
-            I2.zeros();
-            I3.zeros();
-            I4.zeros();
-            I5.zeros();
-            I6.zeros();
-            I7.zeros();
-            I8.zeros();
-            I9.zeros();
-            exit = true;
-        }
-
-        // 2) There are no more alive cells
-        // -> Stop simulation
-
-        if ((fastExit) and (accu(Occ) < 1)) {
-            exit = true;
-        }
-
-        // 3) The food is on average less than one per gridpoint
-        // and the maximal nutrient at any point in space is less than 1
-
-        if (fastExit) {
-            if  ((accu(nutrient) < nGridZ*pow(nGridXY,2)) and (nutrient.max() < 0.5)) {
-                exit = true;
-            }
-        }
-
-        // Store the state
-        ExportData(T);
-
-        // Check for nutrient stability
-        assert(accu(nutrient) >= 0);
-        assert(accu(nutrient) <= n_0 * L * L * H);
-    }
-
-    // Get stop time
-    time_t  toc;
-    time(&toc);
-
-    // Calculate time difference
-    float seconds = difftime(toc, tic);
-    float hours   = floor(seconds/3600);
-    float minutes = floor(seconds/60);
-    minutes -= hours*60;
-    seconds -= minutes*60 + hours*3600;
-
-    cout << "\n";
-    cout << "\tSimulation complete after ";
-    if (hours > 0.0)   cout << hours   << " hours and ";
-    if (minutes > 0.0) cout << minutes << " minutes and ";
-    cout  << seconds << " seconds." << "\n";
-
-    std::ofstream f_out;
-    f_out.open(GetPath() + "/Completed.txt",fstream::trunc);
-    f_out << "\tSimulation complete after ";
-    if (hours > 0.0)   f_out << hours   << " hours and ";
-    if (minutes > 0.0) f_out << minutes << " minutes and ";
-    f_out  << seconds << " seconds." << "\n";
-    f_out.flush();
-    f_out.close();
-
-    // Write sucess to log
-    if (exit) {
-        f_log << ">>Simulation completed with exit flag<<" << "\n";
-    } else {
-        f_log << ">>Simulation completed without exit flag<<" << "\n";
-    }
-
-    if (true) {
-    std::ofstream f_timing;
-    // cout << "\n";
-    f_timing << "\t"       << setw(3) << difftime(toc, tic) << " s of total time" << "\n";
-
-    f_timing.flush();
-    f_timing.close();
-    // cout << "\t----------------------------------------------------"<< "\n" << "\n" << "\n";
-    }
-
-    if (exit) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
 int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
     this->T_end = T_end;
@@ -559,26 +110,26 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
             // Reset density counter
             double maxOccupancy = 0.0;
 
-            for (uword k = 0; k < nGridZ; k++ ) {
+            for (int k = 0; k < nGridZ; k++ ) {
                 if (exit) break;
 
-                for (uword j = 0; j < nGridXY; j++ ) {
+                for (int j = 0; j < nGridXY; j++ ) {
                     if (exit) break;
 
-                    for (uword i = 0; i < nGridXY; i++) {
+                    for (int i = 0; i < nGridXY; i++) {
                         if (exit) break;
 
                         // Ensure nC is updated
-                        if (Occ(i, j, k) < nC(i, j, k)) nC(i,j,k) = Occ(i, j, k);
+                        if (arr_Occ[i][j][k] < arr_nC[i][j][k]) arr_nC[i][j][k] = arr_Occ[i][j][k];
 
                         // Skip empty sites
-                        if ((Occ(i, j, k) < 1) and (P(i, j, k) < 1)) continue;
+                        if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
 
                         // Record the maximum observed density
-                        if (Occ(i, j, k) > maxOccupancy) maxOccupancy = Occ(i, j, k);
+                        if (arr_Occ[i][j][k] > maxOccupancy) maxOccupancy = arr_Occ[i][j][k];
 
                         // Compute the growth modifier
-                        double growthModifier = nutrient(i, j, k) / (nutrient(i, j, k) + K);
+                        double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
 
                         // Compute beta
                         double Beta = beta;
@@ -592,7 +143,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
                         // Birth //////////////////////////////////////////////////////////////////////
                         p = g*growthModifier*dT;
-                        if (nutrient(i, j, k) < 1) p = 0;
+                        if (arr_nutrient[i][j][k] < 1) p = 0;
 
                         if ((p > 0.1) and (!Warn_g)) {
                             cout << "\tWarning: Birth Probability Large!" << "\n";
@@ -600,22 +151,22 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             Warn_g = true;
                         }
 
-                        N = ComputeEvents(B(i, j, k), p, 1);
+                        N = ComputeEvents(arr_B[i][j][k], p, 1);
 
                         // Ensure there is enough nutrient
-                        if ( N > nutrient(i, j, k) ) {
+                        if ( N > arr_nutrient[i][j][k] ) {
                             if (!Warn_fastGrowth) {
                                 cout << "\tWarning: Colonies growing too fast!" << "\n";
                                 f_log  << "Warning: Colonies growing too fast!" << "\n";
                                 Warn_fastGrowth = true;
                             }
 
-                            N = round( nutrient(i, j, k) );
+                            N = round( arr_nutrient[i][j][k] );
                         }
 
                         // Update count
-                        B_new(i, j, k) += N;
-                        nutrient(i, j, k) = max(0.0, nutrient(i, j, k) - N);
+                        arr_B_new[i][j][k] += N;
+                        arr_nutrient[i][j][k] = max(0.0, arr_nutrient[i][j][k] - N);
 
                         // Increase Infections ////////////////////////////////////////////////////////
                         if (r > 0.0) {
@@ -625,74 +176,74 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                                 f_log  << "Warning: Infection Increase Probability Large!" << "\n";
                                 Warn_r = true;
                             }
-                            N = ComputeEvents(I9(i, j, k), p, 2);  // Bursting events
+                            N = ComputeEvents(arr_I9[i][j][k], p, 2);  // Bursting events
 
                             // Update count
-                            I9(i, j, k)    = max(0.0, I9(i, j, k) - N);
-                            Occ(i, j, k)   = max(0.0, Occ(i, j, k) - N);
-                            P_new(i, j, k) += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+                            arr_I9[i][j][k]    = max(0.0, arr_I9[i][j][k] - N);
+                            arr_Occ[i][j][k]   = max(0.0, arr_Occ[i][j][k] - N);
+                            arr_P_new[i][j][k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
                             M = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
-                            N = ComputeEvents(I8(i, j, k), p, 2); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
-                            N = ComputeEvents(I7(i, j, k), p, 2); I7(i, j, k) = max(0.0, I7(i, j, k) - N); I8(i, j, k) += N;
-                            N = ComputeEvents(I6(i, j, k), p, 2); I6(i, j, k) = max(0.0, I6(i, j, k) - N); I7(i, j, k) += N;
-                            N = ComputeEvents(I5(i, j, k), p, 2); I5(i, j, k) = max(0.0, I5(i, j, k) - N); I6(i, j, k) += N;
-                            N = ComputeEvents(I4(i, j, k), p, 2); I4(i, j, k) = max(0.0, I4(i, j, k) - N); I5(i, j, k) += N;
-                            N = ComputeEvents(I3(i, j, k), p, 2); I3(i, j, k) = max(0.0, I3(i, j, k) - N); I4(i, j, k) += N;
-                            N = ComputeEvents(I2(i, j, k), p, 2); I2(i, j, k) = max(0.0, I2(i, j, k) - N); I3(i, j, k) += N;
-                            N = ComputeEvents(I1(i, j, k), p, 2); I1(i, j, k) = max(0.0, I1(i, j, k) - N); I2(i, j, k) += N;
-                            N = ComputeEvents(I0(i, j, k), p, 2); I0(i, j, k) = max(0.0, I0(i, j, k) - N); I1(i, j, k) += N;
+                            N = ComputeEvents(arr_I8[i][j][k], p, 2); arr_I8[i][j][k] = max(0.0, arr_I8[i][j][k] - N); arr_I9[i][j][k] += N;
+                            N = ComputeEvents(arr_I7[i][j][k], p, 2); arr_I7[i][j][k] = max(0.0, arr_I7[i][j][k] - N); arr_I8[i][j][k] += N;
+                            N = ComputeEvents(arr_I6[i][j][k], p, 2); arr_I6[i][j][k] = max(0.0, arr_I6[i][j][k] - N); arr_I7[i][j][k] += N;
+                            N = ComputeEvents(arr_I5[i][j][k], p, 2); arr_I5[i][j][k] = max(0.0, arr_I5[i][j][k] - N); arr_I6[i][j][k] += N;
+                            N = ComputeEvents(arr_I4[i][j][k], p, 2); arr_I4[i][j][k] = max(0.0, arr_I4[i][j][k] - N); arr_I5[i][j][k] += N;
+                            N = ComputeEvents(arr_I3[i][j][k], p, 2); arr_I3[i][j][k] = max(0.0, arr_I3[i][j][k] - N); arr_I4[i][j][k] += N;
+                            N = ComputeEvents(arr_I2[i][j][k], p, 2); arr_I2[i][j][k] = max(0.0, arr_I2[i][j][k] - N); arr_I3[i][j][k] += N;
+                            N = ComputeEvents(arr_I1[i][j][k], p, 2); arr_I1[i][j][k] = max(0.0, arr_I1[i][j][k] - N); arr_I2[i][j][k] += N;
+                            N = ComputeEvents(arr_I0[i][j][k], p, 2); arr_I0[i][j][k] = max(0.0, arr_I0[i][j][k] - N); arr_I1[i][j][k] += N;
                         }
 
                         // Infectons //////////////////////////////////////////////////////////////////
-                        if ((Occ(i, j, k) >= 1) and (P(i, j, k) >= 1)) {
+                        if ((arr_Occ[i][j][k] >= 1) and (arr_P[i][j][k] >= 1)) {
                             double s;   // The factor which modifies the adsorption rate
                             double n;   // The number of targets the phage has
 
                             if (clustering) {   // Check if clustering is enabled
-                                s = pow(Occ(i, j, k) / nC(i, j, k), 1.0 / 3.0);
-                                n = nC(i, j, k);
+                                s = pow(arr_Occ[i][j][k] / arr_nC[i][j][k], 1.0 / 3.0);
+                                n = arr_nC[i][j][k];
                             } else {            // Else use mean field computation
                                 s = 1.0;
-                                n = Occ(i, j, k);
+                                n = arr_Occ[i][j][k];
                             }
 
                             // Compute the number of hits
                             if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
-                                N = P(i, j, k);
+                                N = arr_P[i][j][k];
                             } else {
                                 p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(P(i, j, k), p, 4);     // Number of targets hit
+                                N = ComputeEvents(arr_P[i][j][k], p, 4);     // Number of targets hit
                             }
 
                             // If bacteria were hit, update events
                             if ((N + M) >= 1) {
 
-                                P(i, j, k)    = max(0.0, P(i, j, k) - N);     // Update count
+                                arr_P[i][j][k]    = max(0.0, arr_P[i][j][k] - N);     // Update count
 
                                 double S;
                                 if (shielding) {
                                     // Absorbing medium model
-                                    double d = pow(Occ(i, j, k) / nC(i, j, k), 1.0 / 3.0) - pow(B(i, j, k) / nC(i, j, k), 1.0 / 3.0);
+                                    double d = pow(arr_Occ[i][j][k] / arr_nC[i][j][k], 1.0 / 3.0) - pow(arr_B[i][j][k] / arr_nC[i][j][k], 1.0 / 3.0);
                                     S = exp(-zeta*d); // Probability of hitting succebtible target
 
                                 } else {
                                     // Well mixed model
-                                    S = B(i, j, k) / Occ(i, j, k);
+                                    S = arr_B[i][j][k] / arr_Occ[i][j][k];
                                 }
 
-                                p = max(0.0, min(B(i, j, k) / Occ(i, j, k), S)); // Probability of hitting succebtible target
+                                p = max(0.0, min(arr_B[i][j][k] / arr_Occ[i][j][k], S)); // Probability of hitting succebtible target
                                 N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
 
-                                if (N > B(i, j, k)) N = B(i, j, k);              // If more bacteria than present are set to be infeced, round down
+                                if (N > arr_B[i][j][k]) N = arr_B[i][j][k];              // If more bacteria than present are set to be infeced, round down
 
                                 // Update the counts
-                                B(i, j, k)      = max(0.0, B(i, j, k) - N);
+                                arr_B[i][j][k]      = max(0.0, arr_B[i][j][k] - N);
                                 if (r > 0.0) {
-                                    I0_new(i, j, k) += N;
+                                    arr_I0_new[i][j][k] += N;
                                 } else {
-                                    P_new(i, k, k) += N * (1 - alpha) * Beta;
+                                    arr_P_new[i][j][k] += N * (1 - alpha) * Beta;
                                 }
                             }
                         }
@@ -704,17 +255,17 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             f_log  << "Warning: Decay Probability Large!" << "\n";
                             Warn_delta = true;
                         }
-                        N = ComputeEvents(P(i, j, k), p, 5);
+                        N = ComputeEvents(arr_P[i][j][k], p, 5);
 
                         // Update count
-                        P(i, j, k)    = max(0.0, P(i, j, k) - N);
+                        arr_P[i][j][k]    = max(0.0, arr_P[i][j][k] - N);
 
 
                         // Movement ///////////////////////////////////////////////////////////////////
                         if (nGridXY > 1) {
 
                             // Update positions
-                            uword ip, jp, kp, im, jm, km;
+                            int ip, jp, kp, im, jm, km;
 
                             if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
                             else ip = i + 1;
@@ -757,97 +308,160 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
 
                             // CELLS
-                            ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
-                            B_new(i, j, k) += n_0; B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
+                            ComputeDiffusion(arr_B[i][j][k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
+                            arr_B_new[i][j][k] += n_0; arr_B_new[ip][j][k] += n_u; arr_B_new[im][j][k] += n_d; arr_B_new[i][jp][k] += n_r; arr_B_new[i][jm][k] += n_l; arr_B_new[i][j][kp] += n_f; arr_B_new[i][j][km] += n_b;
 
                             if (r > 0.0) {
-                                ComputeDiffusion(I0(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I0_new(i, j, k) += n_0; I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I0[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I0_new[i][j][k] += n_0; arr_I0_new[ip][j][k] += n_u; arr_I0_new[im][j][k] += n_d; arr_I0_new[i][jp][k] += n_r; arr_I0_new[i][jm][k] += n_l; arr_I0_new[i][j][kp] += n_f; arr_I0_new[i][j][km] += n_b;
 
-                                ComputeDiffusion(I1(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I1_new(i, j, k) += n_0; I1_new(ip, j, k) += n_u; I1_new(im, j, k) += n_d; I1_new(i, jp, k) += n_r; I1_new(i, jm, k) += n_l; I1_new(i, j, kp) += n_f; I1_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I1[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I1_new[i][j][k] += n_0; arr_I1_new[ip][j][k] += n_u; arr_I1_new[im][j][k] += n_d; arr_I1_new[i][jp][k] += n_r; arr_I1_new[i][jm][k] += n_l; arr_I1_new[i][j][kp] += n_f; arr_I1_new[i][j][km] += n_b;
 
-                                ComputeDiffusion(I2(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I2_new(i, j, k) += n_0; I2_new(ip, j, k) += n_u; I2_new(im, j, k) += n_d; I2_new(i, jp, k) += n_r; I2_new(i, jm, k) += n_l; I2_new(i, j, kp) += n_f; I2_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I2[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I2_new[i][j][k] += n_0; arr_I2_new[ip][j][k] += n_u; arr_I2_new[im][j][k] += n_d; arr_I2_new[i][jp][k] += n_r; arr_I2_new[i][jm][k] += n_l; arr_I2_new[i][j][kp] += n_f; arr_I2_new[i][j][km] += n_b;
 
-                                ComputeDiffusion(I3(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I3_new(i, j, k) += n_0; I3_new(ip, j, k) += n_u; I3_new(im, j, k) += n_d; I3_new(i, jp, k) += n_r; I3_new(i, jm, k) += n_l; I3_new(i, j, kp) += n_f; I3_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I3[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I3_new[i][j][k] += n_0; arr_I3_new[ip][j][k] += n_u; arr_I3_new[im][j][k] += n_d; arr_I3_new[i][jp][k] += n_r; arr_I3_new[i][jm][k] += n_l; arr_I3_new[i][j][kp] += n_f; arr_I3_new[i][j][km] += n_b;
 
-                                ComputeDiffusion(I4(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I4_new(i, j, k) += n_0; I4_new(ip, j, k) += n_u; I4_new(im, j, k) += n_d; I4_new(i, jp, k) += n_r; I4_new(i, jm, k) += n_l; I4_new(i, j, kp) += n_f; I4_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I4[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I4_new[i][j][k] += n_0; arr_I4_new[ip][j][k] += n_u; arr_I4_new[im][j][k] += n_d; arr_I4_new[i][jp][k] += n_r; arr_I4_new[i][jm][k] += n_l; arr_I4_new[i][j][kp] += n_f; arr_I4_new[i][j][km] += n_b;
 
-                                ComputeDiffusion(I5(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I5_new(i, j, k) += n_0; I5_new(ip, j, k) += n_u; I5_new(im, j, k) += n_d; I5_new(i, jp, k) += n_r; I5_new(i, jm, k) += n_l; I5_new(i, j, kp) += n_f; I5_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I5[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I5_new[i][j][k] += n_0; arr_I5_new[ip][j][k] += n_u; arr_I5_new[im][j][k] += n_d; arr_I5_new[i][jp][k] += n_r; arr_I5_new[i][jm][k] += n_l; arr_I5_new[i][j][kp] += n_f; arr_I5_new[i][j][km] += n_b;
 
-                                ComputeDiffusion(I6(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I6_new(i, j, k) += n_0; I6_new(ip, j, k) += n_u; I6_new(im, j, k) += n_d; I6_new(i, jp, k) += n_r; I6_new(i, jm, k) += n_l; I6_new(i, j, kp) += n_f; I6_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I6[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I6_new[i][j][k] += n_0; arr_I6_new[ip][j][k] += n_u; arr_I6_new[im][j][k] += n_d; arr_I6_new[i][jp][k] += n_r; arr_I6_new[i][jm][k] += n_l; arr_I6_new[i][j][kp] += n_f; arr_I6_new[i][j][km] += n_b;
 
-                                ComputeDiffusion(I7(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I7_new(i, j, k) += n_0; I7_new(ip, j, k) += n_u; I7_new(im, j, k) += n_d; I7_new(i, jp, k) += n_r; I7_new(i, jm, k) += n_l; I7_new(i, j, kp) += n_f; I7_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I7[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I7_new[i][j][k] += n_0; arr_I7_new[ip][j][k] += n_u; arr_I7_new[im][j][k] += n_d; arr_I7_new[i][jp][k] += n_r; arr_I7_new[i][jm][k] += n_l; arr_I7_new[i][j][kp] += n_f; arr_I7_new[i][j][km] += n_b;
 
-                                ComputeDiffusion(I8(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I8_new(i, j, k) += n_0; I8_new(ip, j, k) += n_u; I8_new(im, j, k) += n_d; I8_new(i, jp, k) += n_r; I8_new(i, jm, k) += n_l; I8_new(i, j, kp) += n_f; I8_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I8[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I8_new[i][j][k] += n_0; arr_I8_new[ip][j][k] += n_u; arr_I8_new[im][j][k] += n_d; arr_I8_new[i][jp][k] += n_r; arr_I8_new[i][jm][k] += n_l; arr_I8_new[i][j][kp] += n_f; arr_I8_new[i][j][km] += n_b;
 
-                                ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I9_new(i, j, k) += n_0; I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
+                                ComputeDiffusion(arr_I9[i][j][k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                arr_I9_new[i][j][k] += n_0; arr_I9_new[ip][j][k] += n_u; arr_I9_new[im][j][k] += n_d; arr_I9_new[i][jp][k] += n_r; arr_I9_new[i][jm][k] += n_l; arr_I9_new[i][j][kp] += n_f; arr_I9_new[i][j][km] += n_b;
                             }
 
                             // PHAGES
-                            ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
-                            P_new(i, j, k) += n_0; P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
+                            ComputeDiffusion(arr_P[i][j][k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
+                            arr_P_new[i][j][k] += n_0; arr_P_new[ip][j][k] += n_u; arr_P_new[im][j][k] += n_d; arr_P_new[i][jp][k] += n_r; arr_P_new[i][jm][k] += n_l; arr_P_new[i][j][kp] += n_f; arr_P_new[i][j][km] += n_b;
 
 
 
                         } else {
                             // CELLS
-                            B_new += B;
+                            arr_B_new[i][j][k] += arr_B[i][j][k];
 
                             if (r > 0.0) {
-                                I0_new += I0;
-                                I1_new += I1;
-                                I2_new += I2;
-                                I3_new += I3;
-                                I4_new += I4;
-                                I5_new += I5;
-                                I6_new += I6;
-                                I7_new += I7;
-                                I8_new += I8;
-                                I9_new += I9;
+                                arr_I0_new[i][j][k] += arr_I0[i][j][k];
+                                arr_I1_new[i][j][k] += arr_I1[i][j][k];
+                                arr_I2_new[i][j][k] += arr_I2[i][j][k];
+                                arr_I3_new[i][j][k] += arr_I3[i][j][k];
+                                arr_I4_new[i][j][k] += arr_I4[i][j][k];
+                                arr_I5_new[i][j][k] += arr_I5[i][j][k];
+                                arr_I6_new[i][j][k] += arr_I6[i][j][k];
+                                arr_I7_new[i][j][k] += arr_I7[i][j][k];
+                                arr_I8_new[i][j][k] += arr_I8[i][j][k];
+                                arr_I9_new[i][j][k] += arr_I9[i][j][k];
                             }
 
                             // PHAGES
-                            P_new += P;
+                            arr_P_new[i][j][k] += arr_P[i][j][k];
                         }
                     }
                 }
             }
 
-            // Update arrays
-            B.swap(B_new);      B_new.zeros();
-            I0.swap(I0_new);    I0_new.zeros();
-            I1.swap(I1_new);    I1_new.zeros();
-            I2.swap(I2_new);    I2_new.zeros();
-            I3.swap(I3_new);    I3_new.zeros();
-            I4.swap(I4_new);    I4_new.zeros();
-            I5.swap(I5_new);    I5_new.zeros();
-            I6.swap(I6_new);    I6_new.zeros();
-            I7.swap(I7_new);    I7_new.zeros();
-            I8.swap(I8_new);    I8_new.zeros();
-            I9.swap(I9_new);    I9_new.zeros();
-            P.swap(P_new);      P_new.zeros();
+            // Swap pointers
+            double***tmpB = arr_B;
+            arr_B = arr_B_new;
+            arr_B_new = tmpB;
+
+            double***tmpI0 = arr_I0;
+            arr_I0 = arr_I0_new;
+            arr_I0_new = tmpI0;
+
+            double***tmpI1 = arr_I1;
+            arr_I1 = arr_I1_new;
+            arr_I1_new = tmpI1;
+
+            double***tmpI2 = arr_I2;
+            arr_I2 = arr_I2_new;
+            arr_I2_new = tmpI2;
+
+            double***tmpI3 = arr_I3;
+            arr_I3 = arr_I3_new;
+            arr_I3_new = tmpI3;
+
+            double***tmpI4 = arr_I4;
+            arr_I4 = arr_I4_new;
+            arr_I4_new = tmpI4;
+
+            double***tmpI5 = arr_I5;
+            arr_I5 = arr_I5_new;
+            arr_I5_new = tmpI5;
+
+            double***tmpI6 = arr_I6;
+            arr_I6 = arr_I6_new;
+            arr_I6_new = tmpI6;
+
+            double***tmpI7 = arr_I7;
+            arr_I7 = arr_I7_new;
+            arr_I7_new = tmpI7;
+
+            double***tmpI8 = arr_I8;
+            arr_I8 = arr_I8_new;
+            arr_I8_new = tmpI8;
+
+            double***tmpI9 = arr_I9;
+            arr_I9 = arr_I9_new;
+            arr_I9_new = tmpI9;
+
+            double***tmpP = arr_P;
+            arr_P = arr_P_new;
+            arr_P_new = tmpP;
+
+            // Zero the _new arrays
+            for (int k = 0; k < nGridZ; k++ ) {
+                for (int j = 0; j < nGridXY; j++ ) {
+                    for (int i = 0; i < nGridXY; i++) {
+                        arr_B[i][j][k]  = 0.0;
+                        arr_I0[i][j][k] = 0.0;
+                        arr_I1[i][j][k] = 0.0;
+                        arr_I2[i][j][k] = 0.0;
+                        arr_I3[i][j][k] = 0.0;
+                        arr_I4[i][j][k] = 0.0;
+                        arr_I5[i][j][k] = 0.0;
+                        arr_I6[i][j][k] = 0.0;
+                        arr_I7[i][j][k] = 0.0;
+                        arr_I8[i][j][k] = 0.0;
+                        arr_I9[i][j][k] = 0.0;
+                        arr_P[i][j][k]  = 0.0;
+                    }
+                }
+            }
+
 
             // Update occupancy
-            Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
+            for (int k = 0; k < nGridZ; k++ ) {
+                for (int j = 0; j < nGridXY; j++ ) {
+                    for (int i = 0; i < nGridXY; i++) {
+                        arr_Occ[i][j][k] = arr_B[i][j][k] + arr_I0[i][j][k] + arr_I1[i][j][k] + arr_I2[i][j][k] + arr_I3[i][j][k] + arr_I4[i][j][k] + arr_I5[i][j][k] + arr_I6[i][j][k] + arr_I7[i][j][k] + arr_I8[i][j][k] + arr_I9[i][j][k];
+                    }
+                }
+            }
+
 
             // NUTRIENT DIFFUSION
             double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
             double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
-            for (uword k = 0; k < nGridZ; k++ ) {
-                for (uword j = 0; j < nGridXY; j++ ) {
-                    for (uword i = 0; i < nGridXY; i++) {
+            for (int k = 0; k < nGridZ; k++ ) {
+                for (int j = 0; j < nGridXY; j++ ) {
+                    for (int i = 0; i < nGridXY; i++) {
 
                         // Update positions
-                        uword ip, jp, kp, im, jm, km;
+                        int ip, jp, kp, im, jm, km;
 
                         if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
                         else ip = i + 1;
@@ -879,20 +493,31 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
                         }
 
-                        double tmp = nutrient(i, j, k);
-                        nutrient_new(i, j, k)  += tmp - 6 * alphaXY * tmp;
-                        nutrient_new(ip, j, k) += alphaXY * tmp;
-                        nutrient_new(im, j, k) += alphaXY * tmp;
-                        nutrient_new(i, jp, k) += alphaXY * tmp;
-                        nutrient_new(i, jm, k) += alphaXY * tmp;
-                        nutrient_new(i, j, kp) += alphaZ  * tmp;
-                        nutrient_new(i, j, km) += alphaZ  * tmp;
+                        double tmp = arr_nutrient[i][j][k];
+                        arr_nutrient_new[i][j][k]  += tmp - 6 * alphaXY * tmp;
+                        arr_nutrient_new[ip][j][k] += alphaXY * tmp;
+                        arr_nutrient_new[im][j][k] += alphaXY * tmp;
+                        arr_nutrient_new[i][jp][k] += alphaXY * tmp;
+                        arr_nutrient_new[i][jm][k] += alphaXY * tmp;
+                        arr_nutrient_new[i][j][kp] += alphaZ  * tmp;
+                        arr_nutrient_new[i][j][km] += alphaZ  * tmp;
                     }
                 }
             }
-            nutrient.swap(nutrient_new);
-            nutrient_new.zeros();
 
+
+            double***tmpN = arr_nutrient;
+            arr_nutrient = arr_nutrient_new;
+            arr_nutrient_new = tmpN;
+
+            // Zero the _new arrays
+            for (int k = 0; k < nGridZ; k++ ) {
+                for (int j = 0; j < nGridXY; j++ ) {
+                    for (int i = 0; i < nGridXY; i++) {
+                        arr_nutrient[i][j][k]  = 0.0;
+                    }
+                }
+            }
 
             if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
                 cout << "\tWarning: Maximum Density Large!" << "\n";
@@ -904,33 +529,81 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
         // Fast exit conditions
         // 1) There are no more sucebtible cells
         // -> Convert all infected cells to phages and stop simulation
-        if ((fastExit) and (accu(B) < 1)) {
-            P += (1-alpha)*beta * (I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9);
-            I0.zeros();
-            I1.zeros();
-            I2.zeros();
-            I3.zeros();
-            I4.zeros();
-            I5.zeros();
-            I6.zeros();
-            I7.zeros();
-            I8.zeros();
-            I9.zeros();
+        double accuB = 0.0;
+        for (int k = 0; k < nGridZ; k++ ) {
+            for (int j = 0; j < nGridXY; j++ ) {
+                for (int i = 0; i < nGridXY; i++) {
+                    accuB += arr_B[i][j][k];
+                }
+            }
+        }
+        if ((fastExit) and (accuB < 1)) {
+            // Update the P array
+            for (int k = 0; k < nGridZ; k++ ) {
+                for (int j = 0; j < nGridXY; j++ ) {
+                    for (int i = 0; i < nGridXY; i++) {
+                        arr_P[i][j][k] += (1-alpha)*beta * (arr_I0[i][j][k] + arr_I1[i][j][k] + arr_I2[i][j][k] + arr_I3[i][j][k] + arr_I4[i][j][k] + arr_I5[i][j][k] + arr_I6[i][j][k] + arr_I7[i][j][k] + arr_I8[i][j][k] + arr_I9[i][j][k]);
+                    }
+                }
+            }
+
+
+            // Zero the I arrays
+            for (int k = 0; k < nGridZ; k++ ) {
+                for (int j = 0; j < nGridXY; j++ ) {
+                    for (int i = 0; i < nGridXY; i++) {
+                        arr_I0[i][j][k] = 0.0;
+                        arr_I1[i][j][k] = 0.0;
+                        arr_I2[i][j][k] = 0.0;
+                        arr_I3[i][j][k] = 0.0;
+                        arr_I4[i][j][k] = 0.0;
+                        arr_I5[i][j][k] = 0.0;
+                        arr_I6[i][j][k] = 0.0;
+                        arr_I7[i][j][k] = 0.0;
+                        arr_I8[i][j][k] = 0.0;
+                        arr_I9[i][j][k] = 0.0;
+                    }
+                }
+            }
             exit = true;
         }
 
         // 2) There are no more alive cells
         // -> Stop simulation
 
-        if ((fastExit) and (accu(Occ) < 1)) {
+        double accuOcc = 0.0;
+        for (int k = 0; k < nGridZ; k++ ) {
+            for (int j = 0; j < nGridXY; j++ ) {
+                for (int i = 0; i < nGridXY; i++) {
+                    accuOcc += arr_Occ[i][j][k];
+                }
+            }
+        }
+
+        if ((fastExit) and (accuOcc < 1)) {
             exit = true;
         }
 
         // 3) The food is on average less than one per gridpoint
         // and the maximal nutrient at any point in space is less than 1
 
+        double accuNutrient = 0.0;
+        double maxNutrient  = 0.0;
+        for (int k = 0; k < nGridZ; k++ ) {
+            for (int j = 0; j < nGridXY; j++ ) {
+                for (int i = 0; i < nGridXY; i++) {
+                    double tmpN = arr_nutrient[i][j][k];
+                    accuNutrient += tmpN;
+
+                    if (tmpN > maxNutrient) {
+                        maxNutrient = tmpN;
+                    }
+                }
+            }
+        }
+
         if (fastExit) {
-            if  ((accu(nutrient) < nGridZ*pow(nGridXY,2)) and (nutrient.max() < 0.5)) {
+            if  ((accuNutrient < nGridZ*pow(nGridXY,2)) && (maxNutrient < 0.5)) {
                 exit = true;
             }
         }
@@ -939,8 +612,8 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
         ExportData(T);
 
         // Check for nutrient stability
-        assert(accu(nutrient) >= 0);
-        assert(accu(nutrient) <= n_0 * L * L * H);
+        assert(accuNutrient >= 0);
+        assert(accuNutrient <= n_0 * L * L * H);
     }
 
     // Get stop time
@@ -994,449 +667,449 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 }
 
 // Controls the evaluation of the simulation
-int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
+// int Colonies3D::Run_LoopDistributed_Sequential(double T_end) {
 
-    this->T_end = T_end;
+//     this->T_end = T_end;
 
-    // Get start time
-    time_t  tic;
-    time(&tic);
+//     // Get start time
+//     time_t  tic;
+//     time(&tic);
 
-    // Generate a path
-    path = GeneratePath();
+//     // Generate a path
+//     path = GeneratePath();
 
-    // Initilize the simulation matrices
-    Initialize();
+//     // Initilize the simulation matrices
+//     Initialize();
 
-    // Export data
-    ExportData(T);
+//     // Export data
+//     ExportData(T);
 
-    // Determine the number of samples to take
-    int nSamplings = nSamp*T_end;
+//     // Determine the number of samples to take
+//     int nSamplings = nSamp*T_end;
 
-    // Loop over samplings
-    for (int n = 0; n < nSamplings; n++) {
-        if (exit) break;
-
-        // Determine the number of timesteps between sampings
-        int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
-
-        for (int t = 0; t < nStepsPerSample; t++) {
-            if (exit) break;
-
-            // Increase time
-            T += dT;
-
-            // Spawn phages
-            if ((T_i >= 0) and (abs(T - T_i) < dT / 2)) {
-                spawnPhages();
-                T_i = -1;
-            }
-
-            // Reset density counter
-            double maxOccupancy = 0.0;
-
-            for (uword k = 0; k < nGridZ; k++ ) {
-                if (exit) break;
-
-                for (uword j = 0; j < nGridXY; j++ ) {
-                    if (exit) break;
-
-                    for (uword i = 0; i < nGridXY; i++) {
-                        if (exit) break;
-
-                        // Ensure nC is updated
-                        if (Occ(i, j, k) < nC(i, j, k)) nC(i,j,k) = Occ(i, j, k);
-
-                        // Skip empty sites
-                        if ((Occ(i, j, k) < 1) and (P(i, j, k) < 1)) continue;
-
-                        // Record the maximum observed density
-                        if (Occ(i, j, k) > maxOccupancy) maxOccupancy = Occ(i, j, k);
-
-                        // Compute the growth modifier
-                        double growthModifier = nutrient(i, j, k) / (nutrient(i, j, k) + K);
-
-                        // Compute beta
-                        double Beta = beta;
-                        if (reducedBeta) {
-                            Beta *= growthModifier;
-                        }
-
-                        double p = 0;
-                        double N = 0;
-                        double M = 0;
-
-                        // Birth //////////////////////////////////////////////////////////////////////
-                        p = g*growthModifier*dT;
-                        if (nutrient(i, j, k) < 1) p = 0;
-
-                        if ((p > 0.1) and (!Warn_g)) {
-                            cout << "\tWarning: Birth Probability Large!" << "\n";
-                            f_log  << "Warning: Birth Probability Large!" << "\n";
-                            Warn_g = true;
-                        }
-
-                        N = ComputeEvents(B(i, j, k), p, 1);
-
-                        // Ensure there is enough nutrient
-                        if ( N > nutrient(i, j, k) ) {
-                            if (!Warn_fastGrowth) {
-                                cout << "\tWarning: Colonies growing too fast!" << "\n";
-                                f_log  << "Warning: Colonies growing too fast!" << "\n";
-                                Warn_fastGrowth = true;
-                            }
-
-                            N = round( nutrient(i, j, k) );
-                        }
-
-                        // Update count
-                        B_new(i, j, k) += N;
-                        nutrient(i, j, k) = max(0.0, nutrient(i, j, k) - N);
-
-                        // Increase Infections ////////////////////////////////////////////////////////
-                        if (r > 0.0) {
-                            p = r*growthModifier*dT;
-                            if ((p > 0.25) and (!Warn_r)) {
-                                cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-                                f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-                                Warn_r = true;
-                            }
-                            N = ComputeEvents(I9(i, j, k), p, 2);  // Bursting events
-
-                            // Update count
-                            I9(i, j, k)    = max(0.0, I9(i, j, k) - N);
-                            Occ(i, j, k)   = max(0.0, Occ(i, j, k) - N);
-                            P_new(i, j, k) += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-                            M = round(alpha * Beta * N);                        // Phages which reinfect the colony
-
-                            // Non-bursting events
-                            N = ComputeEvents(I8(i, j, k), p, 2); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
-                            N = ComputeEvents(I7(i, j, k), p, 2); I7(i, j, k) = max(0.0, I7(i, j, k) - N); I8(i, j, k) += N;
-                            N = ComputeEvents(I6(i, j, k), p, 2); I6(i, j, k) = max(0.0, I6(i, j, k) - N); I7(i, j, k) += N;
-                            N = ComputeEvents(I5(i, j, k), p, 2); I5(i, j, k) = max(0.0, I5(i, j, k) - N); I6(i, j, k) += N;
-                            N = ComputeEvents(I4(i, j, k), p, 2); I4(i, j, k) = max(0.0, I4(i, j, k) - N); I5(i, j, k) += N;
-                            N = ComputeEvents(I3(i, j, k), p, 2); I3(i, j, k) = max(0.0, I3(i, j, k) - N); I4(i, j, k) += N;
-                            N = ComputeEvents(I2(i, j, k), p, 2); I2(i, j, k) = max(0.0, I2(i, j, k) - N); I3(i, j, k) += N;
-                            N = ComputeEvents(I1(i, j, k), p, 2); I1(i, j, k) = max(0.0, I1(i, j, k) - N); I2(i, j, k) += N;
-                            N = ComputeEvents(I0(i, j, k), p, 2); I0(i, j, k) = max(0.0, I0(i, j, k) - N); I1(i, j, k) += N;
-                        }
-
-                        // Infectons //////////////////////////////////////////////////////////////////
-                        if ((Occ(i, j, k) >= 1) and (P(i, j, k) >= 1)) {
-                            double s;   // The factor which modifies the adsorption rate
-                            double n;   // The number of targets the phage has
-
-                            if (clustering) {   // Check if clustering is enabled
-                                s = pow(Occ(i, j, k) / nC(i, j, k), 1.0 / 3.0);
-                                n = nC(i, j, k);
-                            } else {            // Else use mean field computation
-                                s = 1.0;
-                                n = Occ(i, j, k);
-                            }
-
-                            // Compute the number of hits
-                            if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
-                                N = P(i, j, k);
-                            } else {
-                                p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(P(i, j, k), p, 4);     // Number of targets hit
-                            }
-
-                            // If bacteria were hit, update events
-                            if ((N + M) >= 1) {
-
-                                P(i, j, k)    = max(0.0, P(i, j, k) - N);     // Update count
-
-                                double S;
-                                if (shielding) {
-                                    // Absorbing medium model
-                                    double d = pow(Occ(i, j, k) / nC(i, j, k), 1.0 / 3.0) - pow(B(i, j, k) / nC(i, j, k), 1.0 / 3.0);
-                                    S = exp(-zeta*d); // Probability of hitting succebtible target
-
-                                } else {
-                                    // Well mixed model
-                                    S = B(i, j, k) / Occ(i, j, k);
-                                }
-
-                                p = max(0.0, min(B(i, j, k) / Occ(i, j, k), S)); // Probability of hitting succebtible target
-                                N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
-
-                                if (N > B(i, j, k)) N = B(i, j, k);              // If more bacteria than present are set to be infeced, round down
-
-                                // Update the counts
-                                B(i, j, k)      = max(0.0, B(i, j, k) - N);
-                                if (r > 0.0) {
-                                    I0_new(i, j, k) += N;
-                                } else {
-                                    P_new(i, k, k) += N * (1 - alpha) * Beta;
-                                }
-                            }
-                        }
-
-                        // Phage Decay ////////////////////////////////////////////////////////////////
-                        p = delta*dT;
-                        if ((p > 0.1) and (!Warn_delta)) {
-                            cout << "\tWarning: Decay Probability Large!" << "\n";
-                            f_log  << "Warning: Decay Probability Large!" << "\n";
-                            Warn_delta = true;
-                        }
-                        N = ComputeEvents(P(i, j, k), p, 5);
-
-                        // Update count
-                        P(i, j, k)    = max(0.0, P(i, j, k) - N);
-
-
-                        // Movement ///////////////////////////////////////////////////////////////////
-                        if (nGridXY > 1) {
-
-                            // Update positions
-                            uword ip, jp, kp, im, jm, km;
-
-                            if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-                            else ip = i + 1;
-
-                            if (i == 0) im = nGridXY - 1;
-                            else im = i - 1;
-
-                            if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-                            else jp = j + 1;
-
-                            if (j == 0) jm = nGridXY - 1;
-                            else jm = j - 1;
-
-                            if (not experimentalConditions) {   // Periodic boundaries in Z direction
-
-                                if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-                                else kp = k + 1;
-
-                                if (k == 0) km = nGridZ - 1;
-                                else km = k - 1;
-
-                            } else {    // Reflective boundaries in Z direction
-
-                                if (k + 1 >= nGridZ) kp = k - 1;
-                                else kp = k + 1;
-
-                                if (k == 0) km = k + 1;
-                                else km = k - 1;
-
-                            }
-
-                            // Update counts
-                            double n_0; // No movement
-                            double n_u; // Up
-                            double n_d; // Down
-                            double n_l; // Left
-                            double n_r; // Right
-                            double n_f; // Front
-                            double n_b; // Back
-
-
-                            // CELLS
-                            ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
-                            B_new(i, j, k) += n_0; B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
-
-                            if (r > 0.0) {
-                                ComputeDiffusion(I0(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I0_new(i, j, k) += n_0; I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I1(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I1_new(i, j, k) += n_0; I1_new(ip, j, k) += n_u; I1_new(im, j, k) += n_d; I1_new(i, jp, k) += n_r; I1_new(i, jm, k) += n_l; I1_new(i, j, kp) += n_f; I1_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I2(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I2_new(i, j, k) += n_0; I2_new(ip, j, k) += n_u; I2_new(im, j, k) += n_d; I2_new(i, jp, k) += n_r; I2_new(i, jm, k) += n_l; I2_new(i, j, kp) += n_f; I2_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I3(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I3_new(i, j, k) += n_0; I3_new(ip, j, k) += n_u; I3_new(im, j, k) += n_d; I3_new(i, jp, k) += n_r; I3_new(i, jm, k) += n_l; I3_new(i, j, kp) += n_f; I3_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I4(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I4_new(i, j, k) += n_0; I4_new(ip, j, k) += n_u; I4_new(im, j, k) += n_d; I4_new(i, jp, k) += n_r; I4_new(i, jm, k) += n_l; I4_new(i, j, kp) += n_f; I4_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I5(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I5_new(i, j, k) += n_0; I5_new(ip, j, k) += n_u; I5_new(im, j, k) += n_d; I5_new(i, jp, k) += n_r; I5_new(i, jm, k) += n_l; I5_new(i, j, kp) += n_f; I5_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I6(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I6_new(i, j, k) += n_0; I6_new(ip, j, k) += n_u; I6_new(im, j, k) += n_d; I6_new(i, jp, k) += n_r; I6_new(i, jm, k) += n_l; I6_new(i, j, kp) += n_f; I6_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I7(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I7_new(i, j, k) += n_0; I7_new(ip, j, k) += n_u; I7_new(im, j, k) += n_d; I7_new(i, jp, k) += n_r; I7_new(i, jm, k) += n_l; I7_new(i, j, kp) += n_f; I7_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I8(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I8_new(i, j, k) += n_0; I8_new(ip, j, k) += n_u; I8_new(im, j, k) += n_d; I8_new(i, jp, k) += n_r; I8_new(i, jm, k) += n_l; I8_new(i, j, kp) += n_f; I8_new(i, j, km) += n_b;
-
-                                ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
-                                I9_new(i, j, k) += n_0; I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
-                            }
-
-                            // PHAGES
-                            ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
-                            P_new(i, j, k) += n_0; P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
-
-
-
-                        } else {
-                            // CELLS
-                            B_new += B;
-
-                            if (r > 0.0) {
-                                I0_new += I0;
-                                I1_new += I1;
-                                I2_new += I2;
-                                I3_new += I3;
-                                I4_new += I4;
-                                I5_new += I5;
-                                I6_new += I6;
-                                I7_new += I7;
-                                I8_new += I8;
-                                I9_new += I9;
-                            }
-
-                            // PHAGES
-                            P_new += P;
-                        }
-                    }
-                }
-            }
-
-            // Update arrays
-            B.swap(B_new);      B_new.zeros();
-            I0.swap(I0_new);    I0_new.zeros();
-            I1.swap(I1_new);    I1_new.zeros();
-            I2.swap(I2_new);    I2_new.zeros();
-            I3.swap(I3_new);    I3_new.zeros();
-            I4.swap(I4_new);    I4_new.zeros();
-            I5.swap(I5_new);    I5_new.zeros();
-            I6.swap(I6_new);    I6_new.zeros();
-            I7.swap(I7_new);    I7_new.zeros();
-            I8.swap(I8_new);    I8_new.zeros();
-            I9.swap(I9_new);    I9_new.zeros();
-            P.swap(P_new);      P_new.zeros();
-
-            // Update occupancy
-            Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
-
-            // NUTRIENT DIFFUSION
-            // Create copy of nutrient to store the diffusion update
-            cube nn = nutrient;
-            assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
-            assert(2 * D_n * dT / pow( H / (double)nGridZ, 2) <= 1);
-
-            // Compute the X & Y diffusion
-            for (uword k = 0; k < nGridZ; k++) {
-                nutrient.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
-            }
-
-            // Compute the Z diffusion
-            for (uword i = 0; i < nGridXY; i++) {
-                mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
-
-                for (uword k = 0; k < Q.n_cols; k++) {
-                    for (uword j = 0; j < Q.n_rows; j++) {
-                        nutrient(i, j, k) += Q(j,k);
-                        nutrient(i, j, k) = max(0.0, nutrient(i, j, k));
-                    }
-                }
-            }
-
-            if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
-                cout << "\tWarning: Maximum Density Large!" << "\n";
-                f_log  << "Warning: Maximum Density Large!" << "\n";
-                Warn_density = true;
-            }
-        }
-
-        // Fast exit conditions
-        // 1) There are no more sucebtible cells
-        // -> Convert all infected cells to phages and stop simulation
-        if ((fastExit) and (accu(B) < 1)) {
-            P += (1-alpha)*beta * (I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9);
-            I0.zeros();
-            I1.zeros();
-            I2.zeros();
-            I3.zeros();
-            I4.zeros();
-            I5.zeros();
-            I6.zeros();
-            I7.zeros();
-            I8.zeros();
-            I9.zeros();
-            exit = true;
-        }
-
-        // 2) There are no more alive cells
-        // -> Stop simulation
-
-        if ((fastExit) and (accu(Occ) < 1)) {
-            exit = true;
-        }
-
-        // 3) The food is on average less than one per gridpoint
-        // and the maximal nutrient at any point in space is less than 1
-
-        if (fastExit) {
-            if  ((accu(nutrient) < nGridZ*pow(nGridXY,2)) and (nutrient.max() < 0.5)) {
-                exit = true;
-            }
-        }
-
-        // Store the state
-        ExportData(T);
-
-        // Check for nutrient stability
-        assert(accu(nutrient) >= 0);
-        assert(accu(nutrient) <= n_0 * L * L * H);
-    }
-
-    // Get stop time
-    time_t  toc;
-    time(&toc);
-
-    // Calculate time difference
-    float seconds = difftime(toc, tic);
-    float hours   = floor(seconds/3600);
-    float minutes = floor(seconds/60);
-    minutes -= hours*60;
-    seconds -= minutes*60 + hours*3600;
-
-    cout << "\n";
-    cout << "\tSimulation complete after ";
-    if (hours > 0.0)   cout << hours   << " hours and ";
-    if (minutes > 0.0) cout << minutes << " minutes and ";
-    cout  << seconds << " seconds." << "\n";
-
-    std::ofstream f_out;
-    f_out.open(GetPath() + "/Completed.txt",fstream::trunc);
-    f_out << "\tSimulation complete after ";
-    if (hours > 0.0)   f_out << hours   << " hours and ";
-    if (minutes > 0.0) f_out << minutes << " minutes and ";
-    f_out  << seconds << " seconds." << "\n";
-    f_out.flush();
-    f_out.close();
-
-    // Write sucess to log
-    if (exit) {
-        f_log << ">>Simulation completed with exit flag<<" << "\n";
-    } else {
-        f_log << ">>Simulation completed without exit flag<<" << "\n";
-    }
-
-    if (true) {
-    std::ofstream f_timing;
-    // cout << "\n";
-    f_timing << "\t"       << setw(3) << difftime(toc, tic) << " s of total time" << "\n";
-
-    f_timing.flush();
-    f_timing.close();
-    // cout << "\t----------------------------------------------------"<< "\n" << "\n" << "\n";
-    }
-
-    if (exit) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
+//     // Loop over samplings
+//     for (int n = 0; n < nSamplings; n++) {
+//         if (exit) break;
+
+//         // Determine the number of timesteps between sampings
+//         int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
+
+//         for (int t = 0; t < nStepsPerSample; t++) {
+//             if (exit) break;
+
+//             // Increase time
+//             T += dT;
+
+//             // Spawn phages
+//             if ((T_i >= 0) and (abs(T - T_i) < dT / 2)) {
+//                 spawnPhages();
+//                 T_i = -1;
+//             }
+
+//             // Reset density counter
+//             double maxOccupancy = 0.0;
+
+//             for (int k = 0; k < nGridZ; k++ ) {
+//                 if (exit) break;
+
+//                 for (int j = 0; j < nGridXY; j++ ) {
+//                     if (exit) break;
+
+//                     for (int i = 0; i < nGridXY; i++) {
+//                         if (exit) break;
+
+//                         // Ensure nC is updated
+//                         if (Occ[i][j][k] < nC[i][j][k]) nC[i][j][k] = Occ[i][j][k];
+
+//                         // Skip empty sites
+//                         if ((Occ[i][j][k] < 1) and (P[i][j][k] < 1)) continue;
+
+//                         // Record the maximum observed density
+//                         if (Occ[i][j][k] > maxOccupancy) maxOccupancy = Occ[i][j][k];
+
+//                         // Compute the growth modifier
+//                         double growthModifier = nutrient[i][j][k] / (nutrient[i][j][k] + K);
+
+//                         // Compute beta
+//                         double Beta = beta;
+//                         if (reducedBeta) {
+//                             Beta *= growthModifier;
+//                         }
+
+//                         double p = 0;
+//                         double N = 0;
+//                         double M = 0;
+
+//                         // Birth //////////////////////////////////////////////////////////////////////
+//                         p = g*growthModifier*dT;
+//                         if (nutrient[i][j][k] < 1) p = 0;
+
+//                         if ((p > 0.1) and (!Warn_g)) {
+//                             cout << "\tWarning: Birth Probability Large!" << "\n";
+//                             f_log  << "Warning: Birth Probability Large!" << "\n";
+//                             Warn_g = true;
+//                         }
+
+//                         N = ComputeEvents(B[i][j][k], p, 1);
+
+//                         // Ensure there is enough nutrient
+//                         if ( N > nutrient[i][j][k] ) {
+//                             if (!Warn_fastGrowth) {
+//                                 cout << "\tWarning: Colonies growing too fast!" << "\n";
+//                                 f_log  << "Warning: Colonies growing too fast!" << "\n";
+//                                 Warn_fastGrowth = true;
+//                             }
+
+//                             N = round( nutrient[i][j][k] );
+//                         }
+
+//                         // Update count
+//                         B_new[i][j][k] += N;
+//                         nutrient[i][j][k] = max(0.0, nutrient[i][j][k] - N);
+
+//                         // Increase Infections ////////////////////////////////////////////////////////
+//                         if (r > 0.0) {
+//                             p = r*growthModifier*dT;
+//                             if ((p > 0.25) and (!Warn_r)) {
+//                                 cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+//                                 f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+//                                 Warn_r = true;
+//                             }
+//                             N = ComputeEvents(I9[i][j][k], p, 2);  // Bursting events
+
+//                             // Update count
+//                             I9[i][j][k]    = max(0.0, I9[i][j][k] - N);
+//                             Occ[i][j][k]   = max(0.0, Occ[i][j][k] - N);
+//                             P_new[i][j][k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+//                             M = round(alpha * Beta * N);                        // Phages which reinfect the colony
+
+//                             // Non-bursting events
+//                             N = ComputeEvents(I8[i][j][k], p, 2); I8[i][j][k] = max(0.0, I8[i][j][k] - N); I9[i][j][k] += N;
+//                             N = ComputeEvents(I7[i][j][k], p, 2); I7[i][j][k] = max(0.0, I7[i][j][k] - N); I8[i][j][k] += N;
+//                             N = ComputeEvents(I6[i][j][k], p, 2); I6[i][j][k] = max(0.0, I6[i][j][k] - N); I7[i][j][k] += N;
+//                             N = ComputeEvents(I5[i][j][k], p, 2); I5[i][j][k] = max(0.0, I5[i][j][k] - N); I6[i][j][k] += N;
+//                             N = ComputeEvents(I4[i][j][k], p, 2); I4[i][j][k] = max(0.0, I4[i][j][k] - N); I5[i][j][k] += N;
+//                             N = ComputeEvents(I3[i][j][k], p, 2); I3[i][j][k] = max(0.0, I3[i][j][k] - N); I4[i][j][k] += N;
+//                             N = ComputeEvents(I2[i][j][k], p, 2); I2[i][j][k] = max(0.0, I2[i][j][k] - N); I3[i][j][k] += N;
+//                             N = ComputeEvents(I1[i][j][k], p, 2); I1[i][j][k] = max(0.0, I1[i][j][k] - N); I2[i][j][k] += N;
+//                             N = ComputeEvents(I0[i][j][k], p, 2); I0[i][j][k] = max(0.0, I0[i][j][k] - N); I1[i][j][k] += N;
+//                         }
+
+//                         // Infectons //////////////////////////////////////////////////////////////////
+//                         if ((Occ[i][j][k] >= 1) and (P[i][j][k] >= 1)) {
+//                             double s;   // The factor which modifies the adsorption rate
+//                             double n;   // The number of targets the phage has
+
+//                             if (clustering) {   // Check if clustering is enabled
+//                                 s = pow(Occ[i][j][k] / nC[i][j][k], 1.0 / 3.0);
+//                                 n = nC[i][j][k];
+//                             } else {            // Else use mean field computation
+//                                 s = 1.0;
+//                                 n = Occ[i][j][k];
+//                             }
+
+//                             // Compute the number of hits
+//                             if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+//                                 N = P[i][j][k];
+//                             } else {
+//                                 p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+//                                 N = ComputeEvents(P[i][j][k], p, 4);     // Number of targets hit
+//                             }
+
+//                             // If bacteria were hit, update events
+//                             if ((N + M) >= 1) {
+
+//                                 P[i][j][k]    = max(0.0, P[i][j][k] - N);     // Update count
+
+//                                 double S;
+//                                 if (shielding) {
+//                                     // Absorbing medium model
+//                                     double d = pow(Occ[i][j][k] / nC[i][j][k], 1.0 / 3.0) - pow(B[i][j][k] / nC[i][j][k], 1.0 / 3.0);
+//                                     S = exp(-zeta*d); // Probability of hitting succebtible target
+
+//                                 } else {
+//                                     // Well mixed model
+//                                     S = B[i][j][k] / Occ[i][j][k];
+//                                 }
+
+//                                 p = max(0.0, min(B[i][j][k] / Occ[i][j][k], S)); // Probability of hitting succebtible target
+//                                 N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
+
+//                                 if (N > B[i][j][k]) N = B[i][j][k];              // If more bacteria than present are set to be infeced, round down
+
+//                                 // Update the counts
+//                                 B[i][j][k]      = max(0.0, B[i][j][k] - N);
+//                                 if (r > 0.0) {
+//                                     I0_new[i][j][k] += N;
+//                                 } else {
+//                                     P_new[i][j][k] += N * (1 - alpha) * Beta;
+//                                 }
+//                             }
+//                         }
+
+//                         // Phage Decay ////////////////////////////////////////////////////////////////
+//                         p = delta*dT;
+//                         if ((p > 0.1) and (!Warn_delta)) {
+//                             cout << "\tWarning: Decay Probability Large!" << "\n";
+//                             f_log  << "Warning: Decay Probability Large!" << "\n";
+//                             Warn_delta = true;
+//                         }
+//                         N = ComputeEvents(P[i][j][k], p, 5);
+
+//                         // Update count
+//                         P[i][j][k]    = max(0.0, P[i][j][k] - N);
+
+
+//                         // Movement ///////////////////////////////////////////////////////////////////
+//                         if (nGridXY > 1) {
+
+//                             // Update positions
+//                             int ip, jp, kp, im, jm, km;
+
+//                             if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+//                             else ip = i + 1;
+
+//                             if (i == 0) im = nGridXY - 1;
+//                             else im = i - 1;
+
+//                             if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+//                             else jp = j + 1;
+
+//                             if (j == 0) jm = nGridXY - 1;
+//                             else jm = j - 1;
+
+//                             if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+//                                 if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+//                                 else kp = k + 1;
+
+//                                 if (k == 0) km = nGridZ - 1;
+//                                 else km = k - 1;
+
+//                             } else {    // Reflective boundaries in Z direction
+
+//                                 if (k + 1 >= nGridZ) kp = k - 1;
+//                                 else kp = k + 1;
+
+//                                 if (k == 0) km = k + 1;
+//                                 else km = k - 1;
+
+//                             }
+
+//                             // Update counts
+//                             double n_0; // No movement
+//                             double n_u; // Up
+//                             double n_d; // Down
+//                             double n_l; // Left
+//                             double n_r; // Right
+//                             double n_f; // Front
+//                             double n_b; // Back
+
+
+//                             // CELLS
+//                             ComputeDiffusion(B[i][j][k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
+//                             B_new[i][j][k] += n_0; B_new[ip][j][k] += n_u; B_new[im][j][k] += n_d; B_new[i][jp][k] += n_r; B_new[i][jm][k] += n_l; B_new[i][j][kp] += n_f; B_new[i][j][km] += n_b;
+
+//                             if (r > 0.0) {
+//                                 ComputeDiffusion(I0[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I0_new[i][j][k] += n_0; I0_new[ip][j][k] += n_u; I0_new[im][j][k] += n_d; I0_new[i][jp][k] += n_r; I0_new[i][jm][k] += n_l; I0_new[i][j][kp] += n_f; I0_new[i][j][km] += n_b;
+
+//                                 ComputeDiffusion(I1[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I1_new[i][j][k] += n_0; I1_new[ip][j][k] += n_u; I1_new[im][j][k] += n_d; I1_new[i][jp][k] += n_r; I1_new[i][jm][k] += n_l; I1_new[i][j][kp] += n_f; I1_new[i][j][km] += n_b;
+
+//                                 ComputeDiffusion(I2[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I2_new[i][j][k] += n_0; I2_new[ip][j][k] += n_u; I2_new[im][j][k] += n_d; I2_new[i][jp][k] += n_r; I2_new[i][jm][k] += n_l; I2_new[i][j][kp] += n_f; I2_new[i][j][km] += n_b;
+
+//                                 ComputeDiffusion(I3[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I3_new[i][j][k] += n_0; I3_new[ip][j][k] += n_u; I3_new[im][j][k] += n_d; I3_new[i][jp][k] += n_r; I3_new[i][jm][k] += n_l; I3_new[i][j][kp] += n_f; I3_new[i][j][km] += n_b;
+
+//                                 ComputeDiffusion(I4[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I4_new[i][j][k] += n_0; I4_new[ip][j][k] += n_u; I4_new[im][j][k] += n_d; I4_new[i][jp][k] += n_r; I4_new[i][jm][k] += n_l; I4_new[i][j][kp] += n_f; I4_new[i][j][km] += n_b;
+
+//                                 ComputeDiffusion(I5[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I5_new[i][j][k] += n_0; I5_new[ip][j][k] += n_u; I5_new[im][j][k] += n_d; I5_new[i][jp][k] += n_r; I5_new[i][jm][k] += n_l; I5_new[i][j][kp] += n_f; I5_new[i][j][km] += n_b;
+
+//                                 ComputeDiffusion(I6[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I6_new[i][j][k] += n_0; I6_new[ip][j][k] += n_u; I6_new[im][j][k] += n_d; I6_new[i][jp][k] += n_r; I6_new[i][jm][k] += n_l; I6_new[i][j][kp] += n_f; I6_new[i][j][km] += n_b;
+
+//                                 ComputeDiffusion(I7[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I7_new[i][j][k] += n_0; I7_new[ip][j][k] += n_u; I7_new[im][j][k] += n_d; I7_new[i][jp][k] += n_r; I7_new[i][jm][k] += n_l; I7_new[i][j][kp] += n_f; I7_new[i][j][km] += n_b;
+
+//                                 ComputeDiffusion(I8[i][j][k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I8_new[i][j][k] += n_0; I8_new[ip][j][k] += n_u; I8_new[im][j][k] += n_d; I8_new[i][jp][k] += n_r; I8_new[i][jm][k] += n_l; I8_new[i][j][kp] += n_f; I8_new[i][j][km] += n_b;
+
+//                                 ComputeDiffusion(I9[i][j][k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+//                                 I9_new[i][j][k] += n_0; I9_new[ip][j][k] += n_u; I9_new[im][j][k] += n_d; I9_new[i][jp][k] += n_r; I9_new[i][jm][k] += n_l; I9_new[i][j][kp] += n_f; I9_new[i][j][km] += n_b;
+//                             }
+
+//                             // PHAGES
+//                             ComputeDiffusion(P[i][j][k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
+//                             P_new[i][j][k] += n_0; P_new[ip][j][k] += n_u; P_new[im][j][k] += n_d; P_new[i][jp][k] += n_r; P_new[i][jm][k] += n_l; P_new[i][j][kp] += n_f; P_new[i][j][km] += n_b;
+
+
+
+//                         } else {
+//                             // CELLS
+//                             B_new += B;
+
+//                             if (r > 0.0) {
+//                                 I0_new += I0;
+//                                 I1_new += I1;
+//                                 I2_new += I2;
+//                                 I3_new += I3;
+//                                 I4_new += I4;
+//                                 I5_new += I5;
+//                                 I6_new += I6;
+//                                 I7_new += I7;
+//                                 I8_new += I8;
+//                                 I9_new += I9;
+//                             }
+
+//                             // PHAGES
+//                             P_new += P;
+//                         }
+//                     }
+//                 }
+//             }
+
+//             // Update arrays
+//             B.swap(B_new);      B_new.zeros();
+//             I0.swap(I0_new);    I0_new.zeros();
+//             I1.swap(I1_new);    I1_new.zeros();
+//             I2.swap(I2_new);    I2_new.zeros();
+//             I3.swap(I3_new);    I3_new.zeros();
+//             I4.swap(I4_new);    I4_new.zeros();
+//             I5.swap(I5_new);    I5_new.zeros();
+//             I6.swap(I6_new);    I6_new.zeros();
+//             I7.swap(I7_new);    I7_new.zeros();
+//             I8.swap(I8_new);    I8_new.zeros();
+//             I9.swap(I9_new);    I9_new.zeros();
+//             P.swap(P_new);      P_new.zeros();
+
+//             // Update occupancy
+//             Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
+
+//             // NUTRIENT DIFFUSION
+//             // Create copy of nutrient to store the diffusion update
+//             cube nn = nutrient;
+//             assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
+//             assert(2 * D_n * dT / pow( H / (double)nGridZ, 2) <= 1);
+
+//             // Compute the X & Y diffusion
+//             for (int k = 0; k < nGridZ; k++) {
+//                 nutrient.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
+//             }
+
+//             // Compute the Z diffusion
+//             for (int i = 0; i < nGridXY; i++) {
+//                 mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
+
+//                 for (int k = 0; k < Q.n_cols; k++) {
+//                     for (int j = 0; j < Q.n_rows; j++) {
+//                         nutrient[i][j][k] += Q(j,k);
+//                         nutrient[i][j][k] = max(0.0, nutrient[i][j][k]);
+//                     }
+//                 }
+//             }
+
+//             if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
+//                 cout << "\tWarning: Maximum Density Large!" << "\n";
+//                 f_log  << "Warning: Maximum Density Large!" << "\n";
+//                 Warn_density = true;
+//             }
+//         }
+
+//         // Fast exit conditions
+//         // 1) There are no more sucebtible cells
+//         // -> Convert all infected cells to phages and stop simulation
+//         if ((fastExit) and (accu(B) < 1)) {
+//             P += (1-alpha)*beta * (I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9);
+//             I0.zeros();
+//             I1.zeros();
+//             I2.zeros();
+//             I3.zeros();
+//             I4.zeros();
+//             I5.zeros();
+//             I6.zeros();
+//             I7.zeros();
+//             I8.zeros();
+//             I9.zeros();
+//             exit = true;
+//         }
+
+//         // 2) There are no more alive cells
+//         // -> Stop simulation
+
+//         if ((fastExit) and (accu(Occ) < 1)) {
+//             exit = true;
+//         }
+
+//         // 3) The food is on average less than one per gridpoint
+//         // and the maximal nutrient at any point in space is less than 1
+
+//         if (fastExit) {
+//             if  ((accu(nutrient) < nGridZ*pow(nGridXY,2)) and (nutrient.max() < 0.5)) {
+//                 exit = true;
+//             }
+//         }
+
+//         // Store the state
+//         ExportData(T);
+
+//         // Check for nutrient stability
+//         assert(accu(nutrient) >= 0);
+//         assert(accu(nutrient) <= n_0 * L * L * H);
+//     }
+
+//     // Get stop time
+//     time_t  toc;
+//     time(&toc);
+
+//     // Calculate time difference
+//     float seconds = difftime(toc, tic);
+//     float hours   = floor(seconds/3600);
+//     float minutes = floor(seconds/60);
+//     minutes -= hours*60;
+//     seconds -= minutes*60 + hours*3600;
+
+//     cout << "\n";
+//     cout << "\tSimulation complete after ";
+//     if (hours > 0.0)   cout << hours   << " hours and ";
+//     if (minutes > 0.0) cout << minutes << " minutes and ";
+//     cout  << seconds << " seconds." << "\n";
+
+//     std::ofstream f_out;
+//     f_out.open(GetPath() + "/Completed.txt",fstream::trunc);
+//     f_out << "\tSimulation complete after ";
+//     if (hours > 0.0)   f_out << hours   << " hours and ";
+//     if (minutes > 0.0) f_out << minutes << " minutes and ";
+//     f_out  << seconds << " seconds." << "\n";
+//     f_out.flush();
+//     f_out.close();
+
+//     // Write sucess to log
+//     if (exit) {
+//         f_log << ">>Simulation completed with exit flag<<" << "\n";
+//     } else {
+//         f_log << ">>Simulation completed without exit flag<<" << "\n";
+//     }
+
+//     if (true) {
+//     std::ofstream f_timing;
+//     // cout << "\n";
+//     f_timing << "\t"       << setw(3) << difftime(toc, tic) << " s of total time" << "\n";
+
+//     f_timing.flush();
+//     f_timing.close();
+//     // cout << "\t----------------------------------------------------"<< "\n" << "\n" << "\n";
+//     }
+
+//     if (exit) {
+//         return 1;
+//     } else {
+//         return 0;
+//     }
+// }
 
 
 // Initialize the simulation
@@ -1459,57 +1132,37 @@ void Colonies3D::Initialize() {
     }
 
     // Allocate the arrays
-    B.zeros(nGridXY, nGridXY, nGridZ);
-    I0.zeros(nGridXY, nGridXY, nGridZ);
-    I1.zeros(nGridXY, nGridXY, nGridZ);
-    I2.zeros(nGridXY, nGridXY, nGridZ);
-    I3.zeros(nGridXY, nGridXY, nGridZ);
-    I4.zeros(nGridXY, nGridXY, nGridZ);
-    I5.zeros(nGridXY, nGridXY, nGridZ);
-    I6.zeros(nGridXY, nGridXY, nGridZ);
-    I7.zeros(nGridXY, nGridXY, nGridZ);
-    I8.zeros(nGridXY, nGridXY, nGridZ);
-    I9.zeros(nGridXY, nGridXY, nGridZ);
-    P.zeros(nGridXY, nGridXY, nGridZ);
-    nC.zeros(nGridXY, nGridXY, nGridZ);
+    // B.zeros(nGridXY, nGridXY, nGridZ);
+    // I0.zeros(nGridXY, nGridXY, nGridZ);
+    // I1.zeros(nGridXY, nGridXY, nGridZ);
+    // I2.zeros(nGridXY, nGridXY, nGridZ);
+    // I3.zeros(nGridXY, nGridXY, nGridZ);
+    // I4.zeros(nGridXY, nGridXY, nGridZ);
+    // I5.zeros(nGridXY, nGridXY, nGridZ);
+    // I6.zeros(nGridXY, nGridXY, nGridZ);
+    // I7.zeros(nGridXY, nGridXY, nGridZ);
+    // I8.zeros(nGridXY, nGridXY, nGridZ);
+    // I9.zeros(nGridXY, nGridXY, nGridZ);
+    // P.zeros(nGridXY, nGridXY, nGridZ);
+    // nC.zeros(nGridXY, nGridXY, nGridZ);
 
-    B_new.zeros(nGridXY, nGridXY, nGridZ);
-    I0_new.zeros(nGridXY, nGridXY, nGridZ);
-    I1_new.zeros(nGridXY, nGridXY, nGridZ);
-    I2_new.zeros(nGridXY, nGridXY, nGridZ);
-    I3_new.zeros(nGridXY, nGridXY, nGridZ);
-    I4_new.zeros(nGridXY, nGridXY, nGridZ);
-    I5_new.zeros(nGridXY, nGridXY, nGridZ);
-    I6_new.zeros(nGridXY, nGridXY, nGridZ);
-    I7_new.zeros(nGridXY, nGridXY, nGridZ);
-    I8_new.zeros(nGridXY, nGridXY, nGridZ);
-    I9_new.zeros(nGridXY, nGridXY, nGridZ);
-    P_new.zeros(nGridXY, nGridXY, nGridZ);
+    // B_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I0_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I1_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I2_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I3_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I4_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I5_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I6_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I7_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I8_new.zeros(nGridXY, nGridXY, nGridZ);
+    // I9_new.zeros(nGridXY, nGridXY, nGridZ);
+    // P_new.zeros(nGridXY, nGridXY, nGridZ);
 
-    nutrient.zeros(nGridXY, nGridXY, nGridZ);
-    nutrient_new.zeros(nGridXY, nGridXY, nGridZ);
+    // nutrient.zeros(nGridXY, nGridXY, nGridZ);
+    // nutrient_new.zeros(nGridXY, nGridXY, nGridZ);
 
-    Occ.zeros(nGridXY, nGridXY, nGridZ);
-
-    // Allocate arrays
-    Arr_B = new double**[nGridXY];
-    for (int i = 0; i < nGridXY; i++) {
-        Arr_B[i] = new double*[nGridXY];
-        for (int j = 0; j < nGridXY; j++) {
-           Arr_B[i][j] = new double[nGridZ];
-           for (int k = 0; k < nGridZ; k++) {
-                Arr_B[i][j][k] = 0.0;
-            }
-        }
-    }
-
-
-
-
-
-
-
-
+    // Occ.zeros(nGridXY, nGridXY, nGridZ);
 
 
 
@@ -1518,74 +1171,204 @@ void Colonies3D::Initialize() {
     double dZ  = H / nGridZ;
     double dV  = dXY * dXY * dZ;
 
+    // Allocate arrays
+    arr_B   = new double**[nGridXY];
+    arr_I0  = new double**[nGridXY];
+    arr_I1  = new double**[nGridXY];
+    arr_I2  = new double**[nGridXY];
+    arr_I3  = new double**[nGridXY];
+    arr_I4  = new double**[nGridXY];
+    arr_I5  = new double**[nGridXY];
+    arr_I6  = new double**[nGridXY];
+    arr_I7  = new double**[nGridXY];
+    arr_I8  = new double**[nGridXY];
+    arr_I9  = new double**[nGridXY];
+    arr_P   = new double**[nGridXY];
+    arr_nC  = new double**[nGridXY];
+
+    arr_B_new   = new double**[nGridXY];
+    arr_I0_new  = new double**[nGridXY];
+    arr_I1_new  = new double**[nGridXY];
+    arr_I2_new  = new double**[nGridXY];
+    arr_I3_new  = new double**[nGridXY];
+    arr_I4_new  = new double**[nGridXY];
+    arr_I5_new  = new double**[nGridXY];
+    arr_I6_new  = new double**[nGridXY];
+    arr_I7_new  = new double**[nGridXY];
+    arr_I8_new  = new double**[nGridXY];
+    arr_I9_new  = new double**[nGridXY];
+    arr_P_new   = new double**[nGridXY];
+
+    arr_nutrient = new double**[nGridXY];
+    arr_Occ      = new double**[nGridXY];
+
+    for (int i = 0; i < nGridXY; i++) {
+
+            arr_B[i]   = new double*[nGridXY];
+            arr_I0[i]  = new double*[nGridXY];
+            arr_I1[i]  = new double*[nGridXY];
+            arr_I2[i]  = new double*[nGridXY];
+            arr_I3[i]  = new double*[nGridXY];
+            arr_I4[i]  = new double*[nGridXY];
+            arr_I5[i]  = new double*[nGridXY];
+            arr_I6[i]  = new double*[nGridXY];
+            arr_I7[i]  = new double*[nGridXY];
+            arr_I8[i]  = new double*[nGridXY];
+            arr_I9[i]  = new double*[nGridXY];
+            arr_P[i]   = new double*[nGridXY];
+            arr_nC[i]  = new double*[nGridXY];
+
+            arr_B_new[i]    = new double*[nGridXY];
+            arr_I0_new[i]   = new double*[nGridXY];
+            arr_I1_new[i]   = new double*[nGridXY];
+            arr_I2_new[i]   = new double*[nGridXY];
+            arr_I3_new[i]   = new double*[nGridXY];
+            arr_I4_new[i]   = new double*[nGridXY];
+            arr_I5_new[i]   = new double*[nGridXY];
+            arr_I6_new[i]   = new double*[nGridXY];
+            arr_I7_new[i]   = new double*[nGridXY];
+            arr_I8_new[i]   = new double*[nGridXY];
+            arr_I9_new[i]   = new double*[nGridXY];
+            arr_P_new[i]    = new double*[nGridXY];
+
+            arr_nutrient[i] = new double*[nGridXY];
+            arr_Occ[i]      = new double*[nGridXY];
+
+        for (int j = 0; j < nGridXY; j++) {
+
+            arr_B[i][j]   = new double[nGridZ];
+            arr_I0[i][j]  = new double[nGridZ];
+            arr_I1[i][j]  = new double[nGridZ];
+            arr_I2[i][j]  = new double[nGridZ];
+            arr_I3[i][j]  = new double[nGridZ];
+            arr_I4[i][j]  = new double[nGridZ];
+            arr_I5[i][j]  = new double[nGridZ];
+            arr_I6[i][j]  = new double[nGridZ];
+            arr_I7[i][j]  = new double[nGridZ];
+            arr_I8[i][j]  = new double[nGridZ];
+            arr_I9[i][j]  = new double[nGridZ];
+            arr_P[i][j]   = new double[nGridZ];
+            arr_nC[i][j]  = new double[nGridZ];
+
+            arr_B_new[i][j]     = new double[nGridZ];
+            arr_I0_new[i][j]    = new double[nGridZ];
+            arr_I1_new[i][j]    = new double[nGridZ];
+            arr_I2_new[i][j]    = new double[nGridZ];
+            arr_I3_new[i][j]    = new double[nGridZ];
+            arr_I4_new[i][j]    = new double[nGridZ];
+            arr_I5_new[i][j]    = new double[nGridZ];
+            arr_I6_new[i][j]    = new double[nGridZ];
+            arr_I7_new[i][j]    = new double[nGridZ];
+            arr_I8_new[i][j]    = new double[nGridZ];
+            arr_I9_new[i][j]    = new double[nGridZ];
+            arr_P_new[i][j]     = new double[nGridZ];
+
+            arr_nutrient[i][j]  = new double[nGridZ];
+            arr_Occ[i][j]       = new double[nGridZ];
+
+
+           for (int k = 0; k < nGridZ; k++) {
+                arr_B[i][j][k]  = 0.0;
+                arr_I0[i][j][k] = 0.0;
+                arr_I1[i][j][k] = 0.0;
+                arr_I2[i][j][k] = 0.0;
+                arr_I3[i][j][k] = 0.0;
+                arr_I4[i][j][k] = 0.0;
+                arr_I5[i][j][k] = 0.0;
+                arr_I6[i][j][k] = 0.0;
+                arr_I7[i][j][k] = 0.0;
+                arr_I8[i][j][k] = 0.0;
+                arr_I9[i][j][k] = 0.0;
+                arr_P[i][j][k]  = 0.0;
+                arr_nC[i][j][k] = 0.0;
+
+                arr_B_new[i][j][k]  = 0.0;
+                arr_I0_new[i][j][k] = 0.0;
+                arr_I1_new[i][j][k] = 0.0;
+                arr_I2_new[i][j][k] = 0.0;
+                arr_I3_new[i][j][k] = 0.0;
+                arr_I4_new[i][j][k] = 0.0;
+                arr_I5_new[i][j][k] = 0.0;
+                arr_I6_new[i][j][k] = 0.0;
+                arr_I7_new[i][j][k] = 0.0;
+                arr_I8_new[i][j][k] = 0.0;
+                arr_I9_new[i][j][k] = 0.0;
+                arr_P_new[i][j][k]  = 0.0;
+
+                arr_nutrient[i][j][k] = n_0 / 1e12 * dV;
+                arr_Occ[i][j][k]  = 0.0;
+            }
+        }
+    }
+
     // Initialize nutrient
-    nutrient.fill( n_0 / 1e12 * dV ); // (n_0 / 1e12) is the nutrient per µm^Z
+    // nutrient.fill( n_0 / 1e12 * dV ); // (n_0 / 1e12) is the nutrient per µm^Z
 
     // cout << "accu(nutrient) - n_0 = " << accu(nutrient) - n_0 << endl;
 
-    lapXY.zeros(nGridXY, nGridXY);
-    lapZ.zeros(nGridZ, nGridZ);
+    // lapXY.zeros(nGridXY, nGridXY);
+    // lapZ.zeros(nGridZ, nGridZ);
 
-    if (nGridXY >= 3) {
+    // if (nGridXY >= 3) {
 
-        // Fill the laplace operator
-        for (int i = 1; i < nGridXY - 1; i++ ) {
-            lapXY(i, i)      = -2;
-            lapXY(i, i + 1)  =  1;
-            lapXY(i, i - 1)  =  1;
-        }
+    //     // Fill the laplace operator
+    //     for (int i = 1; i < nGridXY - 1; i++ ) {
+    //         lapXY(i, i)      = -2;
+    //         lapXY(i, i + 1)  =  1;
+    //         lapXY(i, i - 1)  =  1;
+    //     }
 
-        // Boundary conditions for laplace operator
-        lapXY(0, 0)           = -2;
-        lapXY(nGridXY - 1, 0) =  1;
-        lapXY(0, 1)           =  1;
+    //     // Boundary conditions for laplace operator
+    //     lapXY(0, 0)           = -2;
+    //     lapXY(nGridXY - 1, 0) =  1;
+    //     lapXY(0, 1)           =  1;
 
-        lapXY(nGridXY - 1, nGridXY - 1) = -2;
-        lapXY(0, nGridXY - 1)           =  1;
-        lapXY(nGridXY - 1, nGridXY - 2) =  1;
+    //     lapXY(nGridXY - 1, nGridXY - 1) = -2;
+    //     lapXY(0, nGridXY - 1)           =  1;
+    //     lapXY(nGridXY - 1, nGridXY - 2) =  1;
 
-    } else if (nGridXY > 1) {
-        lapXY(0, 0) = -1;
-        lapXY(0, 1) =  1;
-        lapXY(1, 0) =  1;
-        lapXY(1, 1) = -1;
+    // } else if (nGridXY > 1) {
+    //     lapXY(0, 0) = -1;
+    //     lapXY(0, 1) =  1;
+    //     lapXY(1, 0) =  1;
+    //     lapXY(1, 1) = -1;
 
-    }
+    // }
 
-    if (nGridZ >= 3) {
+    // if (nGridZ >= 3) {
 
-        // Fill the laplace operator
-        for (int i = 1; i < nGridZ - 1; i++ ) {
-            lapZ(i, i)      = -2;
-            lapZ(i, i + 1)  =  1;
-            lapZ(i, i - 1)  =  1;
-        }
+    //     // Fill the laplace operator
+    //     for (int i = 1; i < nGridZ - 1; i++ ) {
+    //         lapZ(i, i)      = -2;
+    //         lapZ(i, i + 1)  =  1;
+    //         lapZ(i, i - 1)  =  1;
+    //     }
 
-        if (experimentalConditions) { // Apply reflective boundary conditions
-            lapZ(0, 0) = -1;
-            lapZ(0, 1) =  1;
+    //     if (experimentalConditions) { // Apply reflective boundary conditions
+    //         lapZ(0, 0) = -1;
+    //         lapZ(0, 1) =  1;
 
-            lapZ(nGridZ - 1, nGridZ - 1)  = -1;
-            lapZ(nGridZ - 1, nGridZ - 2)  =  1;
+    //         lapZ(nGridZ - 1, nGridZ - 1)  = -1;
+    //         lapZ(nGridZ - 1, nGridZ - 2)  =  1;
 
-        } else {
-            // Boundary conditions for laplace operator
-            lapZ(0, 0)          = -2;
-            lapZ(nGridZ - 1, 0) =  1;
-            lapZ(0, 1)          =  1;
+    //     } else {
+    //         // Boundary conditions for laplace operator
+    //         lapZ(0, 0)          = -2;
+    //         lapZ(nGridZ - 1, 0) =  1;
+    //         lapZ(0, 1)          =  1;
 
-            lapZ(nGridZ - 1, nGridZ - 1) = -2;
-            lapZ(0, nGridZ - 1)          =  1;
-            lapZ(nGridZ - 1, nGridZ - 2) =  1;
-        }
+    //         lapZ(nGridZ - 1, nGridZ - 1) = -2;
+    //         lapZ(0, nGridZ - 1)          =  1;
+    //         lapZ(nGridZ - 1, nGridZ - 2) =  1;
+    //     }
 
-    } else if (nGridZ > 1) {
-        lapZ(0, 0) = -1;
-        lapZ(0, 1) =  1;
-        lapZ(1, 0) =  1;
-        lapZ(1, 1) = -1;
+    // } else if (nGridZ > 1) {
+    //     lapZ(0, 0) = -1;
+    //     lapZ(0, 1) =  1;
+    //     lapZ(1, 0) =  1;
+    //     lapZ(1, 1) = -1;
 
-    }
+    // }
 
     // Compute the size of the time step
     ComputeTimeStep();
@@ -1624,19 +1407,21 @@ void Colonies3D::spawnBacteria() {
 
     // Initialize cell and phage populations
     if (nBacteria > (nGridXY * nGridXY * nGridZ)) {
-        for (uword k = 0; k < nGridZ; k++) {
-            for (uword j = 0; j < nGridXY; j++) {
-                for (uword i = 0; i < nGridXY; i++) {
+        for (int k = 0; k < nGridZ; k++) {
+            for (int j = 0; j < nGridXY; j++) {
+                for (int i = 0; i < nGridXY; i++) {
 
                     // Compute the number of bacteria to land in this gridpoint
                     double BB = RandP(avgBacteria);
                     if (BB < 1) continue;
 
                     // Store the number of clusters in this gridpoint
-                    nC(i, j, k) = BB;
+                    // nC(i, j, k) = BB;
+                    arr_nC[i][j][k] = BB;
 
                     // Add the bacteria
-                    B(i, j, k) = BB;
+                    // B(i, j, k) = BB;
+                    arr_B[i][j][k] = BB;
                     numB += BB;
                 }
             }
@@ -1647,9 +1432,9 @@ void Colonies3D::spawnBacteria() {
     while (numB < nBacteria) {
 
         // Choose random point in space
-        uword i = RandI(nGridXY - 1);
-        uword j = RandI(nGridXY - 1);
-        uword k = RandI(nGridZ  - 1);
+        int i = RandI(nGridXY - 1);
+        int j = RandI(nGridXY - 1);
+        int k = RandI(nGridZ  - 1);
 
         if (reducedBoundary) {
             i = 0;
@@ -1657,35 +1442,60 @@ void Colonies3D::spawnBacteria() {
         }
 
         // Add the bacteria
-        B(i, j, k)++;
+        // B(i, j, k)++;
+        // nC(i, j, k)++;
+
+        arr_B[i][j][k]++;
+        arr_nC[i][j][k]++;
+
         numB++;
-        nC(i, j, k)++;
 
 
     }
 
     // Correct for overspawning
     while (numB > nBacteria) {
-        uword i = RandI(nGridXY - 1);
-        uword j = RandI(nGridXY - 1);
-        uword k = RandI(nGridZ  - 1);
+        int i = RandI(nGridXY - 1);
+        int j = RandI(nGridXY - 1);
+        int k = RandI(nGridZ  - 1);
 
-        if (B(i, j, k) < 1) continue;
+        // if (B(i, j, k) < 1) continue;
 
-        B(i, j, k)--;
+        // B(i, j, k)--;
+        // numB--;
+        // nC(i, j, k)--;
+
+        if (arr_B[i][j][k] < 1) continue;
+
+        arr_B[i][j][k]--;
         numB--;
-        nC(i, j, k)--;
+        arr_nC[i][j][k]--;
     }
 
     // Count the initial occupancy
-    uvec nz = find(B);
-    initialOccupancy = nz.n_elem;
+    // uvec nz = find(B);
+    // initialOccupancy = nz.n_elem;
+
+    int initialOccupancy = 0;
+    for (int k = 0; k < nGridZ; k++ ) {
+        for (int j = 0; j < nGridXY; j++ ) {
+            for (int i = 0; i < nGridXY; i++) {
+                if (arr_B[i][j][k] > 0.0) {
+                    initialOccupancy++;
+                }
+            }
+        }
+    }
+
 
     // Determine the occupancy
-    for (uword k = 0; k < nGridZ; k++ ) {
-        for (uword j = 0; j < nGridXY; j++ ) {
-            for (uword i = 0; i < nGridXY; i++) {
-                Occ(i, j, k) = B(i, j, k) + I0(i, j, k) + I1(i, j, k) + I2(i, j, k) + I3(i, j, k) + I4(i, j, k) + I5(i, j, k) + I6(i, j, k) + I7(i, j, k) + I8(i, j, k) + I9(i, j, k);
+    // Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
+
+    // Determine the occupancy
+    for (int k = 0; k < nGridZ; k++ ) {
+        for (int j = 0; j < nGridXY; j++ ) {
+            for (int i = 0; i < nGridXY; i++) {
+                arr_Occ[i][j][k] = arr_B[i][j][k] + arr_I0[i][j][k] + arr_I1[i][j][k] + arr_I2[i][j][k] + arr_I3[i][j][k] + arr_I4[i][j][k] + arr_I5[i][j][k] + arr_I6[i][j][k] + arr_I7[i][j][k] + arr_I8[i][j][k] + arr_I9[i][j][k];
             }
         }
     }
@@ -1708,32 +1518,32 @@ void Colonies3D::spawnPhages() {
                 numP++;
             }
         } else {
-            for (uword k = 0; k < nGridZ; k++ ) {
-                for (uword j = 0; j < nGridXY; j++ ) {
-                    for (uword i = 0; i < nGridXY; i++) {
-                        P(i, j, k) = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
-                        numP += P(i, j, k);
+            for (int k = 0; k < nGridZ; k++ ) {
+                for (int j = 0; j < nGridXY; j++ ) {
+                    for (int i = 0; i < nGridXY; i++) {
+                        P[i][j][k] = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
+                        numP += P[i][j][k];
                     }
                 }
             }
             // Correct for overspawning
             while (numP > nPhages) {
-                uword i = RandI(nGridXY - 1);
-                uword j = RandI(nGridXY - 1);
-                uword k = RandI(nGridZ - 1);
+                int i = RandI(nGridXY - 1);
+                int j = RandI(nGridXY - 1);
+                int k = RandI(nGridZ - 1);
 
-                if (P(i, j, k) > 0) {
-                    P(i, j, k)--;
+                if (P[i][j][k] > 0) {
+                    P[i][j][k]--;
                     numP--;
                 }
             }
             // Correct for underspawning
             while (numP < nPhages) {
-                uword i = RandI(nGridXY - 1);
-                uword j = RandI(nGridXY - 1);
-                uword k = RandI(nGridZ - 1);
+                int i = RandI(nGridXY - 1);
+                int j = RandI(nGridXY - 1);
+                int k = RandI(nGridZ - 1);
 
-                P(i, j, k)++;
+                P[i][j][k]++;
                 numP++;
             }
         }
@@ -1751,16 +1561,16 @@ void Colonies3D::spawnPhages() {
                 numP++;
             }
         } else {
-            for (uword j = 0; j < nGridXY; j++ ) {
-                for (uword i = 0; i < nGridXY; i++ ) {
+            for (int j = 0; j < nGridXY; j++ ) {
+                for (int i = 0; i < nGridXY; i++ ) {
                         P(i, j, nGridZ - 1) = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
                         numP += P(i, j, nGridZ - 1);
                 }
             }
             // Correct for overspawning
             while (numP > nPhages) {
-                uword i = RandI(nGridXY - 1);
-                uword j = RandI(nGridXY - 1);
+                int i = RandI(nGridXY - 1);
+                int j = RandI(nGridXY - 1);
 
                 if (P(i, j, nGridZ - 1) > 0) {
                     P(i, j, nGridZ - 1)--;
@@ -1769,8 +1579,8 @@ void Colonies3D::spawnPhages() {
             }
             // Correct for underspawning
             while (numP < nPhages) {
-                uword i = RandI(nGridXY - 1);
-                uword j = RandI(nGridXY - 1);
+                int i = RandI(nGridXY - 1);
+                int j = RandI(nGridXY - 1);
 
                 P(i, j, nGridZ - 1)++;
                 numP++;
