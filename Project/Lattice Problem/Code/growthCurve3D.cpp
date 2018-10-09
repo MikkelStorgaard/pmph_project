@@ -60,7 +60,7 @@ int main(int argc, char** argv){
         s.SetSamples(100);
 
         // Start the simulation
-        s.Run_NoMatrixMatrixMultiplication(T);
+        s.Run_Original(T);
     }
 
     return 0;
