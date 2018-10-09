@@ -567,28 +567,6 @@ void Colonies3D::Initialize() {
 
     Occ.zeros(nGridXY, nGridXY, nGridZ);
 
-    // Allocate arrays
-    Arr_B = new double**[nGridXY];
-    for (int i = 0; i < nGridXY; i++) {
-        Arr_B[i] = new double*[nGridXY];
-        for (int j = 0; j < nGridXY; j++) {
-           Arr_B[i][j] = new double[nGridZ];
-           for (int k = 0; k < nGridZ; k++) {
-                Arr_B[i][j][k] = 0.0;
-            }
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
     // Compute the step size
     double dXY = L / nGridXY;
     double dZ  = H / nGridZ;
@@ -710,11 +688,9 @@ void Colonies3D::spawnBacteria() {
 
                     // Store the number of clusters in this gridpoint
                     nC(i, j, k) = BB;
-                    Arr_nC[i][j][k] = BB;
 
                     // Add the bacteria
                     B(i, j, k) = BB;
-                    Arr_B[i][j][k] = BB;
                     numB += BB;
                 }
             }

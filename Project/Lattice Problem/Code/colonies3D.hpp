@@ -1,9 +1,13 @@
 #ifndef COLONIES3DDEF
 #define COLONIES3DDEF
 
+#define ARMA_NO_DEBUG
+
 #include <iostream>         // Input and output
 #include <iomanip>          // Input and output formatting
 #include <fstream>          // File streams
+
+#include <armadillo>        // Matrix library
 
 #include <random>           // Random numbers
 #include <math.h>           // Mathmatical constants
@@ -99,6 +103,45 @@ class Colonies3D {
     std::string path;               // Sets the path to store in
 
     // Coordinates of agents in the simulation
+    arma::Cube<double> B;           // Sensitive bacteria
+    arma::Cube<double> P;           // Phages
+    arma::Cube<double> I0;          // Infected bacteria
+    arma::Cube<double> I1;          // Infected bacteria
+    arma::Cube<double> I2;          // Infected bacteria
+    arma::Cube<double> I3;          // Infected bacteria
+    arma::Cube<double> I4;          // Infected bacteria
+    arma::Cube<double> I5;          // Infected bacteria
+    arma::Cube<double> I6;          // Infected bacteria
+    arma::Cube<double> I7;          // Infected bacteria
+    arma::Cube<double> I8;          // Infected bacteria
+    arma::Cube<double> I9;          // Infected bacteria
+    arma::Cube<double> nC;          // Number of colonies in gridpoint
+
+    arma::Cube<double> B_new;       // Sensitive bacteria
+    arma::Cube<double> P_new;       // Phages
+    arma::Cube<double> I0_new;      // Infected bacteria
+    arma::Cube<double> I1_new;      // Infected bacteria
+    arma::Cube<double> I2_new;      // Infected bacteria
+    arma::Cube<double> I3_new;      // Infected bacteria
+    arma::Cube<double> I4_new;      // Infected bacteria
+    arma::Cube<double> I5_new;      // Infected bacteria
+    arma::Cube<double> I6_new;      // Infected bacteria
+    arma::Cube<double> I7_new;      // Infected bacteria
+    arma::Cube<double> I8_new;      // Infected bacteria
+    arma::Cube<double> I9_new;      // Infected bacteria
+
+    // Nutrient matrix
+    arma::cube   nutrient;
+    arma::cube   nutrient_new;
+
+    // Occupancy of grid
+    arma::Cube<double> Occ;
+
+    // Laplacian for nutrient diffusion
+    arma::mat   lapXY;
+    arma::mat   lapZ;
+
+    // Coordinates of agents in the simulation
     double*** arr_B;           // Sensitive bacteria
     double*** arr_P;           // Phages
     double*** arr_I0;          // Infected bacteria
@@ -139,9 +182,9 @@ class Colonies3D {
     explicit    Colonies3D(double B_0, double P_0);                           // Direct constructer
 
     // Driver
-    int         Run_Original(double T_end);                                              // Controls the evaluation of the simulation
-    int         Run_NoMatrixMatrixMultiplication(double T_end);                          // Controls the evaluation of the simulationA
-    int         Run_LoopDistributed_Sequential(double T_end);                          // Controls the evaluation of the simulation
+    int         Run_Original(double T_end);                                     // Controls the evaluation of the simulation
+    int         Run_NoMatrixMatrixMultiplication(double T_end);                 // Controls the evaluation of the simulationA
+    int         Run_LoopDistributed_CPU(double T_end);                          // Controls the evaluation of the simulation
 
  private:
     void        Initialize();                                                   // Initialize the simulation
@@ -205,7 +248,7 @@ class Colonies3D {
     void        ExportAll();                                                    // Sets the simulation to export everything
 
  private:
-    void        ExportData(double t);                                           // Master function to export the data
+    void        ExportData(double t, std::string filename_suffix);              // Master function to export the data
 
     // Data handling
     void        OpenFileStream(std::ofstream& stream,                           // Open filstream if not allready opened

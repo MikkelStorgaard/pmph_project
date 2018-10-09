@@ -130,12 +130,6 @@ class Colonies3D {
     arma::Cube<double> I8_new;      // Infected bacteria
     arma::Cube<double> I9_new;      // Infected bacteria
 
-    double*** Arr_B; //  B[i][j][k]
-    double*** Arr_P;
-    double*** Arr_I0;
-    // ...
-
-
     // Nutrient matrix
     arma::cube   nutrient;
     arma::cube   nutrient_new;
