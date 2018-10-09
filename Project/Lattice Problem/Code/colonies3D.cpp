@@ -514,7 +514,7 @@ int Colonies3D::Run_Original(double T_end) {
     }
 }
 
-int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
+int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
     this->T_end = T_end;
 
@@ -529,7 +529,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
     Initialize();
 
     // Export data
-    ExportData(T,"loopDistributedCPU");
+    ExportData(T,"noMMM");
 
     // Determine the number of samples to take
     int nSamplings = nSamp*T_end;
@@ -1086,7 +1086,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
         }
 
         // Store the state
-        ExportData(T,"loopDistributedCPU");
+        ExportData(T,"noMMM");
 
         // Check for nutrient stability
         assert(accuNutrient >= 0);
