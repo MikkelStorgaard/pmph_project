@@ -990,7 +990,6 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
     }
 }
 
-
 int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
     this->T_end = T_end;
@@ -1006,7 +1005,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
     Initialize();
 
     // Export data
-    ExportData(T,"noMMM");
+    ExportData_arr(T,"noMMM");
 
     // Determine the number of samples to take
     int nSamplings = nSamp*T_end;
@@ -1033,13 +1032,13 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
             // Reset density counter
             double maxOccupancy = 0.0;
 
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 if (exit) break;
 
                 for (int j = 0; j < nGridXY; j++ ) {
                     if (exit) break;
 
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
                         if (exit) break;
 
                         // Ensure nC is updated
@@ -1256,7 +1255,6 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             double n_f; // Front
                             double n_b; // Back
 
-
                             // CELLS
                             ComputeDiffusion(arr_B[i][j][k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
                             arr_B_new[i][j][k] += n_0; arr_B_new[ip][j][k] += n_u; arr_B_new[im][j][k] += n_d; arr_B_new[i][jp][k] += n_r; arr_B_new[i][jm][k] += n_l; arr_B_new[i][j][kp] += n_f; arr_B_new[i][j][km] += n_b;
@@ -1338,30 +1336,30 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
             std::swap(arr_P, arr_P_new);
 
             // Zero the _new arrays
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
-                        arr_B[i][j][k]  = 0.0;
-                        arr_I0[i][j][k] = 0.0;
-                        arr_I1[i][j][k] = 0.0;
-                        arr_I2[i][j][k] = 0.0;
-                        arr_I3[i][j][k] = 0.0;
-                        arr_I4[i][j][k] = 0.0;
-                        arr_I5[i][j][k] = 0.0;
-                        arr_I6[i][j][k] = 0.0;
-                        arr_I7[i][j][k] = 0.0;
-                        arr_I8[i][j][k] = 0.0;
-                        arr_I9[i][j][k] = 0.0;
-                        arr_P[i][j][k]  = 0.0;
+                    for (int k = 0; k < nGridZ; k++ ) {
+                        arr_B_new[i][j][k]  = 0.0;
+                        arr_I0_new[i][j][k] = 0.0;
+                        arr_I1_new[i][j][k] = 0.0;
+                        arr_I2_new[i][j][k] = 0.0;
+                        arr_I3_new[i][j][k] = 0.0;
+                        arr_I4_new[i][j][k] = 0.0;
+                        arr_I5_new[i][j][k] = 0.0;
+                        arr_I6_new[i][j][k] = 0.0;
+                        arr_I7_new[i][j][k] = 0.0;
+                        arr_I8_new[i][j][k] = 0.0;
+                        arr_I9_new[i][j][k] = 0.0;
+                        arr_P_new[i][j][k]  = 0.0;
                     }
                 }
             }
 
 
             // Update occupancy
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
                         arr_Occ[i][j][k] = arr_B[i][j][k] + arr_I0[i][j][k] + arr_I1[i][j][k] + arr_I2[i][j][k] + arr_I3[i][j][k] + arr_I4[i][j][k] + arr_I5[i][j][k] + arr_I6[i][j][k] + arr_I7[i][j][k] + arr_I8[i][j][k] + arr_I9[i][j][k];
                     }
                 }
@@ -1372,9 +1370,9 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
             double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
             double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
 
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
 
                         // Update positions
                         int ip, jp, kp, im, jm, km;
@@ -1421,22 +1419,16 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                 }
             }
 
-
-            double***tmpN = arr_nutrient;
-            arr_nutrient = arr_nutrient_new;
-            arr_nutrient_new = tmpN;
+            std::swap(arr_nutrient, arr_nutrient_new);
 
             // Zero the _new arrays
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
-                        arr_nutrient[i][j][k]  = 0.0;
+                    for (int k = 0; k < nGridZ; k++ ) {
+                        arr_nutrient_new[i][j][k]  = 0.0;
                     }
                 }
             }
-            nutrient.swap(nutrient_new);
-            nutrient_new.zeros();
-
 
             if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
                 cout << "\tWarning: Maximum Density Large!" << "\n";
@@ -1449,18 +1441,18 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
         // 1) There are no more sucebtible cells
         // -> Convert all infected cells to phages and stop simulation
         double accuB = 0.0;
-        for (int k = 0; k < nGridZ; k++ ) {
+        for (int i = 0; i < nGridXY; i++) {
             for (int j = 0; j < nGridXY; j++ ) {
-                for (int i = 0; i < nGridXY; i++) {
+                for (int k = 0; k < nGridZ; k++ ) {
                     accuB += arr_B[i][j][k];
                 }
             }
         }
         if ((fastExit) and (accuB < 1)) {
             // Update the P array
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
                         arr_P[i][j][k] += (1-alpha)*beta * (arr_I0[i][j][k] + arr_I1[i][j][k] + arr_I2[i][j][k] + arr_I3[i][j][k] + arr_I4[i][j][k] + arr_I5[i][j][k] + arr_I6[i][j][k] + arr_I7[i][j][k] + arr_I8[i][j][k] + arr_I9[i][j][k]);
                     }
                 }
@@ -1468,9 +1460,9 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
 
             // Zero the I arrays
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
                         arr_I0[i][j][k] = 0.0;
                         arr_I1[i][j][k] = 0.0;
                         arr_I2[i][j][k] = 0.0;
@@ -1491,9 +1483,9 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
         // -> Stop simulation
 
         double accuOcc = 0.0;
-        for (int k = 0; k < nGridZ; k++ ) {
+        for (int i = 0; i < nGridXY; i++) {
             for (int j = 0; j < nGridXY; j++ ) {
-                for (int i = 0; i < nGridXY; i++) {
+                for (int k = 0; k < nGridZ; k++ ) {
                     accuOcc += arr_Occ[i][j][k];
                 }
             }
@@ -1508,9 +1500,9 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
         double accuNutrient = 0.0;
         double maxNutrient  = 0.0;
-        for (int k = 0; k < nGridZ; k++ ) {
+        for (int i = 0; i < nGridXY; i++) {
             for (int j = 0; j < nGridXY; j++ ) {
-                for (int i = 0; i < nGridXY; i++) {
+                for (int k = 0; k < nGridZ; k++ ) {
                     double tmpN = arr_nutrient[i][j][k];
                     accuNutrient += tmpN;
 
@@ -1528,7 +1520,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
         }
 
         // Store the state
-        ExportData(T,"noMMM");
+        ExportData_arr(T,"noMMM");
 
         // Check for nutrient stability
         assert(accuNutrient >= 0);
@@ -2012,22 +2004,16 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                 }
             }
 
+            std::swap(arr_nutrient, arr_nutrient_new);
 
-            double***tmpN = arr_nutrient;
-            arr_nutrient = arr_nutrient_new;
-            arr_nutrient_new = tmpN;
-
-            // Zero the _new arrays
-            for (int k = 0; k < nGridZ; k++ ) {
+            // Zero the _new array
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
-                        arr_nutrient[i][j][k]  = 0.0;
+                    for (int k = 0; k < nGridZ; k++ ) {
+                        arr_nutrient_new[i][j][k]  = 0.0;
                     }
                 }
             }
-            nutrient.swap(nutrient_new);
-            nutrient_new.zeros();
-
 
             if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
                 cout << "\tWarning: Maximum Density Large!" << "\n";
@@ -2367,8 +2353,6 @@ void Colonies3D::Initialize() {
 
     // Initialize nutrient
     nutrient.fill( n_0 / 1e12 * dV ); // (n_0 / 1e12) is the nutrient per µm^Z
-
-    // cout << "accu(nutrient) - n_0 = " << accu(nutrient) - n_0 << endl;
 
     lapXY.zeros(nGridXY, nGridXY);
     lapZ.zeros(nGridZ, nGridZ);
@@ -3069,8 +3053,96 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
                 f_I << setw(6) << nI                        << "\n";
                 f_n << setw(6) << round(nutrient(x,nGridXY - 1,z)) << "\n";
             }
+        }
+    }
 
-            f_N << setw(12) << round(accu(I0) + accu(I1) + accu(I2) + accu(I3) + accu(I4) + accu(I5) + accu(I6) + accu(I7) + accu(I8) + accu(I9))    << "\t";
+}
+
+void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
+
+    // Verify the file stream is open
+    string fileName = "PopulationSize"+filename_suffix;
+    OpenFileStream(f_N, fileName);
+
+
+    double accuB = 0.0;
+    double accuI = 0.0;
+    double accuP = 0.0;
+    double accuNutrient = 0.0;
+    double accuClusters = 0.0;
+    for (int i = 0; i < nGridXY; i++) {
+        for (int j = 0; j < nGridXY; j++ ) {
+            for (int k = 0; k < nGridZ; k++ ) {
+                accuB += arr_B[i][j][k];
+                accuI += arr_I0[i][j][k] + arr_I1[i][j][k] + arr_I2[i][j][k] + arr_I3[i][j][k] + arr_I4[i][j][k] + arr_I5[i][j][k] + arr_I6[i][j][k] + arr_I7[i][j][k] + arr_I8[i][j][k] + arr_I9[i][j][k];
+                accuP += arr_P[i][j][k];
+                accuNutrient += arr_nutrient[i][j][k];
+                accuClusters += arr_nC[i][j][k];
+            }
+        }
+    }
+
+    // Writes the time, number of cells, number of infected cells, number of phages
+    f_N << fixed    << setprecision(2);
+    f_N << setw(6)  << t       << "\t";
+    f_N << setw(12) << round(accuB)    << "\t";
+    f_N << setw(12) << round(accuI)    << "\t";
+    f_N << setw(12) << round(accuP)    << "\t";
+
+    uvec nz = find(B);
+    f_N << setw(12) << static_cast<double>(nz.n_elem) / initialOccupancy << "\t";
+    f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accuNutrient << "\t";
+    f_N << setw(12) << accuClusters << endl;
+
+    if (exportAll) {
+        // Save the position data
+        // Verify the file stream is open
+        fileName = "CellDensity"+filename_suffix;
+        OpenFileStream(f_B, fileName);
+
+        fileName = "InfectedDensity"+filename_suffix;
+        OpenFileStream(f_I, fileName);
+
+        fileName = "PhageDensity"+filename_suffix;
+        OpenFileStream(f_P, fileName);
+
+        fileName = "NutrientDensity"+filename_suffix;
+        OpenFileStream(f_n, fileName);
+
+        // Write file as MATLAB would a 3D matrix!
+        // row 1 is x_vector, for y_1 and z_1
+        // row 2 is x_vector, for y_2 and z_1
+        // row 3 is x_vector, for y_3 and z_1
+        // ...
+        // When y_vector for x_n has been printed, it goes:
+        // row n+1 is x_vector, for y_1 and z_2
+        // row n+2 is x_vector, for y_2 and z_2
+        // row n+3 is x_vector, for y_3 and z_2
+        // ... and so on
+
+        // Loop over z
+        for (int z = 0; z < nGridZ; z++) {
+
+            // Loop over x
+            for (int x = 0; x < nGridXY; x++) {
+
+                // Loop over y
+                for (int y = 0; y < nGridXY - 1; y++) {
+
+                    f_B << setw(6) << arr_B[x][y][z] << "\t";
+                    f_P << setw(6) << arr_P[x][y][z] << "\t";
+                    double nI = round(arr_I0[x][y][z] + arr_I1[x][y][z] + arr_I2[x][y][z] + arr_I3[x][y][z] + arr_I4[x][y][z] + arr_I5[x][y][z] + arr_I6[x][y][z] + arr_I7[x][y][z] + arr_I8[x][y][z] + arr_I9[x][y][z]);
+                    f_I << setw(6) << nI       << "\t";
+                    f_n << setw(6) << arr_nutrient[x][y][z] << "\t";
+                }
+
+                // Write last line ("\n" instead of tab)
+                f_B << setw(6) << round(arr_B[x][nGridXY - 1][z]) << "\n";
+                f_P << setw(6) << round(arr_P[x][nGridXY - 1][z]) << "\n";
+                double nI = round(arr_I0[x][nGridXY - 1][z] + arr_I1[x][nGridXY - 1][z] + arr_I2[x][nGridXY - 1][z] + arr_I3[x][nGridXY - 1][z] + arr_I4[x][nGridXY - 1][z] + arr_I5[x][nGridXY - 1][z] + arr_I6[x][nGridXY - 1][z] + arr_I7[x][nGridXY - 1][z] + arr_I8[x][nGridXY - 1][z] + arr_I9[x][nGridXY - 1][z]);
+                f_I << setw(6) << nI                        << "\n";
+                f_n << setw(6) << round(arr_nutrient[x][nGridXY - 1][z]) << "\n";
+            }
         }
     }
 

@@ -250,6 +250,7 @@ class Colonies3D {
 
  private:
     void        ExportData(double t, std::string filename_suffix);              // Master function to export the data
+    void        ExportData_arr(double t, std::string filename_suffix);              // Master function to export the data
 
     // Data handling
     void        OpenFileStream(std::ofstream& stream,                           // Open filstream if not allready opened
