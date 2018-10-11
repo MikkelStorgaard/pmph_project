@@ -1652,7 +1652,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                         // Birth //////////////////////////////////////////////////////////////////////
                         p = g*growthModifier*dT;
-                        if (arr_nutrient[i][j][k] < 1) p = 0;
+                        if (arr_nutrient[i][j][k] < 1){
+                            p = 0;
+                        }
 
                         /* END første Map-kernel */
                         if ((p > 0.1) and (!Warn_g)) {
@@ -1660,7 +1662,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             f_log  << "Warning: Birth Probability Large!" << "\n";
                             Warn_g = true;
                         }
-                        /* END første Map-kernel */
 
                         /* BEGIN anden Map-kernel */
                         N = ComputeEvents(arr_B[i][j][k], p, 1);
@@ -1745,7 +1746,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         // Infectons
                         // KERNEL THIS
                         if ((arr_Occ[i][j][k] >= 1) and (arr_P[i][j][k] >= 1)) {
-
                             if (clustering) {   // Check if clustering is enabled
                                 s = pow(arr_Occ[i][j][k] / arr_nC[i][j][k], 1.0 / 3.0);
                                 n = arr_nC[i][j][k];
@@ -1764,44 +1764,42 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                                 p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
                                 N = ComputeEvents(arr_P[i][j][k], p, 4);     // Number of targets hit
                             }
-                        }
 
-                        // KERNEL THIS
-                        if ((arr_Occ[i][j][k] >= 1) and
-                            (arr_P[i][j][k] >= 1) and
-                            (((N + M) >= 1) {
-                            // If bacteria were hit, update events
-                            arr_P[i][j][k] = max(0.0, arr_P[i][j][k] - N);     // Update count
+                            if (N + M >= 1) {
+                                // If bacteria were hit, update events
+                                arr_P[i][j][k] = max(0.0, arr_P[i][j][k] - N);     // Update count
 
-                            double S;
-                            if (shielding) {
-                                // Absorbing medium model
-                                double d = pow(arr_Occ[i][j][k] / arr_nC[i][j][k], 1.0 / 3.0) -
-                                           pow(arr_B[i][j][k] / arr_nC[i][j][k], 1.0 / 3.0);
-                                S = exp(-zeta * d); // Probability of hitting succebtible target
+                                double S;
+                                if (shielding) {
+                                    // Absorbing medium model
+                                    double d = pow(arr_Occ[i][j][k] / arr_nC[i][j][k], 1.0 / 3.0) -
+                                               pow(arr_B[i][j][k] / arr_nC[i][j][k], 1.0 / 3.0);
+                                    S = exp(-zeta * d); // Probability of hitting succebtible target
 
-                            } else {
-                                // Well mixed model
-                                S = arr_B[i][j][k] / arr_Occ[i][j][k];
-                            }
+                                } else {
+                                    // Well mixed model
+                                    S = arr_B[i][j][k] / arr_Occ[i][j][k];
+                                }
 
-                            p = max(0.0, min(arr_B[i][j][k] / arr_Occ[i][j][k],
-                                             S)); // Probability of hitting succebtible target
-                            N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
+                                p = max(0.0, min(arr_B[i][j][k] / arr_Occ[i][j][k],
+                                                 S)); // Probability of hitting succebtible target
+                                N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
 
-                            if (N > arr_B[i][j][k])
-                                N = arr_B[i][j][k];              // If more bacteria than present are set to be infeced, round down
+                                if (N > arr_B[i][j][k])
+                                    N = arr_B[i][j][k];              // If more bacteria than present are set to be infeced, round down
 
-                            // Update the counts
-                            arr_B[i][j][k] = max(0.0, arr_B[i][j][k] - N);
-                            if (r > 0.0) {
-                                arr_I0_new[i][j][k] += N;
-                            } else {
-                                arr_P_new[i][j][k] += N * (1 - alpha) * Beta;
+                                // Update the counts
+                                arr_B[i][j][k] = max(0.0, arr_B[i][j][k] - N);
+                                if (r > 0.0) {
+                                    arr_I0_new[i][j][k] += N;
+                                } else {
+                                    arr_P_new[i][j][k] += N * (1 - alpha) * Beta;
+                                }
                             }
                         }
 
                         // Phage Decay ////////////////////////////////////////////////////////////////
+                        // KERNEL BEGIN
                         p = delta*dT;
                         if ((p > 0.1) and (!Warn_delta)) {
                             cout << "\tWarning: Decay Probability Large!" << "\n";
@@ -1812,11 +1810,12 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                         // Update count
                         arr_P[i][j][k]    = max(0.0, arr_P[i][j][k] - N);
+                        // KERNEL END
 
 
                         // Movement ///////////////////////////////////////////////////////////////////
                         if (nGridXY > 1) {
-
+                            // KERNEL BEGIN
                             // Update positions
                             int ip, jp, kp, im, jm, km;
 
@@ -1899,9 +1898,12 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             ComputeDiffusion(arr_P[i][j][k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
                             arr_P_new[i][j][k] += n_0; arr_P_new[ip][j][k] += n_u; arr_P_new[im][j][k] += n_d; arr_P_new[i][jp][k] += n_r; arr_P_new[i][jm][k] += n_l; arr_P_new[i][j][kp] += n_f; arr_P_new[i][j][km] += n_b;
 
+                            // KERNEL END
+
 
 
                         } else {
+                            // KERNEL BEGIN
                             // CELLS
                             arr_B_new[i][j][k] += arr_B[i][j][k];
 
@@ -1920,6 +1922,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                             // PHAGES
                             arr_P_new[i][j][k] += arr_P[i][j][k];
+                            // KERNEL END
                         }
                     }
                 }
