@@ -183,6 +183,7 @@ class Colonies3D {
 
     // Driver
     int         Run_Original(double T_end);                                     // Controls the evaluation of the simulation
+    int         Run_NoMatrixMatrixMultiplication_with_arma(double T_end);       // Controls the evaluation of the simulationA
     int         Run_NoMatrixMatrixMultiplication(double T_end);                 // Controls the evaluation of the simulationA
     int         Run_LoopDistributed_CPU(double T_end);                          // Controls the evaluation of the simulation
 

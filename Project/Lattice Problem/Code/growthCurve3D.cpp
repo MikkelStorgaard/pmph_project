@@ -25,7 +25,7 @@ int main(int argc, char** argv){
         pathName += dateFolder;
         pathName += "/";
 
-        pathName += "Growthcurve_NoMatrixMatrixMultiplication";
+        pathName += "Growthcurve_Original";
 
         pathName += "/nGrid_";
         pathName += to_string(nGrid);
@@ -61,6 +61,7 @@ int main(int argc, char** argv){
 
         // Start the simulation
         s.Run_Original(T);
+        // s.Run_NoMatrixMatrixMultiplication_with_arma(T);
     }
 
     return 0;
