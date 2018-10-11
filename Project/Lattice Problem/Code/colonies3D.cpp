@@ -1603,61 +1603,98 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
         // Determine the number of timesteps between sampings
         int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
 
-        for (int t = 0; t < nStepsPerSample; t++) {
-            if (exit) break;
+		for (int t = 0; t < nStepsPerSample; t++) {
+			if (exit) break;
 
-            // Increase time
-            T += dT;
+			// Increase time
+			T += dT;
 
-            // Spawn phages
-            if ((T_i >= 0) and (abs(T - T_i) < dT / 2)) {
-                spawnPhages();
-                T_i = -1;
-            }
+			// Spawn phages
+			if ((T_i >= 0) and (abs(T - T_i) < dT / 2)) {
+				spawnPhages();
+				T_i = -1;
+			}
 
-            // Reset density counter
-            double maxOccupancy = 0.0;
+			// Reset density counter
+			double maxOccupancy = 0.0;
 
-            for (int i = 0; i < nGridXY; i++) {
-                if (exit) break;
+			/////////////////////////////////////////////////////
+			// Main loop start //////////////////////////////////
+			/////////////////////////////////////////////////////
+		
+			for (int i = 0; i < nGridXY; i++) {
+				if (exit) break;
 
-                for (int j = 0; j < nGridXY; j++ ) {
-                    if (exit) break;
+				for (int j = 0; j < nGridXY; j++) {
+					if (exit) break;
 
-                    for (int k = 0; k < nGridZ; k++ ) {
-                        if (exit) break;
+					for (int k = 0; k < nGridZ; k++) {
+						if (exit) break;
 
-                        double p = 0; // privatize
-                        double N = 0; // privatize
-                        double M = 0; // privatize
+						double p = 0; // privatize
+						double N = 0; // privatize
+						double M = 0; // privatize
 
-                        /* BEGIN første Map-kernel */
-                        // Ensure nC is updated
-                        if (arr_Occ[i][j][k] < arr_nC[i][j][k]) arr_nC[i][j][k] = arr_Occ[i][j][k];
+						/* BEGIN første Map-kernel */
+						// Ensure nC is updated
+						if (arr_Occ[i][j][k] < arr_nC[i][j][k]) arr_nC[i][j][k] = arr_Occ[i][j][k];
 
-                        // Skip empty sites
-                        if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
+						// Skip empty sites
+						if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
 
-                        // Record the maximum observed density
-                        if (arr_Occ[i][j][k] > maxOccupancy) maxOccupancy = arr_Occ[i][j][k];
+						// Record the maximum observed density
+						if (arr_Occ[i][j][k] > maxOccupancy) maxOccupancy = arr_Occ[i][j][k];
 
-                        // Compute the growth modifier
-                        double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
+						// Compute the growth modifier
+						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
 
-                        // Compute beta
-                        double Beta = beta;
-                        if (reducedBeta) {
-                            Beta *= growthModifier;
-                        }
+						// Compute beta
+						double Beta = beta;
+						if (reducedBeta) {
+							Beta *= growthModifier;
+						}
 
-                        // Birth //////////////////////////////////////////////////////////////////////
-                        p = g*growthModifier*dT;
-                        if (arr_nutrient[i][j][k] < 1){
-                            p = 0;
-                        }
+						/* END første Map-kernel */
 
-                        /* END første Map-kernel */
-                        if ((p > 0.1) and (!Warn_g)) {
+						// Birth //////////////////////////////////////////////////////////////////////
+						
+
+					
+					}
+				}
+			}           
+
+			for (int i = 0; i < nGridXY; i++) {
+				if (exit) break;
+
+				for (int j = 0; j < nGridXY; j++) {
+					if (exit) break;
+
+					for (int k = 0; k < nGridZ; k++) {
+						if (exit) break;
+
+						double p = 0; // privatize
+						double N = 0; // privatize
+
+
+						// Compute the growth modifier 
+						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
+///////////// should the growth modifier have been an array instead?
+
+						// Compute beta
+						double Beta = beta;
+						if (reducedBeta) {
+							Beta *= growthModifier;
+						}
+
+
+
+						p = g * growthModifier*dT;				// MO flyttet til kernel 2
+						if (arr_nutrient[i][j][k] < 1) {		//
+							p = 0;								//
+						}										//
+
+						if ((p > 0.1) and (!Warn_g)) {
                             cout << "\tWarning: Birth Probability Large!" << "\n";
                             f_log  << "Warning: Birth Probability Large!" << "\n";
                             Warn_g = true;
@@ -1681,9 +1718,38 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         arr_nutrient[i][j][k] = max(0.0, arr_nutrient[i][j][k] - N);
                         /* END anden Map-kernel */
 
+					}
+				}
+			}
+
+			for (int i = 0; i < nGridXY; i++) {
+				if (exit) break;
+
+				for (int j = 0; j < nGridXY; j++) {
+					if (exit) break;
+
+					for (int k = 0; k < nGridZ; k++) {
+						if (exit) break;
+
+						double p = 0; // privatize
+						double N = 0; // privatize
+						double M = 0; // privatize
+
+						// Compute the growth modifier 
+						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
+///////////// should the growth modifier have been an array instead?
+						// Compute beta
+						double Beta = beta;
+						if (reducedBeta) {
+							Beta *= growthModifier;
+						}
+
                         // Increase Infections ////////////////////////////////////////////////////////
                         if (r > 0.0) {
                             /* BEGIN tredje Map-kernel */
+						
+
+
 
                             p = r*growthModifier*dT;
                             if ((p > 0.25) and (!Warn_r)) {
@@ -1740,10 +1806,38 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                         }
 
+					}
+				}
+			}
+
+			for (int i = 0; i < nGridXY; i++) {
+				if (exit) break;
+
+				for (int j = 0; j < nGridXY; j++) {
+					if (exit) break;
+
+					for (int k = 0; k < nGridZ; k++) {
+						if (exit) break;
+
+						double p = 0; // privatize
+						double N = 0; // privatize
+						double M = 0; // privatize
+
+						// Compute the growth modifier 
+						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
+///////////// should the growth modifier have been an array instead?
+						// Compute beta
+						double Beta = beta;
+						if (reducedBeta) {
+							Beta *= growthModifier;
+						}
+											   						 
                         // PRIVATIZE BOTH OF THESE
                         double s;   // The factor which modifies the adsorption rate
                         double n;   // The number of targets the phage has
                         // Infectons
+
+
                         // KERNEL THIS
                         if ((arr_Occ[i][j][k] >= 1) and (arr_P[i][j][k] >= 1)) {
                             if (clustering) {   // Check if clustering is enabled
@@ -1755,7 +1849,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             }
                         }
 
-                        // KERNEL THIS
                         if ((arr_Occ[i][j][k] >= 1) and (arr_P[i][j][k] >= 1)) {
                             // Compute the number of hits
                             if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
@@ -1799,6 +1892,23 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         }
 
                         // Phage Decay ////////////////////////////////////////////////////////////////
+
+					}
+				}
+			}
+
+			for (int i = 0; i < nGridXY; i++) {
+				if (exit) break;
+
+				for (int j = 0; j < nGridXY; j++) {
+					if (exit) break;
+
+					for (int k = 0; k < nGridZ; k++) {
+						if (exit) break;
+
+						double p = 0; // privatize
+						double N = 0; // privatize
+
                         // KERNEL BEGIN
                         p = delta*dT;
                         if ((p > 0.1) and (!Warn_delta)) {
@@ -1812,6 +1922,18 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         arr_P[i][j][k]    = max(0.0, arr_P[i][j][k] - N);
                         // KERNEL END
 
+					}
+				}
+			}
+
+			for (int i = 0; i < nGridXY; i++) {
+				if (exit) break;
+
+				for (int j = 0; j < nGridXY; j++) {
+					if (exit) break;
+
+					for (int k = 0; k < nGridZ; k++) {
+						if (exit) break;
 
                         // Movement ///////////////////////////////////////////////////////////////////
                         if (nGridXY > 1) {
@@ -1927,6 +2049,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                     }
                 }
             }
+
+			/////////////////////////////////////////////////////
+			// Main loop end ////////////////////////////////////
+			/////////////////////////////////////////////////////
 
             // Swap pointers
             std::swap(arr_B, arr_B_new);
