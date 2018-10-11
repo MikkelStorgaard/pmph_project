@@ -237,6 +237,7 @@ class Colonies3D {
     double      Rand(double n);                                                 // Returns random double less than n
     double      RandN(double m, double s);                                      // Returns random normal dist. number with mean m and variance s^2
     double      RandP(double l);                                                // Returns poisson dist. number with mean l
+    double      RandP_fast(double l);                                           // Returns poisson dist. number with mean l
 
  public:
     void        SetRngSeed(int n);                                              // Sets the seed of the random number generator
