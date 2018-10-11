@@ -1228,6 +1228,8 @@ void Colonies3D::Initialize() {
 
     arr_nutrient = new double**[nGridXY];
     arr_Occ      = new double**[nGridXY];
+    arr_nutrient_new = new double**[nGridXY];
+
 
     for (int i = 0; i < nGridXY; i++) {
 
@@ -1260,6 +1262,7 @@ void Colonies3D::Initialize() {
 
         arr_nutrient[i] = new double*[nGridXY];
         arr_Occ[i]      = new double*[nGridXY];
+        arr_nutrient_new[i] = new double*[nGridXY];
 
         for (int j = 0; j < nGridXY; j++) {
 
@@ -1292,6 +1295,7 @@ void Colonies3D::Initialize() {
 
             arr_nutrient[i][j]  = new double[nGridZ];
             arr_Occ[i][j]       = new double[nGridZ];
+            arr_nutrient_new[i][j]  = new double[nGridZ];
 
 
            for (int k = 0; k < nGridZ; k++) {
@@ -1324,6 +1328,7 @@ void Colonies3D::Initialize() {
 
                 arr_nutrient[i][j][k] = n_0 / 1e12 * dV;
                 arr_Occ[i][j][k]  = 0.0;
+                arr_nutrient_new[i][j][k] = 0.0;
             }
         }
     }
