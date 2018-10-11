@@ -1576,7 +1576,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 }
 
 int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
-    std::string filesuffix = "LoopDistributedCPU";
+    std::string filename_suffix = "loopDistributedCPU";
 
     this->T_end = T_end;
 
@@ -1591,7 +1591,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
     Initialize();
 
     // Export data
-    ExportData(T, filesuffix);
+    ExportData_arr(T,filename_suffix);
 
     // Determine the number of samples to take
     int nSamplings = nSamp*T_end;
@@ -1618,13 +1618,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
             // Reset density counter
             double maxOccupancy = 0.0;
 
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 if (exit) break;
 
                 for (int j = 0; j < nGridXY; j++ ) {
                     if (exit) break;
 
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
                         if (exit) break;
 
                         // Ensure nC is updated
@@ -1658,6 +1658,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             f_log  << "Warning: Birth Probability Large!" << "\n";
                             Warn_g = true;
                         }
+
+
 
                         N = ComputeEvents(arr_B[i][j][k], p, 1);
 
@@ -1841,7 +1843,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             double n_f; // Front
                             double n_b; // Back
 
-
                             // CELLS
                             ComputeDiffusion(arr_B[i][j][k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
                             arr_B_new[i][j][k] += n_0; arr_B_new[ip][j][k] += n_u; arr_B_new[im][j][k] += n_d; arr_B_new[i][jp][k] += n_r; arr_B_new[i][jm][k] += n_l; arr_B_new[i][j][kp] += n_f; arr_B_new[i][j][km] += n_b;
@@ -1923,30 +1924,30 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
             std::swap(arr_P, arr_P_new);
 
             // Zero the _new arrays
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
-                        arr_B[i][j][k]  = 0.0;
-                        arr_I0[i][j][k] = 0.0;
-                        arr_I1[i][j][k] = 0.0;
-                        arr_I2[i][j][k] = 0.0;
-                        arr_I3[i][j][k] = 0.0;
-                        arr_I4[i][j][k] = 0.0;
-                        arr_I5[i][j][k] = 0.0;
-                        arr_I6[i][j][k] = 0.0;
-                        arr_I7[i][j][k] = 0.0;
-                        arr_I8[i][j][k] = 0.0;
-                        arr_I9[i][j][k] = 0.0;
-                        arr_P[i][j][k]  = 0.0;
+                    for (int k = 0; k < nGridZ; k++ ) {
+                        arr_B_new[i][j][k]  = 0.0;
+                        arr_I0_new[i][j][k] = 0.0;
+                        arr_I1_new[i][j][k] = 0.0;
+                        arr_I2_new[i][j][k] = 0.0;
+                        arr_I3_new[i][j][k] = 0.0;
+                        arr_I4_new[i][j][k] = 0.0;
+                        arr_I5_new[i][j][k] = 0.0;
+                        arr_I6_new[i][j][k] = 0.0;
+                        arr_I7_new[i][j][k] = 0.0;
+                        arr_I8_new[i][j][k] = 0.0;
+                        arr_I9_new[i][j][k] = 0.0;
+                        arr_P_new[i][j][k]  = 0.0;
                     }
                 }
             }
 
 
             // Update occupancy
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
                         arr_Occ[i][j][k] = arr_B[i][j][k] + arr_I0[i][j][k] + arr_I1[i][j][k] + arr_I2[i][j][k] + arr_I3[i][j][k] + arr_I4[i][j][k] + arr_I5[i][j][k] + arr_I6[i][j][k] + arr_I7[i][j][k] + arr_I8[i][j][k] + arr_I9[i][j][k];
                     }
                 }
@@ -1957,9 +1958,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
             double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
             double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
 
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
 
                         // Update positions
                         int ip, jp, kp, im, jm, km;
@@ -2008,7 +2009,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
             std::swap(arr_nutrient, arr_nutrient_new);
 
-            // Zero the _new array
+            // Zero the _new arrays
             for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
                     for (int k = 0; k < nGridZ; k++ ) {
@@ -2028,18 +2029,18 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
         // 1) There are no more sucebtible cells
         // -> Convert all infected cells to phages and stop simulation
         double accuB = 0.0;
-        for (int k = 0; k < nGridZ; k++ ) {
+        for (int i = 0; i < nGridXY; i++) {
             for (int j = 0; j < nGridXY; j++ ) {
-                for (int i = 0; i < nGridXY; i++) {
+                for (int k = 0; k < nGridZ; k++ ) {
                     accuB += arr_B[i][j][k];
                 }
             }
         }
         if ((fastExit) and (accuB < 1)) {
             // Update the P array
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
                         arr_P[i][j][k] += (1-alpha)*beta * (arr_I0[i][j][k] + arr_I1[i][j][k] + arr_I2[i][j][k] + arr_I3[i][j][k] + arr_I4[i][j][k] + arr_I5[i][j][k] + arr_I6[i][j][k] + arr_I7[i][j][k] + arr_I8[i][j][k] + arr_I9[i][j][k]);
                     }
                 }
@@ -2047,9 +2048,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 
             // Zero the I arrays
-            for (int k = 0; k < nGridZ; k++ ) {
+            for (int i = 0; i < nGridXY; i++) {
                 for (int j = 0; j < nGridXY; j++ ) {
-                    for (int i = 0; i < nGridXY; i++) {
+                    for (int k = 0; k < nGridZ; k++ ) {
                         arr_I0[i][j][k] = 0.0;
                         arr_I1[i][j][k] = 0.0;
                         arr_I2[i][j][k] = 0.0;
@@ -2070,9 +2071,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
         // -> Stop simulation
 
         double accuOcc = 0.0;
-        for (int k = 0; k < nGridZ; k++ ) {
+        for (int i = 0; i < nGridXY; i++) {
             for (int j = 0; j < nGridXY; j++ ) {
-                for (int i = 0; i < nGridXY; i++) {
+                for (int k = 0; k < nGridZ; k++ ) {
                     accuOcc += arr_Occ[i][j][k];
                 }
             }
@@ -2087,9 +2088,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
         double accuNutrient = 0.0;
         double maxNutrient  = 0.0;
-        for (int k = 0; k < nGridZ; k++ ) {
+        for (int i = 0; i < nGridXY; i++) {
             for (int j = 0; j < nGridXY; j++ ) {
-                for (int i = 0; i < nGridXY; i++) {
+                for (int k = 0; k < nGridZ; k++ ) {
                     double tmpN = arr_nutrient[i][j][k];
                     accuNutrient += tmpN;
 
@@ -2107,7 +2108,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
         }
 
         // Store the state
-        ExportData(T,filesuffix);
+        ExportData_arr(T,filename_suffix);
 
         // Check for nutrient stability
         assert(accuNutrient >= 0);
@@ -2132,7 +2133,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
     cout  << seconds << " seconds." << "\n";
 
     std::ofstream f_out;
-    f_out.open(GetPath() + "/Completed_"+filesuffix, fstream::trunc);
+    f_out.open(GetPath() + "/Completed_LOOP_DISTRIBUTED.txt",fstream::trunc);
     f_out << "\tSimulation complete after ";
     if (hours > 0.0)   f_out << hours   << " hours and ";
     if (minutes > 0.0) f_out << minutes << " minutes and ";
@@ -2159,6 +2160,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
         return 0;
     }
 }
+
 // Initialize the simulation
 void Colonies3D::Initialize() {
 
