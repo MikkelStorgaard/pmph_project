@@ -90,7 +90,7 @@ class Colonies3D {
 
     double rngSeed;                 // The seed for the random number generator
     std::mt19937 rng;               // Mersenne twister, random number generator
-    std::mt19937*** arr_rng;        // Mersenne twister, random number generator
+    std::mt19937* arr_rng;          // Mersenne twister, random number generator
     std::uniform_real_distribution  <double> rand;
     std::normal_distribution        <double> randn;
 
@@ -143,42 +143,42 @@ class Colonies3D {
     arma::mat   lapZ;
 
     // Coordinates of agents in the simulation
-    double*** arr_B;           // Sensitive bacteria
-    double*** arr_P;           // Phages
-    double*** arr_I0;          // Infected bacteria
-    double*** arr_I1;          // Infected bacteria
-    double*** arr_I2;          // Infected bacteria
-    double*** arr_I3;          // Infected bacteria
-    double*** arr_I4;          // Infected bacteria
-    double*** arr_I5;          // Infected bacteria
-    double*** arr_I6;          // Infected bacteria
-    double*** arr_I7;          // Infected bacteria
-    double*** arr_I8;          // Infected bacteria
-    double*** arr_I9;          // Infected bacteria
-    double*** arr_nC;          // Number of colonies in gridpoint
+    double* arr_B;           // Sensitive bacteria
+    double* arr_P;           // Phages
+    double* arr_I0;          // Infected bacteria
+    double* arr_I1;          // Infected bacteria
+    double* arr_I2;          // Infected bacteria
+    double* arr_I3;          // Infected bacteria
+    double* arr_I4;          // Infected bacteria
+    double* arr_I5;          // Infected bacteria
+    double* arr_I6;          // Infected bacteria
+    double* arr_I7;          // Infected bacteria
+    double* arr_I8;          // Infected bacteria
+    double* arr_I9;          // Infected bacteria
+    double* arr_nC;          // Number of colonies in gridpoint
 
-    double*** arr_B_new;       // Sensitive bacteria
-    double*** arr_P_new;       // Phages
-    double*** arr_I0_new;      // Infected bacteria
-    double*** arr_I1_new;      // Infected bacteria
-    double*** arr_I2_new;      // Infected bacteria
-    double*** arr_I3_new;      // Infected bacteria
-    double*** arr_I4_new;      // Infected bacteria
-    double*** arr_I5_new;      // Infected bacteria
-    double*** arr_I6_new;      // Infected bacteria
-    double*** arr_I7_new;      // Infected bacteria
-    double*** arr_I8_new;      // Infected bacteria
-    double*** arr_I9_new;      // Infected bacteria
+    double* arr_B_new;       // Sensitive bacteria
+    double* arr_P_new;       // Phages
+    double* arr_I0_new;      // Infected bacteria
+    double* arr_I1_new;      // Infected bacteria
+    double* arr_I2_new;      // Infected bacteria
+    double* arr_I3_new;      // Infected bacteria
+    double* arr_I4_new;      // Infected bacteria
+    double* arr_I5_new;      // Infected bacteria
+    double* arr_I6_new;      // Infected bacteria
+    double* arr_I7_new;      // Infected bacteria
+    double* arr_I8_new;      // Infected bacteria
+    double* arr_I9_new;      // Infected bacteria
 
-	// Privatized array. 
-	double*** arr_M;
+	// Privatized array.
+	double* arr_M;
 
     // Nutrient matrix
-    double*** arr_nutrient;
-    double*** arr_nutrient_new;
+    double* arr_nutrient;
+    double* arr_nutrient_new;
 
     // Occupancy of grid
-    double*** arr_Occ;
+    double* arr_Occ;
 
  public:
     // Constructers

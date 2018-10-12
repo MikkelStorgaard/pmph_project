@@ -11,17 +11,14 @@ int main(int argc, char** argv){
     double eta   = 1e4;
     double tau   = 0.5;
 
+    int k = 0;
+
     for (int i = 0; i < argc; i++) {
         if (i == 1) {
+            k = atoi(argv[i]);
+        }
+        if (i == 2) {
             nGrid = atoi(argv[i]);
-        } else if (i == 2) {
-            beta  = atoi(argv[i]);
-        } else if (i == 3) {
-            delta = atof(argv[i]);
-        } else if (i == 4) {
-            eta   = atof(argv[i]);
-        } else if (i == 5) {
-            tau   = atof(argv[i]);
         }
     }
 
@@ -48,10 +45,15 @@ int main(int argc, char** argv){
     // s.ExportAll();
 
     // Start the simulation
-    // s.Run_Original(T);
-    s.Run_NoMatrixMatrixMultiplication_with_arma(T);
-    // s.Run_NoMatrixMatrixMultiplication(T);
-    // s.Run_LoopDistributed_CPU(T);
+    if ( k==0 ) {
+        s.Run_Original(T);
+    } else if (k == 1) {
+        s.Run_NoMatrixMatrixMultiplication_with_arma(T);
+    } else if (k == 2) {
+        s.Run_NoMatrixMatrixMultiplication(T);
+    } else if (k == 3) {
+        s.Run_LoopDistributed_CPU(T);
+    }
 
     return 0;
 }
