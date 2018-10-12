@@ -170,6 +170,8 @@ class Colonies3D {
     double*** arr_I8_new;      // Infected bacteria
     double*** arr_I9_new;      // Infected bacteria
 
+	// Privatized array. 
+	double*** arr_M;
 
     // Nutrient matrix
     double*** arr_nutrient;

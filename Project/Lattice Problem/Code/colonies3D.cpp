@@ -1632,12 +1632,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
-
-						/* BEGIN første Map-kernel */
 						// Ensure nC is updated
-						if (arr_Occ[i][j][k] < arr_nC[i][j][k]) arr_nC[i][j][k] = arr_Occ[i][j][k];
+						if (arr_Occ[i][j][k] < arr_nC[i][j][k]){
+						    arr_nC[i][j][k] = arr_Occ[i][j][k];
+						}
 
 						// Skip empty sites
 						if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
@@ -1645,12 +1643,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						// Record the maximum observed density
 						if (arr_Occ[i][j][k] > maxOccupancy) maxOccupancy = arr_Occ[i][j][k];
 
-						/* END første Map-kernel */
-
 					}
 				}
 			}
-
+			// Birth //////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -1665,15 +1661,16 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double p = 0; // privatize
 						double N = 0; // privatize
 
+                        // Skip empty sites
+                        if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
-///////////// should the growth modifier have been an array instead?
 
-						p = g * growthModifier*dT;				// MO flyttet til kernel 2
-						if (arr_nutrient[i][j][k] < 1) {		//
-							p = 0;								//
-						}										//
+						p = g * growthModifier*dT;
+						if (arr_nutrient[i][j][k] < 1) {
+							p = 0;
+						}
 
 						if ((p > 0.1) and (!Warn_g)) {
                             cout << "\tWarning: Birth Probability Large!" << "\n";
@@ -1681,7 +1678,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             Warn_g = true;
                         }
 
-                        /* BEGIN anden Map-kernel */
                         N = ComputeEvents(arr_B[i][j][k], p, 1);
                         // Ensure there is enough nutrient
                         if ( N > arr_nutrient[i][j][k] ) {
@@ -1697,8 +1693,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         // Update count
                         arr_B_new[i][j][k] += N;
                         arr_nutrient[i][j][k] = max(0.0, arr_nutrient[i][j][k] - N);
-                        /* END anden Map-kernel */
-
 					}
 				}
 			}
@@ -1714,11 +1708,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						double p = 0; // privatize
 						double N = 0; // privatize
-						double M = 0; // privatize
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
-///////////// should the growth modifier have been an array instead?
+
 						// Compute beta
 						double Beta = beta;
 						if (reducedBeta) {
@@ -1727,7 +1720,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                         // Increase Infections ////////////////////////////////////////////////////////
                         if (r > 0.0) {
-                            /* BEGIN tredje Map-kernel */
 
                             p = r*growthModifier*dT;
                             if ((p > 0.25) and (!Warn_r)) {
@@ -1741,7 +1733,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             arr_I9[i][j][k]    = max(0.0, arr_I9[i][j][k] - N);
                             arr_Occ[i][j][k]   = max(0.0, arr_Occ[i][j][k] - N);
                             arr_P_new[i][j][k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-                            M = round(alpha * Beta * N);                        // Phages which reinfect the colony
+                            arr_M[i][j][k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
                             N = ComputeEvents(arr_I8[i][j][k], p, 2);
@@ -1799,11 +1791,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						double p = 0; // privatize
 						double N = 0; // privatize
-						double M = 0; // privatize
+
+                        // Skip empty sites
+                        if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
-///////////// should the growth modifier have been an array instead?
+
 						// Compute beta
 						double Beta = beta;
 						if (reducedBeta) {
@@ -1836,7 +1830,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                                 N = ComputeEvents(arr_P[i][j][k], p, 4);     // Number of targets hit
                             }
 
-                            if (N + M >= 1) {
+                            if (N + arr_M[i][j][k] >= 1) {
                                 // If bacteria were hit, update events
                                 arr_P[i][j][k] = max(0.0, arr_P[i][j][k] - N);     // Update count
 
@@ -1854,7 +1848,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                                 p = max(0.0, min(arr_B[i][j][k] / arr_Occ[i][j][k],
                                                  S)); // Probability of hitting succebtible target
-                                N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
+                                N = ComputeEvents(N + arr_M[i][j][k], p, 4);                  // Number of targets hit
 
                                 if (N > arr_B[i][j][k])
                                     N = arr_B[i][j][k];              // If more bacteria than present are set to be infeced, round down
@@ -1869,12 +1863,12 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             }
                         }
 
-                        // Phage Decay ////////////////////////////////////////////////////////////////
+
 
 					}
 				}
 			}
-
+			// Phage Decay ////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -1887,7 +1881,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double p = 0; // privatize
 						double N = 0; // privatize
 
-                        // KERNEL BEGIN
+
                         p = delta*dT;
                         if ((p > 0.1) and (!Warn_delta)) {
                             cout << "\tWarning: Decay Probability Large!" << "\n";
@@ -1898,11 +1892,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                         // Update count
                         arr_P[i][j][k]    = max(0.0, arr_P[i][j][k] - N);
-                        // KERNEL END
+
 
 					}
 				}
 			}
+
+			// Movement ///////////////////////////////////////////////////////////////////
 
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
@@ -1913,10 +1909,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-                        // Movement ///////////////////////////////////////////////////////////////////
+
                         if (nGridXY > 1) {
-                            // KERNEL BEGIN
                             // Update positions
+
+                            // Skip empty sites
+                            if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
+
                             int ip, jp, kp, im, jm, km;
 
                             if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
@@ -2005,6 +2004,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         } else {
                             // KERNEL BEGIN
                             // CELLS
+                            // Skip empty sites
+                            if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
+
                             arr_B_new[i][j][k] += arr_B[i][j][k];
 
                             if (r > 0.0) {
@@ -2022,7 +2024,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                             // PHAGES
                             arr_P_new[i][j][k] += arr_P[i][j][k];
-                            // KERNEL END
                         }
                     }
                 }
@@ -2377,6 +2378,8 @@ void Colonies3D::Initialize() {
 
     arr_rng = new std::mt19937**[nGridXY];
 
+	arr_M = new double**[nGridXY];
+
     for (int i = 0; i < nGridXY; i++) {
 
         arr_B[i]   = new double*[nGridXY];
@@ -2411,6 +2414,8 @@ void Colonies3D::Initialize() {
         arr_nutrient_new[i] = new double*[nGridXY];
 
         arr_rng[i] = new std::mt19937*[nGridXY];
+
+		arr_M[i] = new double*[nGridXY];
 
         for (int j = 0; j < nGridXY; j++) {
 
@@ -2447,6 +2452,7 @@ void Colonies3D::Initialize() {
 
             arr_rng[i][j] = new std::mt19937[nGridZ];
 
+            arr_M[i][j] = new double[nGridZ];
 
            for (int k = 0; k < nGridZ; k++) {
                 arr_B[i][j][k]  = 0.0;
@@ -2481,6 +2487,8 @@ void Colonies3D::Initialize() {
                 arr_nutrient_new[i][j][k] = 0.0;
 
                 arr_rng[i][j][k].seed(i*nGridXY*nGridZ + j*nGridZ + k);
+
+				arr_M[i][j][k] = 0.0;  // Redundant?
             }
         }
     }
