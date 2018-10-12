@@ -5,7 +5,7 @@ using namespace std;
 int main(int argc, char** argv){
 
      // Default parameters
-    int nGrid 	 = 50;
+    int nGrid 	 = 10;
     int beta  	 = 100;
     double delta = 1.0/10.0;
     double eta   = 1e4;
@@ -25,9 +25,9 @@ int main(int argc, char** argv){
         }
     }
 
-    double B_0 = pow(10,4);
+    double B_0 = 0;//pow(10,4);
     double P_0 = pow(10,5);
-    double T   = 20;
+    double T   = 5;
 
     string pathName = "3D_Example";
 
@@ -49,9 +49,9 @@ int main(int argc, char** argv){
 
     // Start the simulation
     // s.Run_Original(T);
-    // s.Run_NoMatrixMatrixMultiplication_with_arma(T);
+    s.Run_NoMatrixMatrixMultiplication_with_arma(T);
     // s.Run_NoMatrixMatrixMultiplication(T);
-    s.Run_LoopDistributed_CPU(T);
+    // s.Run_LoopDistributed_CPU(T);
 
     return 0;
 }

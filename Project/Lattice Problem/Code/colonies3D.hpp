@@ -90,6 +90,7 @@ class Colonies3D {
 
     double rngSeed;                 // The seed for the random number generator
     std::mt19937 rng;               // Mersenne twister, random number generator
+    std::mt19937*** arr_rng;        // Mersenne twister, random number generator
     std::uniform_real_distribution  <double> rand;
     std::normal_distribution        <double> randn;
 

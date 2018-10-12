@@ -392,28 +392,28 @@ int Colonies3D::Run_Original(double T_end) {
             // Update occupancy
             Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
 
-            // NUTRIENT DIFFUSION
-            // Create copy of nutrient to store the diffusion update
-            cube nn = nutrient;
-            assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
-            assert(2 * D_n * dT / pow( H / (double)nGridZ, 2) <= 1);
+                // NUTRIENT DIFFUSION
+                // Create copy of nutrient to store the diffusion update
+                cube nn = nutrient;
+                assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
+                assert(2 * D_n * dT / pow( H / (double)nGridZ, 2) <= 1);
 
-            // Compute the X & Y diffusion
-            for (uword k = 0; k < nGridZ; k++) {
-                nutrient.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
-            }
+                // Compute the X & Y diffusion
+                for (uword k = 0; k < nGridZ; k++) {
+                    nutrient.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
+                }
 
-            // Compute the Z diffusion
-            for (uword i = 0; i < nGridXY; i++) {
-                mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
+                // Compute the Z diffusion
+                for (uword i = 0; i < nGridXY; i++) {
+                    mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
 
-                for (uword k = 0; k < Q.n_cols; k++) {
-                    for (uword j = 0; j < Q.n_rows; j++) {
-                        nutrient(i, j, k) += Q(j,k);
-                        nutrient(i, j, k) = max(0.0, nutrient(i, j, k));
+                    for (uword k = 0; k < Q.n_cols; k++) {
+                        for (uword j = 0; j < Q.n_rows; j++) {
+                            nutrient(i, j, k) += Q(j,k);
+                            nutrient(i, j, k) = max(0.0, nutrient(i, j, k));
+                        }
                     }
                 }
-            }
 
             if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
                 cout << "\tWarning: Maximum Density Large!" << "\n";
@@ -555,15 +555,16 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
 
             // Reset density counter
             double maxOccupancy = 0.0;
-
-            for (uword k = 0; k < nGridZ; k++ ) {
+            for (uword i = 0; i < nGridXY; i++) {
                 if (exit) break;
 
                 for (uword j = 0; j < nGridXY; j++ ) {
                     if (exit) break;
 
-                    for (uword i = 0; i < nGridXY; i++) {
+                    for (uword k = 0; k < nGridZ; k++ ) {
                         if (exit) break;
+
+
 
                         // Ensure nC is updated
                         if (Occ(i, j, k) < nC(i, j, k)) nC(i,j,k) = Occ(i, j, k);
@@ -1633,7 +1634,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						double p = 0; // privatize
 						double N = 0; // privatize
-						double M = 0; // privatize
 
 						/* BEGIN første Map-kernel */
 						// Ensure nC is updated
@@ -1644,15 +1644,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						// Record the maximum observed density
 						if (arr_Occ[i][j][k] > maxOccupancy) maxOccupancy = arr_Occ[i][j][k];
-
-						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
-
-						// Compute beta
-						double Beta = beta;
-						if (reducedBeta) {
-							Beta *= growthModifier;
-						}
 
 						/* END første Map-kernel */
 
@@ -1678,14 +1669,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
 ///////////// should the growth modifier have been an array instead?
-
-						// Compute beta
-						double Beta = beta;
-						if (reducedBeta) {
-							Beta *= growthModifier;
-						}
-
-
 
 						p = g * growthModifier*dT;				// MO flyttet til kernel 2
 						if (arr_nutrient[i][j][k] < 1) {		//
@@ -1745,9 +1728,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         // Increase Infections ////////////////////////////////////////////////////////
                         if (r > 0.0) {
                             /* BEGIN tredje Map-kernel */
-
-
-
 
                             p = r*growthModifier*dT;
                             if ((p > 0.25) and (!Warn_r)) {
@@ -2395,6 +2375,7 @@ void Colonies3D::Initialize() {
     arr_Occ      = new double**[nGridXY];
     arr_nutrient_new = new double**[nGridXY];
 
+    arr_rng = new std::mt19937**[nGridXY];
 
     for (int i = 0; i < nGridXY; i++) {
 
@@ -2429,6 +2410,8 @@ void Colonies3D::Initialize() {
         arr_Occ[i]      = new double*[nGridXY];
         arr_nutrient_new[i] = new double*[nGridXY];
 
+        arr_rng[i] = new std::mt19937*[nGridXY];
+
         for (int j = 0; j < nGridXY; j++) {
 
             arr_B[i][j]   = new double[nGridZ];
@@ -2462,6 +2445,8 @@ void Colonies3D::Initialize() {
             arr_Occ[i][j]       = new double[nGridZ];
             arr_nutrient_new[i][j]  = new double[nGridZ];
 
+            arr_rng[i][j] = new std::mt19937[nGridZ];
+
 
            for (int k = 0; k < nGridZ; k++) {
                 arr_B[i][j][k]  = 0.0;
@@ -2494,6 +2479,8 @@ void Colonies3D::Initialize() {
                 arr_nutrient[i][j][k] = n_0 / 1e12 * dV;
                 arr_Occ[i][j][k]  = 0.0;
                 arr_nutrient_new[i][j][k] = 0.0;
+
+                arr_rng[i][j][k].seed(i*nGridXY*nGridZ + j*nGridZ + k);
             }
         }
     }
