@@ -2383,40 +2383,8 @@ void Colonies3D::Initialize() {
     for (int i = 0; i < nGridXY; i++) {
         for (int j = 0; j < nGridXY; j++) {
            for (int k = 0; k < nGridZ; k++) {
-                // arr_B[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-                // arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_P[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-                // arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-
-                // arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-                // arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                // arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-
                 arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = n_0 / 1e12 * dV;
-                // arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-                // arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-
                 arr_rng[i*nGridXY*nGridZ + j*nGridZ + k].seed(i*nGridXY*nGridZ + j*nGridZ + k);
-
-				// arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;  // Redundant?
             }
         }
     }
