@@ -1621,7 +1621,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 			/////////////////////////////////////////////////////
 			// Main loop start //////////////////////////////////
 			/////////////////////////////////////////////////////
-		
+
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -1656,13 +1656,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						/* END første Map-kernel */
 
-						// Birth //////////////////////////////////////////////////////////////////////
-						
-
-					
 					}
 				}
-			}           
+			}
 
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
@@ -1673,11 +1669,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
+						// Birth //////////////////////////////////////////////////////////////////////
+
 						double p = 0; // privatize
 						double N = 0; // privatize
 
 
-						// Compute the growth modifier 
+						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
 ///////////// should the growth modifier have been an array instead?
 
@@ -1735,7 +1733,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double N = 0; // privatize
 						double M = 0; // privatize
 
-						// Compute the growth modifier 
+						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
 ///////////// should the growth modifier have been an array instead?
 						// Compute beta
@@ -1747,7 +1745,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         // Increase Infections ////////////////////////////////////////////////////////
                         if (r > 0.0) {
                             /* BEGIN tredje Map-kernel */
-						
+
 
 
 
@@ -1823,7 +1821,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double N = 0; // privatize
 						double M = 0; // privatize
 
-						// Compute the growth modifier 
+						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
 ///////////// should the growth modifier have been an array instead?
 						// Compute beta
@@ -1831,7 +1829,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						if (reducedBeta) {
 							Beta *= growthModifier;
 						}
-											   						 
+
                         // PRIVATIZE BOTH OF THESE
                         double s;   // The factor which modifies the adsorption rate
                         double n;   // The number of targets the phage has
@@ -3193,7 +3191,7 @@ void Colonies3D::ExportAll(){exportAll=true;}
 void Colonies3D::ExportData(double t, std::string filename_suffix){
 
     // Verify the file stream is open
-    string fileName = "PopulationSize"+filename_suffix;
+    string fileName = "PopulationSize_"+filename_suffix;
     OpenFileStream(f_N, fileName);
 
     // Writes the time, number of cells, number of infected cells, number of phages
@@ -3211,16 +3209,16 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
     if (exportAll) {
         // Save the position data
         // Verify the file stream is open
-        fileName = "CellDensity"+filename_suffix;
+        fileName = "CellDensity_"+filename_suffix;
         OpenFileStream(f_B, fileName);
 
-        fileName = "InfectedDensity"+filename_suffix;
+        fileName = "InfectedDensity_"+filename_suffix;
         OpenFileStream(f_I, fileName);
 
-        fileName = "PhageDensity"+filename_suffix;
+        fileName = "PhageDensity_"+filename_suffix;
         OpenFileStream(f_P, fileName);
 
-        fileName = "NutrientDensity"+filename_suffix;
+        fileName = "NutrientDensity_"+filename_suffix;
         OpenFileStream(f_n, fileName);
 
         // Write file as MATLAB would a 3D matrix!
@@ -3265,7 +3263,7 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
 void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
 
     // Verify the file stream is open
-    string fileName = "PopulationSize"+filename_suffix;
+    string fileName = "PopulationSize_"+filename_suffix;
     OpenFileStream(f_N, fileName);
 
 
@@ -3301,16 +3299,16 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
     if (exportAll) {
         // Save the position data
         // Verify the file stream is open
-        fileName = "CellDensity"+filename_suffix;
+        fileName = "CellDensity_"+filename_suffix;
         OpenFileStream(f_B, fileName);
 
-        fileName = "InfectedDensity"+filename_suffix;
+        fileName = "InfectedDensity_"+filename_suffix;
         OpenFileStream(f_I, fileName);
 
-        fileName = "PhageDensity"+filename_suffix;
+        fileName = "PhageDensity_"+filename_suffix;
         OpenFileStream(f_P, fileName);
 
-        fileName = "NutrientDensity"+filename_suffix;
+        fileName = "NutrientDensity_"+filename_suffix;
         OpenFileStream(f_n, fileName);
 
         // Write file as MATLAB would a 3D matrix!

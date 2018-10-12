@@ -29,7 +29,7 @@ int main(int argc, char** argv){
     double P_0 = pow(10,5);
     double T   = 20;
 
-    string pathName = "3D_Example_Full_Model";
+    string pathName = "3D_Example";
 
     // Load simulation module
     Colonies3D s(B_0, P_0);
@@ -45,10 +45,13 @@ int main(int argc, char** argv){
     s.PhageLatencyTime(tau);
     s.SetSamples(10);
 
-    s.ExportAll();
+    // s.ExportAll();
 
     // Start the simulation
-    s.Run_Original(T);
+    // s.Run_Original(T);
+    // s.Run_NoMatrixMatrixMultiplication_with_arma(T);
+    // s.Run_NoMatrixMatrixMultiplication(T);
+    s.Run_LoopDistributed_CPU(T);
 
     return 0;
 }
