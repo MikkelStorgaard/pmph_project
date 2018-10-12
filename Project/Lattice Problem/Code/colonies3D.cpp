@@ -1637,33 +1637,21 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						/* BEGIN første Map-kernel */
 						// Ensure nC is updated
-						if (arr_Occ[i][j][k] < arr_nC[i][j][k]) arr_nC[i][j][k] = arr_Occ[i][j][k];
+						if (arr_Occ[i][j][k] < arr_nC[i][j][k]){
+						    arr_nC[i][j][k] = arr_Occ[i][j][k];
+						}
 
 						// Skip empty sites
 						if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
 
 						// Record the maximum observed density
 						if (arr_Occ[i][j][k] > maxOccupancy) maxOccupancy = arr_Occ[i][j][k];
-
-						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
-
-						// Compute beta
-						double Beta = beta;
-						if (reducedBeta) {
-							Beta *= growthModifier;
-						}
-
 						/* END første Map-kernel */
-
-						// Birth //////////////////////////////////////////////////////////////////////
-						
-
-					
 					}
 				}
-			}           
+			}
 
+            // Birth //////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -1676,6 +1664,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double p = 0; // privatize
 						double N = 0; // privatize
 
+                        // Skip empty sites
+                        if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
 
 						// Compute the growth modifier 
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
@@ -1735,7 +1725,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double N = 0; // privatize
 						double M = 0; // privatize
 
-						// Compute the growth modifier 
+                        // Skip empty sites
+                        if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
+
+						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
 ///////////// should the growth modifier have been an array instead?
 						// Compute beta
@@ -1823,7 +1816,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double N = 0; // privatize
 						double M = 0; // privatize
 
-						// Compute the growth modifier 
+                        // Skip empty sites
+                        if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
+
+						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i][j][k] / (arr_nutrient[i][j][k] + K);
 ///////////// should the growth modifier have been an array instead?
 						// Compute beta
@@ -1909,6 +1905,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double p = 0; // privatize
 						double N = 0; // privatize
 
+                        // Skip empty sites
+                        if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
+
                         // KERNEL BEGIN
                         p = delta*dT;
                         if ((p > 0.1) and (!Warn_delta)) {
@@ -1939,6 +1938,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         if (nGridXY > 1) {
                             // KERNEL BEGIN
                             // Update positions
+
+                            // Skip empty sites
+                            if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
+
                             int ip, jp, kp, im, jm, km;
 
                             if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
@@ -2027,6 +2030,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         } else {
                             // KERNEL BEGIN
                             // CELLS
+                            // Skip empty sites
+                            if ((arr_Occ[i][j][k] < 1) and (arr_P[i][j][k] < 1)) continue;
+
                             arr_B_new[i][j][k] += arr_B[i][j][k];
 
                             if (r > 0.0) {
