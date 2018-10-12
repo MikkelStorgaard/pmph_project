@@ -62,8 +62,8 @@ int main(int argc, char** argv){
         // Start the simulation
         // s.Run_Original(T);
         // s.Run_NoMatrixMatrixMultiplication_with_arma(T);
-        // s.Run_NoMatrixMatrixMultiplication(T);
-        s.Run_LoopDistributed_CPU(T);
+		s.Run_LoopDistributed_CPU(T);
+        //s.Run_NoMatrixMatrixMultiplication(T);
     }
 
     return 0;
