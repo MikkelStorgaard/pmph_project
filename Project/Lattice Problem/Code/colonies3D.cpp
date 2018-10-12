@@ -3578,4 +3578,112 @@ Colonies3D::~Colonies3D() {
         f_log.flush();
         f_log.close();
     }
+
+    // Delete arrays
+    for (int i = 0; i < nGridXY; i++) {
+        for (int j = 0; j < nGridXY; j++) {
+            delete[] arr_B[i][j];
+            delete[] arr_I0[i][j];
+            delete[] arr_I1[i][j];
+            delete[] arr_I2[i][j];
+            delete[] arr_I3[i][j];
+            delete[] arr_I4[i][j];
+            delete[] arr_I5[i][j];
+            delete[] arr_I6[i][j];
+            delete[] arr_I7[i][j];
+            delete[] arr_I8[i][j];
+            delete[] arr_I9[i][j];
+            delete[] arr_P[i][j];
+            delete[] arr_nC[i][j];
+
+            delete[] arr_B_new[i][j];
+            delete[] arr_I0_new[i][j];
+            delete[] arr_I1_new[i][j];
+            delete[] arr_I2_new[i][j];
+            delete[] arr_I3_new[i][j];
+            delete[] arr_I4_new[i][j];
+            delete[] arr_I5_new[i][j];
+            delete[] arr_I6_new[i][j];
+            delete[] arr_I7_new[i][j];
+            delete[] arr_I8_new[i][j];
+            delete[] arr_I9_new[i][j];
+            delete[] arr_P_new[i][j];
+
+            delete[] arr_nutrient[i][j];
+            delete[] arr_Occ[i][j];
+            delete[] arr_nutrient_new[i][j];
+
+            delete[] arr_rng[i][j];
+
+            delete[] arr_M[i][j];
+        }
+        delete[] arr_B[i];
+        delete[] arr_I0[i];
+        delete[] arr_I1[i];
+        delete[] arr_I2[i];
+        delete[] arr_I3[i];
+        delete[] arr_I4[i];
+        delete[] arr_I5[i];
+        delete[] arr_I6[i];
+        delete[] arr_I7[i];
+        delete[] arr_I8[i];
+        delete[] arr_I9[i];
+        delete[] arr_P[i];
+        delete[] arr_nC[i];
+
+        delete[] arr_B_new[i];
+        delete[] arr_I0_new[i];
+        delete[] arr_I1_new[i];
+        delete[] arr_I2_new[i];
+        delete[] arr_I3_new[i];
+        delete[] arr_I4_new[i];
+        delete[] arr_I5_new[i];
+        delete[] arr_I6_new[i];
+        delete[] arr_I7_new[i];
+        delete[] arr_I8_new[i];
+        delete[] arr_I9_new[i];
+        delete[] arr_P_new[i];
+
+        delete[] arr_nutrient[i];
+        delete[] arr_Occ[i];
+        delete[] arr_nutrient_new[i];
+
+        delete[] arr_rng[i];
+
+		delete[] arr_M[i];
+    }
+    delete[] arr_B;
+    delete[] arr_I0;
+    delete[] arr_I1;
+    delete[] arr_I2;
+    delete[] arr_I3;
+    delete[] arr_I4;
+    delete[] arr_I5;
+    delete[] arr_I6;
+    delete[] arr_I7;
+    delete[] arr_I8;
+    delete[] arr_I9;
+    delete[] arr_P;
+    delete[] arr_nC;
+
+    delete[] arr_B_new;
+    delete[] arr_I0_new;
+    delete[] arr_I1_new;
+    delete[] arr_I2_new;
+    delete[] arr_I3_new;
+    delete[] arr_I4_new;
+    delete[] arr_I5_new;
+    delete[] arr_I6_new;
+    delete[] arr_I7_new;
+    delete[] arr_I8_new;
+    delete[] arr_I9_new;
+    delete[] arr_P_new;
+
+    delete[] arr_nutrient;
+    delete[] arr_Occ;
+    delete[] arr_nutrient_new;
+
+    delete[] arr_rng;
+
+	delete[] arr_M;
 }
