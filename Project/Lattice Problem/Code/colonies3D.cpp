@@ -153,7 +153,7 @@ int Colonies3D::Run_Original(double T_end) {
                             Warn_g = true;
                         }
 
-                        N = ComputeEvents(B(i, j, k), p, 1);
+                        N = ComputeEvents(B(i, j, k), p, 1, i, j, k);
 
                         // Ensure there is enough nutrient
                         if ( N > nutrient(i, j, k) ) {
@@ -178,7 +178,7 @@ int Colonies3D::Run_Original(double T_end) {
                                 f_log  << "Warning: Infection Increase Probability Large!" << "\n";
                                 Warn_r = true;
                             }
-                            N = ComputeEvents(I9(i, j, k), p, 2);  // Bursting events
+                            N = ComputeEvents(I9(i, j, k), p, 2, i, j, k);  // Bursting events
 
                             // Update count
                             I9(i, j, k)    = max(0.0, I9(i, j, k) - N);
@@ -187,15 +187,15 @@ int Colonies3D::Run_Original(double T_end) {
                             M = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
-                            N = ComputeEvents(I8(i, j, k), p, 2); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
-                            N = ComputeEvents(I7(i, j, k), p, 2); I7(i, j, k) = max(0.0, I7(i, j, k) - N); I8(i, j, k) += N;
-                            N = ComputeEvents(I6(i, j, k), p, 2); I6(i, j, k) = max(0.0, I6(i, j, k) - N); I7(i, j, k) += N;
-                            N = ComputeEvents(I5(i, j, k), p, 2); I5(i, j, k) = max(0.0, I5(i, j, k) - N); I6(i, j, k) += N;
-                            N = ComputeEvents(I4(i, j, k), p, 2); I4(i, j, k) = max(0.0, I4(i, j, k) - N); I5(i, j, k) += N;
-                            N = ComputeEvents(I3(i, j, k), p, 2); I3(i, j, k) = max(0.0, I3(i, j, k) - N); I4(i, j, k) += N;
-                            N = ComputeEvents(I2(i, j, k), p, 2); I2(i, j, k) = max(0.0, I2(i, j, k) - N); I3(i, j, k) += N;
-                            N = ComputeEvents(I1(i, j, k), p, 2); I1(i, j, k) = max(0.0, I1(i, j, k) - N); I2(i, j, k) += N;
-                            N = ComputeEvents(I0(i, j, k), p, 2); I0(i, j, k) = max(0.0, I0(i, j, k) - N); I1(i, j, k) += N;
+                            N = ComputeEvents(I8(i, j, k), p, 2, i, j, k); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
+                            N = ComputeEvents(I7(i, j, k), p, 2, i, j, k); I7(i, j, k) = max(0.0, I7(i, j, k) - N); I8(i, j, k) += N;
+                            N = ComputeEvents(I6(i, j, k), p, 2, i, j, k); I6(i, j, k) = max(0.0, I6(i, j, k) - N); I7(i, j, k) += N;
+                            N = ComputeEvents(I5(i, j, k), p, 2, i, j, k); I5(i, j, k) = max(0.0, I5(i, j, k) - N); I6(i, j, k) += N;
+                            N = ComputeEvents(I4(i, j, k), p, 2, i, j, k); I4(i, j, k) = max(0.0, I4(i, j, k) - N); I5(i, j, k) += N;
+                            N = ComputeEvents(I3(i, j, k), p, 2, i, j, k); I3(i, j, k) = max(0.0, I3(i, j, k) - N); I4(i, j, k) += N;
+                            N = ComputeEvents(I2(i, j, k), p, 2, i, j, k); I2(i, j, k) = max(0.0, I2(i, j, k) - N); I3(i, j, k) += N;
+                            N = ComputeEvents(I1(i, j, k), p, 2, i, j, k); I1(i, j, k) = max(0.0, I1(i, j, k) - N); I2(i, j, k) += N;
+                            N = ComputeEvents(I0(i, j, k), p, 2, i, j, k); I0(i, j, k) = max(0.0, I0(i, j, k) - N); I1(i, j, k) += N;
                         }
 
                         // Infectons //////////////////////////////////////////////////////////////////
@@ -216,7 +216,7 @@ int Colonies3D::Run_Original(double T_end) {
                                 N = P(i, j, k);
                             } else {
                                 p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(P(i, j, k), p, 4);     // Number of targets hit
+                                N = ComputeEvents(P(i, j, k), p, 4, i, j, k);     // Number of targets hit
                             }
 
                             // If bacteria were hit, update events
@@ -236,7 +236,7 @@ int Colonies3D::Run_Original(double T_end) {
                                 }
 
                                 p = max(0.0, min(B(i, j, k) / Occ(i, j, k), S)); // Probability of hitting succebtible target
-                                N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
+                                N = ComputeEvents(N + M, p, 4, i, j, k);                  // Number of targets hit
 
                                 if (N > B(i, j, k)) N = B(i, j, k);              // If more bacteria than present are set to be infeced, round down
 
@@ -257,7 +257,7 @@ int Colonies3D::Run_Original(double T_end) {
                             f_log  << "Warning: Decay Probability Large!" << "\n";
                             Warn_delta = true;
                         }
-                        N = ComputeEvents(P(i, j, k), p, 5);
+                        N = ComputeEvents(P(i, j, k), p, 5, i, j, k);
 
                         // Update count
                         P(i, j, k)    = max(0.0, P(i, j, k) - N);
@@ -310,43 +310,43 @@ int Colonies3D::Run_Original(double T_end) {
 
 
                             // CELLS
-                            ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
+                            ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
                             B_new(i, j, k) += n_0; B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
 
                             if (r > 0.0) {
-                                ComputeDiffusion(I0(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I0(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I0_new(i, j, k) += n_0; I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I1(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I1(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I1_new(i, j, k) += n_0; I1_new(ip, j, k) += n_u; I1_new(im, j, k) += n_d; I1_new(i, jp, k) += n_r; I1_new(i, jm, k) += n_l; I1_new(i, j, kp) += n_f; I1_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I2(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I2(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I2_new(i, j, k) += n_0; I2_new(ip, j, k) += n_u; I2_new(im, j, k) += n_d; I2_new(i, jp, k) += n_r; I2_new(i, jm, k) += n_l; I2_new(i, j, kp) += n_f; I2_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I3(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I3(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I3_new(i, j, k) += n_0; I3_new(ip, j, k) += n_u; I3_new(im, j, k) += n_d; I3_new(i, jp, k) += n_r; I3_new(i, jm, k) += n_l; I3_new(i, j, kp) += n_f; I3_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I4(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I4(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I4_new(i, j, k) += n_0; I4_new(ip, j, k) += n_u; I4_new(im, j, k) += n_d; I4_new(i, jp, k) += n_r; I4_new(i, jm, k) += n_l; I4_new(i, j, kp) += n_f; I4_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I5(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I5(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I5_new(i, j, k) += n_0; I5_new(ip, j, k) += n_u; I5_new(im, j, k) += n_d; I5_new(i, jp, k) += n_r; I5_new(i, jm, k) += n_l; I5_new(i, j, kp) += n_f; I5_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I6(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I6(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I6_new(i, j, k) += n_0; I6_new(ip, j, k) += n_u; I6_new(im, j, k) += n_d; I6_new(i, jp, k) += n_r; I6_new(i, jm, k) += n_l; I6_new(i, j, kp) += n_f; I6_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I7(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I7(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I7_new(i, j, k) += n_0; I7_new(ip, j, k) += n_u; I7_new(im, j, k) += n_d; I7_new(i, jp, k) += n_r; I7_new(i, jm, k) += n_l; I7_new(i, j, kp) += n_f; I7_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I8(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I8(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I8_new(i, j, k) += n_0; I8_new(ip, j, k) += n_u; I8_new(im, j, k) += n_d; I8_new(i, jp, k) += n_r; I8_new(i, jm, k) += n_l; I8_new(i, j, kp) += n_f; I8_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I9_new(i, j, k) += n_0; I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
                             }
 
                             // PHAGES
-                            ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
+                            ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
                             P_new(i, j, k) += n_0; P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
 
 
@@ -598,7 +598,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                             Warn_g = true;
                         }
 
-                        N = ComputeEvents(B(i, j, k), p, 1);
+                        N = ComputeEvents(B(i, j, k), p, 1, i, j, k);
 
                         // Ensure there is enough nutrient
                         if ( N > nutrient(i, j, k) ) {
@@ -623,7 +623,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                                 f_log  << "Warning: Infection Increase Probability Large!" << "\n";
                                 Warn_r = true;
                             }
-                            N = ComputeEvents(I9(i, j, k), p, 2);  // Bursting events
+                            N = ComputeEvents(I9(i, j, k), p, 2, i, j, k);  // Bursting events
 
                             // Update count
                             I9(i, j, k)    = max(0.0, I9(i, j, k) - N);
@@ -632,15 +632,15 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                             M = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
-                            N = ComputeEvents(I8(i, j, k), p, 2); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
-                            N = ComputeEvents(I7(i, j, k), p, 2); I7(i, j, k) = max(0.0, I7(i, j, k) - N); I8(i, j, k) += N;
-                            N = ComputeEvents(I6(i, j, k), p, 2); I6(i, j, k) = max(0.0, I6(i, j, k) - N); I7(i, j, k) += N;
-                            N = ComputeEvents(I5(i, j, k), p, 2); I5(i, j, k) = max(0.0, I5(i, j, k) - N); I6(i, j, k) += N;
-                            N = ComputeEvents(I4(i, j, k), p, 2); I4(i, j, k) = max(0.0, I4(i, j, k) - N); I5(i, j, k) += N;
-                            N = ComputeEvents(I3(i, j, k), p, 2); I3(i, j, k) = max(0.0, I3(i, j, k) - N); I4(i, j, k) += N;
-                            N = ComputeEvents(I2(i, j, k), p, 2); I2(i, j, k) = max(0.0, I2(i, j, k) - N); I3(i, j, k) += N;
-                            N = ComputeEvents(I1(i, j, k), p, 2); I1(i, j, k) = max(0.0, I1(i, j, k) - N); I2(i, j, k) += N;
-                            N = ComputeEvents(I0(i, j, k), p, 2); I0(i, j, k) = max(0.0, I0(i, j, k) - N); I1(i, j, k) += N;
+                            N = ComputeEvents(I8(i, j, k), p, 2, i, j, k); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
+                            N = ComputeEvents(I7(i, j, k), p, 2, i, j, k); I7(i, j, k) = max(0.0, I7(i, j, k) - N); I8(i, j, k) += N;
+                            N = ComputeEvents(I6(i, j, k), p, 2, i, j, k); I6(i, j, k) = max(0.0, I6(i, j, k) - N); I7(i, j, k) += N;
+                            N = ComputeEvents(I5(i, j, k), p, 2, i, j, k); I5(i, j, k) = max(0.0, I5(i, j, k) - N); I6(i, j, k) += N;
+                            N = ComputeEvents(I4(i, j, k), p, 2, i, j, k); I4(i, j, k) = max(0.0, I4(i, j, k) - N); I5(i, j, k) += N;
+                            N = ComputeEvents(I3(i, j, k), p, 2, i, j, k); I3(i, j, k) = max(0.0, I3(i, j, k) - N); I4(i, j, k) += N;
+                            N = ComputeEvents(I2(i, j, k), p, 2, i, j, k); I2(i, j, k) = max(0.0, I2(i, j, k) - N); I3(i, j, k) += N;
+                            N = ComputeEvents(I1(i, j, k), p, 2, i, j, k); I1(i, j, k) = max(0.0, I1(i, j, k) - N); I2(i, j, k) += N;
+                            N = ComputeEvents(I0(i, j, k), p, 2, i, j, k); I0(i, j, k) = max(0.0, I0(i, j, k) - N); I1(i, j, k) += N;
                         }
 
                         // Infectons //////////////////////////////////////////////////////////////////
@@ -661,7 +661,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                                 N = P(i, j, k);
                             } else {
                                 p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(P(i, j, k), p, 4);     // Number of targets hit
+                                N = ComputeEvents(P(i, j, k), p, 4, i, j, k);     // Number of targets hit
                             }
 
                             // If bacteria were hit, update events
@@ -681,7 +681,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                                 }
 
                                 p = max(0.0, min(B(i, j, k) / Occ(i, j, k), S)); // Probability of hitting succebtible target
-                                N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
+                                N = ComputeEvents(N + M, p, 4, i, j, k);                  // Number of targets hit
 
                                 if (N > B(i, j, k)) N = B(i, j, k);              // If more bacteria than present are set to be infeced, round down
 
@@ -702,7 +702,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                             f_log  << "Warning: Decay Probability Large!" << "\n";
                             Warn_delta = true;
                         }
-                        N = ComputeEvents(P(i, j, k), p, 5);
+                        N = ComputeEvents(P(i, j, k), p, 5, i, j, k);
 
                         // Update count
                         P(i, j, k)    = max(0.0, P(i, j, k) - N);
@@ -755,43 +755,43 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
 
 
                             // CELLS
-                            ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
+                            ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
                             B_new(i, j, k) += n_0; B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
 
                             if (r > 0.0) {
-                                ComputeDiffusion(I0(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I0(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I0_new(i, j, k) += n_0; I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I1(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I1(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I1_new(i, j, k) += n_0; I1_new(ip, j, k) += n_u; I1_new(im, j, k) += n_d; I1_new(i, jp, k) += n_r; I1_new(i, jm, k) += n_l; I1_new(i, j, kp) += n_f; I1_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I2(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I2(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I2_new(i, j, k) += n_0; I2_new(ip, j, k) += n_u; I2_new(im, j, k) += n_d; I2_new(i, jp, k) += n_r; I2_new(i, jm, k) += n_l; I2_new(i, j, kp) += n_f; I2_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I3(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I3(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I3_new(i, j, k) += n_0; I3_new(ip, j, k) += n_u; I3_new(im, j, k) += n_d; I3_new(i, jp, k) += n_r; I3_new(i, jm, k) += n_l; I3_new(i, j, kp) += n_f; I3_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I4(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I4(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I4_new(i, j, k) += n_0; I4_new(ip, j, k) += n_u; I4_new(im, j, k) += n_d; I4_new(i, jp, k) += n_r; I4_new(i, jm, k) += n_l; I4_new(i, j, kp) += n_f; I4_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I5(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I5(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I5_new(i, j, k) += n_0; I5_new(ip, j, k) += n_u; I5_new(im, j, k) += n_d; I5_new(i, jp, k) += n_r; I5_new(i, jm, k) += n_l; I5_new(i, j, kp) += n_f; I5_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I6(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I6(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I6_new(i, j, k) += n_0; I6_new(ip, j, k) += n_u; I6_new(im, j, k) += n_d; I6_new(i, jp, k) += n_r; I6_new(i, jm, k) += n_l; I6_new(i, j, kp) += n_f; I6_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I7(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I7(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I7_new(i, j, k) += n_0; I7_new(ip, j, k) += n_u; I7_new(im, j, k) += n_d; I7_new(i, jp, k) += n_r; I7_new(i, jm, k) += n_l; I7_new(i, j, kp) += n_f; I7_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I8(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I8(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I8_new(i, j, k) += n_0; I8_new(ip, j, k) += n_u; I8_new(im, j, k) += n_d; I8_new(i, jp, k) += n_r; I8_new(i, jm, k) += n_l; I8_new(i, j, kp) += n_f; I8_new(i, j, km) += n_b;
 
-                                ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 I9_new(i, j, k) += n_0; I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
                             }
 
                             // PHAGES
-                            ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
+                            ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
                             P_new(i, j, k) += n_0; P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
 
 
@@ -1076,7 +1076,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             Warn_g = true;
                         }
 
-                        N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1);
+                        N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
 
                         // Ensure there is enough nutrient
                         if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
@@ -1101,7 +1101,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                                 f_log  << "Warning: Infection Increase Probability Large!" << "\n";
                                 Warn_r = true;
                             }
-                            N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);  // Bursting events
+                            N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
 
                             // Update count
                             arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -1110,39 +1110,39 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             M = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
-                            N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
@@ -1166,7 +1166,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                                 N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
                             } else {
                                 p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4);     // Number of targets hit
+                                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
                             }
 
                             // If bacteria were hit, update events
@@ -1186,7 +1186,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                                 }
 
                                 p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k], S)); // Probability of hitting succebtible target
-                                N = ComputeEvents(N + M, p, 4);                  // Number of targets hit
+                                N = ComputeEvents(N + M, p, 4, i, j, k);                  // Number of targets hit
 
                                 if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k]) N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
 
@@ -1207,7 +1207,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             f_log  << "Warning: Decay Probability Large!" << "\n";
                             Warn_delta = true;
                         }
-                        N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5);
+                        N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5, i, j, k);
 
                         // Update count
                         arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -1259,43 +1259,43 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             double n_b; // Back
 
                             // CELLS
-                            ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
+                            ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
                             arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
                             if (r > 0.0) {
-                                ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
                             }
 
                             // PHAGES
-                            ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
+                            ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
                             arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
 
@@ -1678,7 +1678,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             Warn_g = true;
                         }
 
-                        N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1);
+                        N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
                         // Ensure there is enough nutrient
                         if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
                             if (!Warn_fastGrowth) {
@@ -1727,7 +1727,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                                 f_log  << "Warning: Infection Increase Probability Large!" << "\n";
                                 Warn_r = true;
                             }
-                            N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);  // Bursting events
+                            N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
 
                             // Update count
                             arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -1736,39 +1736,39 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
-                            N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
@@ -1827,7 +1827,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                                 N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
                             } else {
                                 p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4);     // Number of targets hit
+                                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
                             }
 
                             if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
@@ -1848,7 +1848,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                                 p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
                                                  S)); // Probability of hitting succebtible target
-                                N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4);                  // Number of targets hit
+                                N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
 
                                 if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
                                     N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
@@ -1888,7 +1888,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             f_log  << "Warning: Decay Probability Large!" << "\n";
                             Warn_delta = true;
                         }
-                        N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5);
+                        N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5, i, j, k);
 
                         // Update count
                         arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -1958,43 +1958,43 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             double n_b; // Back
 
                             // CELLS
-                            ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
+                            ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
                             arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
                             if (r > 0.0) {
-                                ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
                             }
 
                             // PHAGES
-                            ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
+                            ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
                             arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
                             // KERNEL END
@@ -2498,7 +2498,7 @@ void Colonies3D::spawnBacteria() {
                 for (int i = 0; i < nGridXY; i++) {
 
                     // Compute the number of bacteria to land in this gridpoint
-                    double BB = RandP(avgBacteria);
+                    double BB = RandP(avgBacteria, i, j, k);
                     if (BB < 1) continue;
 
                     // Store the number of clusters in this gridpoint
@@ -2611,7 +2611,7 @@ void Colonies3D::spawnPhages() {
             for (int k = 0; k < nGridZ; k++ ) {
                 for (int j = 0; j < nGridXY; j++ ) {
                     for (int i = 0; i < nGridXY; i++) {
-                        double PP = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
+                        double PP = RandP_org(nPhages / (nGridXY * nGridXY * nGridZ));
 
                         if (PP < 1) continue;
                         P(i, j, k) = PP;
@@ -2659,7 +2659,7 @@ void Colonies3D::spawnPhages() {
         } else {
             for (int j = 0; j < nGridXY; j++ ) {
                 for (int i = 0; i < nGridXY; i++ ) {
-                        P(i, j, nGridZ - 1) = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
+                        P(i, j, nGridZ - 1) = RandP_org(nPhages / (nGridXY * nGridXY * nGridZ));
                         numP += P(i, j, nGridZ - 1);
                 }
             }
@@ -2803,20 +2803,20 @@ void Colonies3D::ComputeTimeStep() {
 }
 
 // Returns the number of events ocurring for given n and p
-double Colonies3D::ComputeEvents(double n, double p, int flag) {
+double Colonies3D::ComputeEvents(double n, double p, int flag, int i, int j, int k) {
 
     // Trivial cases
     if (p == 1) return n;
     if (p == 0) return 0.0;
     if (n < 1)  return 0.0;
 
-    double N = RandP(n*p);
+    double N = RandP(n*p, i, j, k);
 
     return round(N);
 }
 
 // Computes how many particles has moved to neighbouing points
-void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag) {
+void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k) {
 
     // Reset positions
     *n_0 = 0.0;
@@ -2855,14 +2855,14 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
     } else {
 
         // Compute the number of agents which move
-        double N = RandP(3*lambda*n); // Factor of 3 comes from 3D
+        double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
 
-        *n_u = RandP(N/6);
-        *n_d = RandP(N/6);
-        *n_l = RandP(N/6);
-        *n_r = RandP(N/6);
-        *n_f = RandP(N/6);
-        *n_b = RandP(N/6);
+        *n_u = RandP(N/6, i, j, k);
+        *n_d = RandP(N/6, i, j, k);
+        *n_l = RandP(N/6, i, j, k);
+        *n_r = RandP(N/6, i, j, k);
+        *n_f = RandP(N/6, i, j, k);
+        *n_b = RandP(N/6, i, j, k);
         *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
     }
 
@@ -2959,12 +2959,21 @@ double Colonies3D::RandN(double m, double s) {
 }
 
 // Returns poisson dist. number with mean l
-double Colonies3D::RandP(double l) {
+double Colonies3D::RandP(double l, int i, int j, int k) {
 
     // Set limit on distribution
     poisson_distribution <long long> distr(l);
 
-    return distr(rng);
+    return distr(arr_rng[i*j*k]);
+}
+// original RandP function
+// Returns poisson dist. number with mean l
+double Colonies3D::RandP_org(double l) {
+
+	// Set limit on distribution
+	poisson_distribution <long long> distr(l);
+
+	return distr(rng);
 }
 
 // Returns poisson dist. number with mean l
