@@ -111,18 +111,16 @@ int Colonies3D::Run_Original(double T_end) {
 
             // Reset density counter
             double maxOccupancy = 0.0;
-
             for (uword k = 0; k < nGridZ; k++ ) {
                 if (exit) break;
-
                 for (uword j = 0; j < nGridXY; j++ ) {
                     if (exit) break;
-
                     for (uword i = 0; i < nGridXY; i++) {
                         if (exit) break;
 
+
                         // Ensure nC is updated
-                        if (Occ(i, j, k) < nC(i, j, k)) nC(i,j,k) = Occ(i, j, k);
+                        if (Occ(i, j, k) < nC(i, j, k)) nC(i, j, k) = Occ(i, j, k);
 
                         // Skip empty sites
                         if ((Occ(i, j, k) < 1) and (P(i, j, k) < 1)) continue;
@@ -245,7 +243,7 @@ int Colonies3D::Run_Original(double T_end) {
                                 if (r > 0.0) {
                                     I0_new(i, j, k) += N;
                                 } else {
-                                    P_new(i, k, k) += N * (1 - alpha) * Beta;
+                                    P_new(i, j, k) += N * (1 - alpha) * Beta;
                                 }
                             }
                         }
@@ -392,28 +390,28 @@ int Colonies3D::Run_Original(double T_end) {
             // Update occupancy
             Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
 
-                // NUTRIENT DIFFUSION
-                // Create copy of nutrient to store the diffusion update
-                cube nn = nutrient;
-                assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
-                assert(2 * D_n * dT / pow( H / (double)nGridZ, 2) <= 1);
+            // NUTRIENT DIFFUSION
+            // Create copy of nutrient to store the diffusion update
+            cube nn = nutrient;
+            assert(2 * D_n * dT / pow( L / (double)nGridXY, 2) <= 1);
+            assert(2 * D_n * dT / pow( H / (double)nGridZ, 2) <= 1);
 
-                // Compute the X & Y diffusion
-                for (uword k = 0; k < nGridZ; k++) {
-                    nutrient.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
-                }
+            // Compute the X & Y diffusion
+            for (uword k = 0; k < nGridZ; k++) {
+                nutrient.slice(k) += D_n * dT / pow(L / (double)nGridXY, 2) * ( (lapXY * nn.slice(k).t()).t() + lapXY * nn.slice(k) );
+            }
 
-                // Compute the Z diffusion
-                for (uword i = 0; i < nGridXY; i++) {
-                    mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
+            // Compute the Z diffusion
+            for (uword i = 0; i < nGridXY; i++) {
+                mat Q = D_n * dT / pow(H / (double)nGridZ, 2) * (lapZ * static_cast<mat>(nn.tube( span(i), span::all )).t()).t();
 
-                    for (uword k = 0; k < Q.n_cols; k++) {
-                        for (uword j = 0; j < Q.n_rows; j++) {
-                            nutrient(i, j, k) += Q(j,k);
-                            nutrient(i, j, k) = max(0.0, nutrient(i, j, k));
-                        }
+                for (uword k = 0; k < Q.n_cols; k++) {
+                    for (uword j = 0; j < Q.n_rows; j++) {
+                        nutrient(i, j, k) += Q(j,k);
+                        nutrient(i, j, k) = max(0.0, nutrient(i, j, k));
                     }
                 }
+            }
 
             if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
                 cout << "\tWarning: Maximum Density Large!" << "\n";
@@ -555,13 +553,13 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
 
             // Reset density counter
             double maxOccupancy = 0.0;
-            for (uword i = 0; i < nGridXY; i++) {
+            for (uword k = 0; k < nGridZ; k++ ) {
                 if (exit) break;
 
                 for (uword j = 0; j < nGridXY; j++ ) {
                     if (exit) break;
 
-                    for (uword k = 0; k < nGridZ; k++ ) {
+                    for (uword i = 0; i < nGridXY; i++) {
                         if (exit) break;
 
 
@@ -878,7 +876,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                         }
 
                         double tmp = nutrient(i, j, k);
-                        nutrient_new(i, j, k)  += tmp - 6 * alphaXY * tmp;
+                        nutrient_new(i, j, k)  += tmp - (4 * alphaXY + 2 * alphaZ ) * tmp;
                         nutrient_new(ip, j, k) += alphaXY * tmp;
                         nutrient_new(im, j, k) += alphaXY * tmp;
                         nutrient_new(i, jp, k) += alphaXY * tmp;
@@ -1411,7 +1409,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                         }
 
                         double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-                        arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - 6 * alphaXY * tmp;
+                        arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
                         arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
                         arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
                         arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
@@ -2372,11 +2370,11 @@ void Colonies3D::Initialize() {
     arr_I9_new = new double[nGridXY*nGridXY*nGridZ]();
     arr_P_new = new double[nGridXY*nGridXY*nGridZ]();
 
-    arr_nutrient = new double[nGridXY*nGridXY*nGridZ]();
+    arr_nutrient = new double[nGridXY*nGridXY*nGridZ];
     arr_Occ = new double[nGridXY*nGridXY*nGridZ]();
     arr_nutrient_new = new double[nGridXY*nGridXY*nGridZ]();
 
-    arr_rng = new std::mt19937[nGridXY*nGridXY*nGridZ]();
+    arr_rng = new std::mt19937[nGridXY*nGridXY*nGridZ];
 
     arr_M = new double[nGridXY*nGridXY*nGridZ]();
 
@@ -2498,7 +2496,7 @@ void Colonies3D::spawnBacteria() {
                 for (int i = 0; i < nGridXY; i++) {
 
                     // Compute the number of bacteria to land in this gridpoint
-                    double BB = RandP(avgBacteria, i, j, k);
+                    double BB = RandP(avgBacteria);
                     if (BB < 1) continue;
 
                     // Store the number of clusters in this gridpoint
@@ -2611,7 +2609,7 @@ void Colonies3D::spawnPhages() {
             for (int k = 0; k < nGridZ; k++ ) {
                 for (int j = 0; j < nGridXY; j++ ) {
                     for (int i = 0; i < nGridXY; i++) {
-                        double PP = RandP_org(nPhages / (nGridXY * nGridXY * nGridZ));
+                        double PP = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
 
                         if (PP < 1) continue;
                         P(i, j, k) = PP;
@@ -2659,7 +2657,7 @@ void Colonies3D::spawnPhages() {
         } else {
             for (int j = 0; j < nGridXY; j++ ) {
                 for (int i = 0; i < nGridXY; i++ ) {
-                        P(i, j, nGridZ - 1) = RandP_org(nPhages / (nGridXY * nGridXY * nGridZ));
+                        P(i, j, nGridZ - 1) = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
                         numP += P(i, j, nGridZ - 1);
                 }
             }
@@ -2838,9 +2836,10 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 
     if (lambda*n < 5) {   // Compute all movement individually
 
-        for (int k = 0; k < round(n); k++) {
+        for (int l = 0; l < round(n); l++) {
 
-            double r = rand(rng);
+            double r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+
             if       (r <    lambda)                     (*n_u)++;  // Up movement
             else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
             else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
@@ -2941,10 +2940,10 @@ int Colonies3D::RandI(int n) {
 }
 
 // Returns random double between 0 and n
-double Colonies3D::Rand(double n) {
+double Colonies3D::Rand(std::mt19937 rng) {
 
     // Set limit on distribution
-    uniform_real_distribution <double> distr(0, n);
+    uniform_real_distribution <double> distr(0, 1);
 
     return distr(rng);
 }
@@ -2964,11 +2963,11 @@ double Colonies3D::RandP(double l, int i, int j, int k) {
     // Set limit on distribution
     poisson_distribution <long long> distr(l);
 
-    return distr(arr_rng[i*j*k]);
+    return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
 }
 // original RandP function
 // Returns poisson dist. number with mean l
-double Colonies3D::RandP_org(double l) {
+double Colonies3D::RandP(double l) {
 
 	// Set limit on distribution
 	poisson_distribution <long long> distr(l);

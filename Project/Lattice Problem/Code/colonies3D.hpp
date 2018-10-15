@@ -237,10 +237,10 @@ class Colonies3D {
  private:
     // Helping functions
     int         RandI(int n);                                                   // Returns random integer less than n
-    double      Rand(double n);                                                 // Returns random double less than n
+    double      Rand(std::mt19937 rng);                                         // Returns random double less than n
     double      RandN(double m, double s);                                      // Returns random normal dist. number with mean m and variance s^2
 	double      RandP(double l, int i, int j, int k);                           // Returns poisson dist. number with mean l
-    double      RandP_org(double l);					                            // Returns poisson dist. number with mean l
+    double      RandP(double l);					                            // Returns poisson dist. number with mean l
     double      RandP_fast(double l);                                           // Returns poisson dist. number with mean l
 
  public:
