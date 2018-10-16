@@ -3,19 +3,19 @@ CC=nvcc
 
 #CLINKS= -larmadillo -fopenmp
 #CFLAGS= -g -std=c++0x -march=native
-#CFLAGS= -g -std=c++0x -O3 -march=native
+CFLAGS= -std=c++11
 
 
 all : example3D growthCurve3D
 
 example3D : example3D.cu colonies3D.o
-	$(CC) -o example3D example3D.cu colonies3D.o $(CLINKS)
+	$(CC) $(CFLAGS) -o example3D example3D.cu colonies3D.o $(CLINKS)
 
 growthCurve3D : growthCurve3D.cpp colonies3D.o
-	$(CC) -o growthCurve3D growthCurve3D.cpp colonies3D.o $(CLINKS)
+	$(CC) $(CFLAGS) -o growthCurve3D growthCurve3D.cpp colonies3D.o $(CLINKS)
 
 colonies3D.o : colonies3D.cu colonies3D.hpp
-	$(CC) -c colonies3D.cu
+	$(CC) $(CFLAGS) -c colonies3D.cu
 
 
 clean :
