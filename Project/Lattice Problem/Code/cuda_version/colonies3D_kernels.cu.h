@@ -1,6 +1,5 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
-#define IJK i*gridX*gridZ+j*gridZ+k
 
 __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
 
@@ -12,13 +11,12 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
     return;
   }
 
-  if (arr_Occ[IJK] < arr_nC[IJK]){
-      arr_nC[IJK] = arr_Occ[IJK];
+  if (arr_Occ[i] < arr_nC[i]){
+      arr_nC[i] = arr_Occ[i];
   }
 }
 
-__global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
-                            int gridX, int gridY, int gridZ) {
+__global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc, int N){
 
   extern __shared__ double shared[];
   int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -39,7 +37,7 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   }
   // write result for this block to global mem
   if(tid == 0){
-    d_maxOccupancy[blockIdx.x] = shared[0];
+    maxOcc[blockIdx.x] = shared[0];
   }
 }
 
