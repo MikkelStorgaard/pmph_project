@@ -128,7 +128,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
             int gridSize = (totalElements + blockSize - 1) / blockSize;
 
             // Copy data needed in the first kernel to the device
-            double *d_arr_Occ, *d_arr_nC
+            double *d_arr_Occ, *d_arr_nC;
             cudaMalloc((void**)&d_arr_nC , totalMemSize);
             cudaMalloc((void**)&d_arr_Occ, totalMemSize);
             cudaMemcpy((void*) d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
@@ -1086,8 +1086,8 @@ void Colonies3D::spawnPhages() {
                 int i = RandI(nGridXY - 1);
                 int j = RandI(nGridXY - 1);
 
-                if (P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1] > 0) {
-                    P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1]--;
+                if (arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1] > 0) {
+                    arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1]--;
                     numP--;
                 }
             }
