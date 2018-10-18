@@ -141,13 +141,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 
             // Copy data needed in the first kernel to the device
-            double arr_maxOccupancy[gridSize]();
+            double *arr_maxOccupancy = new double[gridSize]();
             double *d_arr_maxOccupancy;
             cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
             cudaMemcpy((void*) d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
 
             // Run first Kernel
-            SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_maxOccupancy,
+            SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy,
                                                                 totalElements);
             // TODO: Is the syncronize needed?
             cudaThreadSynchronize();
@@ -236,14 +236,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						double p = 0; // privatize
 						double N = 0; // privatize
-						double M = 0; // privatize
 
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-///////////// should the growth modifier have been an array instead?
+                        ///////////// should the growth modifier have been an array instead?
 						// Compute beta
 						double Beta = beta;
 						if (reducedBeta) {
@@ -334,7 +333,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-///////////// should the growth modifier have been an array instead?
+                        ///////////// should the growth modifier have been an array instead?
 						// Compute beta
 						double Beta = beta;
 						if (reducedBeta) {
@@ -882,10 +881,21 @@ void Colonies3D::Initialize() {
     arr_Occ      = new double[nGridXY*nGridXY*nGridZ]();
     arr_nutrient_new = new double[nGridXY*nGridXY*nGridZ]();
 
-    // Initialize nutrient
-    if (nGridXY >= 3) {
+    arr_rng = new std::mt19937[nGridXY*nGridXY*nGridZ];
 
-        // Fill the laplace operator
+    arr_M = new double[nGridXY*nGridXY*nGridZ]();
+
+    // Initialize nutrient
+    for (int i = 0; i < nGridXY; i++) {
+        for (int j = 0; j < nGridXY; j++) {
+           for (int k = 0; k < nGridZ; k++) {
+                arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = n_0 / 1e12 * dV;
+                arr_rng[i*nGridXY*nGridZ + j*nGridZ + k].seed(i*nGridXY*nGridZ + j*nGridZ + k);
+            }
+        }
+    }
+
+    // Fill the laplace operator
     // Compute the size of the time step
     ComputeTimeStep();
 
