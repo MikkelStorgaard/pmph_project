@@ -81,7 +81,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
     // Generate a path
     path = GeneratePath();
 
-    // Initilize th e simulation matrices
+    // Initilize the simulation matrices
     Initialize();
 
     // Export data
@@ -89,7 +89,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
     // Determine the number of samples to take
     int nSamplings = nSamp*T_end;
-
 
     // Loop over samplings
     for (int n = 0; n < nSamplings; n++) {
@@ -113,11 +112,11 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 			// Reset density counter
 			double maxOccupancy = 0.0;
 
-			// /////////////////////////////////////////////////////
-			// // Main loop start //////////////////////////////////
-			// /////////////////////////////////////////////////////
+			/////////////////////////////////////////////////////
+			// Main loop start //////////////////////////////////
+			/////////////////////////////////////////////////////
 
-            for (int i = 0; i < nGridXY; i++) {
+			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
 				for (int j = 0; j < nGridXY; j++) {
@@ -140,8 +139,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					}
 				}
 			}
-
-            // Birth //////////////////////////////////////////////////////////////////////
+			// Birth //////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -151,30 +149,22 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
 						// Birth //////////////////////////////////////////////////////////////////////
 
 						double p = 0; // privatize
 						double N = 0; // privatize
 
-                        // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
 						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-                        ///////////// should the growth modifier have been an array instead?
+                        double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+                        arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
-						// Compute beta
-						double Beta = beta;
-						if (reducedBeta) {
-							Beta *= growthModifier;
+						p = g * growthModifier*dT;
+						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
+							p = 0;
 						}
-
-
-
-						p = g * growthModifier*dT;				// MO flyttet til kernel 2
-						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
-							p = 0;								//
-						}										//
 
 						if ((p > 0.1) and (!Warn_g)) {
                             cout << "\tWarning: Birth Probability Large!" << "\n";
@@ -182,7 +172,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             Warn_g = true;
                         }
 
-                        /* BEGIN anden Map-kernel */
                         N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
                         // Ensure there is enough nutrient
                         if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
@@ -198,8 +187,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         // Update count
                         arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
                         arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-                        /* END anden Map-kernel */
-
 					}
 				}
 			}
@@ -213,15 +200,14 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
-
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-                        ///////////// should the growth modifier have been an array instead?
+						double p = 0; // privatize
+						double N = 0; // privatize
+
+                        double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+
 						// Compute beta
 						double Beta = beta;
 						if (reducedBeta) {
@@ -230,10 +216,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                         // Increase Infections ////////////////////////////////////////////////////////
                         if (r > 0.0) {
-                            /* BEGIN tredje Map-kernel */
-
-
-
 
                             p = r*growthModifier*dT;
                             if ((p > 0.25) and (!Warn_r)) {
@@ -303,20 +285,16 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
-						// double M = 0; // privatize
-
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-                        ///////////// should the growth modifier have been an array instead?
+						double p = 0; // privatize
+						double N = 0; // privatize
+
 						// Compute beta
 						double Beta = beta;
 						if (reducedBeta) {
-							Beta *= growthModifier;
+							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
                         // PRIVATIZE BOTH OF THESE
@@ -378,12 +356,12 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             }
                         }
 
-                        // Phage Decay ////////////////////////////////////////////////////////////////
+
 
 					}
 				}
 			}
-
+			// Phage Decay ////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -393,13 +371,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
-
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-                        // KERNEL BEGIN
+						double p = 0; // privatize
+						double N = 0; // privatize
+
+
                         p = delta*dT;
                         if ((p > 0.1) and (!Warn_delta)) {
                             cout << "\tWarning: Decay Probability Large!" << "\n";
@@ -410,11 +388,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                         // Update count
                         arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-                        // KERNEL END
+
 
 					}
 				}
 			}
+
+			// Movement ///////////////////////////////////////////////////////////////////
 
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
@@ -425,9 +405,11 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-                        // Movement ///////////////////////////////////////////////////////////////////
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+
                         if (nGridXY > 1) {
-                            // KERNEL BEGIN
                             // Update positions
 
                             // Skip empty sites
@@ -475,43 +457,43 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             double n_b; // Back
 
                             // CELLS
-                            ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
+                            ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 1, i, j, k);
                             arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
                             if (r > 0.0) {
-                                ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
                             }
 
                             // PHAGES
-                            ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
+                            ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
                             arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
                             // KERNEL END
@@ -541,7 +523,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                             // PHAGES
                             arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-                            // KERNEL END
                         }
                     }
                 }
@@ -638,7 +619,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         }
 
                         double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-                        arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - 6 * alphaXY * tmp;
+                        arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
                         arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
                         arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
                         arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
@@ -1231,43 +1212,43 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                             double n_b; // Back
 
                             // CELLS
-                            ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1);
+                            ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
                             arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
                             if (r > 0.0) {
-                                ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-                                ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2);
+                                ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
                                 arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
                             }
 
                             // PHAGES
-                            ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3);
+                            ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
                             arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
                             // KERNEL END
@@ -1394,7 +1375,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                         }
 
                         double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-                        arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - 6 * alphaXY * tmp;
+                        arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
                         arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
                         arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
                         arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
@@ -1620,6 +1601,7 @@ void Colonies3D::Initialize() {
     arr_rng = new std::mt19937[nGridXY*nGridXY*nGridZ];
 
     arr_M = new double[nGridXY*nGridXY*nGridZ]();
+    arr_GrowthModifier = new double[nGridXY*nGridXY*nGridZ]();
 
     // Initialize nutrient
     for (int i = 0; i < nGridXY; i++) {
@@ -1767,7 +1749,7 @@ void Colonies3D::spawnPhages() {
             for (int k = 0; k < nGridZ; k++ ) {
                 for (int j = 0; j < nGridXY; j++ ) {
                     for (int i = 0; i < nGridXY; i++) {
-                        double PP = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
+                        double PP = RandP(nPhages / (double)(nGridXY * nGridXY * nGridZ));
 
                         if (PP < 1) continue;
                         arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = PP;
@@ -1967,7 +1949,7 @@ double Colonies3D::ComputeEvents(double n, double p, int flag, int i, int j, int
 }
 
 // Computes how many particles has moved to neighbouing points
-void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag) {
+void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k) {
 
     // Reset positions
     *n_0 = 0.0;
@@ -1989,9 +1971,10 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 
     if (lambda*n < 5) {   // Compute all movement individually
 
-        for (int k = 0; k < round(n); k++) {
+        for (int l = 0; l < round(n); l++) {
 
-            double r = rand(rng);
+            double r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+
             if       (r <    lambda)                     (*n_u)++;  // Up movement
             else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
             else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
@@ -2006,14 +1989,14 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
     } else {
 
         // Compute the number of agents which move
-        double N = RandP(3*lambda*n); // Factor of 3 comes from 3D
+        double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
 
-        *n_u = RandP(N/6);
-        *n_d = RandP(N/6);
-        *n_l = RandP(N/6);
-        *n_r = RandP(N/6);
-        *n_f = RandP(N/6);
-        *n_b = RandP(N/6);
+        *n_u = RandP(N/6, i, j, k);
+        *n_d = RandP(N/6, i, j, k);
+        *n_l = RandP(N/6, i, j, k);
+        *n_r = RandP(N/6, i, j, k);
+        *n_f = RandP(N/6, i, j, k);
+        *n_b = RandP(N/6, i, j, k);
         *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
     }
 
@@ -2091,11 +2074,11 @@ int Colonies3D::RandI(int n) {
     return distr(rng);
 }
 
-// Returns random double between 0 and n
-double Colonies3D::Rand(double n) {
+// Returns random double between 0 and 1
+double Colonies3D::Rand(std::mt19937 rng) {
 
     // Set limit on distribution
-    uniform_real_distribution <double> distr(0, n);
+    uniform_real_distribution <double> distr(0, 1);
 
     return distr(rng);
 }
@@ -2572,4 +2555,41 @@ Colonies3D::~Colonies3D() {
         f_log.flush();
         f_log.close();
     }
+
+     // Delete arrays
+     delete[] arr_B;
+     delete[] arr_I0;
+     delete[] arr_I1;
+     delete[] arr_I2;
+     delete[] arr_I3;
+     delete[] arr_I4;
+     delete[] arr_I5;
+     delete[] arr_I6;
+     delete[] arr_I7;
+     delete[] arr_I8;
+     delete[] arr_I9;
+     delete[] arr_P;
+     delete[] arr_nC;
+
+     delete[] arr_B_new;
+     delete[] arr_I0_new;
+     delete[] arr_I1_new;
+     delete[] arr_I2_new;
+     delete[] arr_I3_new;
+     delete[] arr_I4_new;
+     delete[] arr_I5_new;
+     delete[] arr_I6_new;
+     delete[] arr_I7_new;
+     delete[] arr_I8_new;
+     delete[] arr_I9_new;
+     delete[] arr_P_new;
+
+     delete[] arr_nutrient;
+     delete[] arr_Occ;
+     delete[] arr_nutrient_new;
+
+     delete[] arr_rng;
+
+     delete[] arr_M;
+     delete[] arr_GrowthModifier;
 }

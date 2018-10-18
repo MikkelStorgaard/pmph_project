@@ -2568,7 +2568,6 @@ void Colonies3D::spawnBacteria() {
     // uvec nz = find(B);
     // initialOccupancy = nz.n_elem;
 
-    int initialOccupancy = 0;
     for (int k = 0; k < nGridZ; k++ ) {
         for (int j = 0; j < nGridXY; j++ ) {
             for (int i = 0; i < nGridXY; i++) {
@@ -2617,7 +2616,7 @@ void Colonies3D::spawnPhages() {
             for (int k = 0; k < nGridZ; k++ ) {
                 for (int j = 0; j < nGridXY; j++ ) {
                     for (int i = 0; i < nGridXY; i++) {
-                        double PP = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
+                        double PP = RandP(nPhages / (double)(nGridXY * nGridXY * nGridZ));
 
                         if (PP < 1) continue;
                         P(i, j, k) = PP;
@@ -2954,7 +2953,7 @@ int Colonies3D::RandI(int n) {
     return distr(rng);
 }
 
-// Returns random double between 0 and n
+// Returns random double between 0 and 1
 double Colonies3D::Rand(std::mt19937 rng) {
 
     // Set limit on distribution
@@ -3533,4 +3532,5 @@ Colonies3D::~Colonies3D() {
     delete[] arr_rng;
 
 	delete[] arr_M;
+    delete[] arr_GrowthModifier;
 }
