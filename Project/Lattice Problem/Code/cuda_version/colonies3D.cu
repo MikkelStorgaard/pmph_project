@@ -1577,23 +1577,22 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
                 // Loop over y
                 for (int y = 0; y < nGridXY - 1; y++) {
 
-                    f_B << setw(6) << arr_B[x][y][z] << "\t";
-                    f_P << setw(6) << arr_P[x][y][z] << "\t";
-                    double nI = round(arr_I0[x][y][z] + arr_I1[x][y][z] + arr_I2[x][y][z] + arr_I3[x][y][z] + arr_I4[x][y][z] + arr_I5[x][y][z] + arr_I6[x][y][z] + arr_I7[x][y][z] + arr_I8[x][y][z] + arr_I9[x][y][z]);
+                    f_B << setw(6) << arr_B[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
+                    f_P << setw(6) << arr_P[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
+                    double nI = round(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
                     f_I << setw(6) << nI       << "\t";
-                    f_n << setw(6) << arr_nutrient[x][y][z] << "\t";
+                    f_n << setw(6) << arr_nutrient[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
                 }
 
                 // Write last line ("\n" instead of tab)
-                f_B << setw(6) << round(arr_B[x][nGridXY - 1][z]) << "\n";
-                f_P << setw(6) << round(arr_P[x][nGridXY - 1][z]) << "\n";
-                double nI = round(arr_I0[x][nGridXY - 1][z] + arr_I1[x][nGridXY - 1][z] + arr_I2[x][nGridXY - 1][z] + arr_I3[x][nGridXY - 1][z] + arr_I4[x][nGridXY - 1][z] + arr_I5[x][nGridXY - 1][z] + arr_I6[x][nGridXY - 1][z] + arr_I7[x][nGridXY - 1][z] + arr_I8[x][nGridXY - 1][z] + arr_I9[x][nGridXY - 1][z]);
+                f_B << setw(6) << round(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+                f_P << setw(6) << round(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+                double nI = round(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
                 f_I << setw(6) << nI                        << "\n";
-                f_n << setw(6) << round(arr_nutrient[x][nGridXY - 1][z]) << "\n";
+                f_n << setw(6) << round(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
             }
         }
     }
-
 }
 
 // Open filstream if not allready opened
@@ -1606,7 +1605,6 @@ void Colonies3D::OpenFileStream(ofstream& stream, string& fileName) {
         cout << "\tSaving data to file: " << path << "/" << fileName << ".txt" << "\n";
 
         // Check if the output file exists
-        struct stat info;
         time_t theTime = time(NULL);
         struct tm *aTime = localtime(&theTime);
 
