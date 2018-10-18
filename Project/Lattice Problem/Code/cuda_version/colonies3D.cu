@@ -1534,8 +1534,6 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
     f_N << setw(12) << round(accuI)    << "\t";
     f_N << setw(12) << round(accuP)    << "\t";
 
-<<<<<<< HEAD
-=======
     int nz = 0;
     for (int i = 0; i < nGridXY; i++) {
         for (int j = 0; j < nGridXY; j++ ) {
@@ -1548,7 +1546,6 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
     }
 
     f_N << setw(12) << static_cast<double>(nz) / initialOccupancy << "\t";
->>>>>>> af190ac739223d4cbe908c195c9dc7be38f3a6f0
     f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accuNutrient << "\t";
     f_N << setw(12) << accuClusters << endl;
 
