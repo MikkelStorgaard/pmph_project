@@ -113,9 +113,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 			// Reset density counter
 			double maxOccupancy = 0.0;
 
-			/////////////////////////////////////////////////////
-			// Main loop start //////////////////////////////////
-			/////////////////////////////////////////////////////
+			// /////////////////////////////////////////////////////
+			// // Main loop start //////////////////////////////////
+			// /////////////////////////////////////////////////////
 
 			/* Do all the allocations and other CUDA device stuff here
 			 * remember to do them outside the nSamplings loop afterwards
@@ -131,7 +131,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
             double *d_arr_Occ, *d_arr_nC;
             cudaMalloc((void**)&d_arr_nC , totalMemSize);
             cudaMalloc((void**)&d_arr_Occ, totalMemSize);
-            cudaMemcpy((void*) d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
+            cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
             cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
 
             // Run first Kernel
@@ -144,7 +144,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
             double *arr_maxOccupancy = new double[gridSize]();
             double *d_arr_maxOccupancy;
             cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
-            cudaMemcpy((void*) d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
+            cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
 
             // Run first Kernel
             SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy,
@@ -204,7 +204,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         }
 
                         /* BEGIN anden Map-kernel */
-                        N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1);
+                        N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
                         // Ensure there is enough nutrient
                         if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
                             if (!Warn_fastGrowth) {
@@ -262,7 +262,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                                 f_log  << "Warning: Infection Increase Probability Large!" << "\n";
                                 Warn_r = true;
                             }
-                            N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);  // Bursting events
+                            N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
 
                             // Update count
                             arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -271,39 +271,39 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
-                            N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
+                            N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                             arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
@@ -363,7 +363,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                                 N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
                             } else {
                                 p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4);     // Number of targets hit
+                                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
                             }
 
                             if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
@@ -384,7 +384,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                                 p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
                                                  S)); // Probability of hitting succebtible target
-                                N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4);                  // Number of targets hit
+                                N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
 
                                 if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
                                     N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
@@ -427,7 +427,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             f_log  << "Warning: Decay Probability Large!" << "\n";
                             Warn_delta = true;
                         }
-                        N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5);
+                        N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5, i, j, k);
 
                         // Update count
                         arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -988,7 +988,6 @@ void Colonies3D::spawnBacteria() {
     }
 
     // Count the initial occupancy
-    int initialOccupancy = 0;
     for (int k = 0; k < nGridZ; k++ ) {
         for (int j = 0; j < nGridXY; j++ ) {
             for (int i = 0; i < nGridXY; i++) {
@@ -1220,14 +1219,14 @@ void Colonies3D::ComputeTimeStep() {
 }
 
 // Returns the number of events ocurring for given n and p
-double Colonies3D::ComputeEvents(double n, double p, int flag) {
+double Colonies3D::ComputeEvents(double n, double p, int flag, int i, int j, int k) {
 
     // Trivial cases
     if (p == 1) return n;
     if (p == 0) return 0.0;
     if (n < 1)  return 0.0;
 
-    double N = RandP(n*p);
+    double N = RandP(n*p, i, j, k);
 
     return round(N);
 }
@@ -1373,6 +1372,15 @@ double Colonies3D::RandN(double m, double s) {
     normal_distribution <double> distr(m, s);
 
     return distr(rng);
+}
+
+// Returns poisson dist. number with mean l
+double Colonies3D::RandP(double l, int i, int j, int k) {
+
+    // Set limit on distribution
+    poisson_distribution <long long> distr(l);
+
+    return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
 }
 
 // Returns poisson dist. number with mean l

@@ -13,6 +13,8 @@ Project/\.vscode/
 
 Project/Lattice Problem/Code/data/
 
+Project/Lattice Problem/Code/cuda_version/data/
+
 Project/Lattice Problem/Code/Lattice problem\.sln
 
 Project/Lattice Problem/Code/Lattice problem\.vcxproj

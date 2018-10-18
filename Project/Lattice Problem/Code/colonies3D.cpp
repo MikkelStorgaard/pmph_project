@@ -2646,19 +2646,24 @@ void Colonies3D::spawnPhages() {
 
         // Determine the number of phages to spawn
         double nPhages = (double)round(L * L * H * P_0 / 1e12);
-        double nGridXY = this->nGridXY;
 
         double numP = 0;
         if (nPhages <= nGridXY * nGridXY) {
             for (double n = 0; n < nPhages; n++) {
-                P(RandI(nGridXY - 1), RandI(nGridXY - 1), nGridZ - 1)++;
+                int i = RandI(nGridXY - 1);
+                int j = RandI(nGridXY - 1);
+                P(i, j, nGridZ - 1)++;
+                arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1]++;
+
                 numP++;
             }
         } else {
             for (int j = 0; j < nGridXY; j++ ) {
                 for (int i = 0; i < nGridXY; i++ ) {
-                        P(i, j, nGridZ - 1) = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
-                        numP += P(i, j, nGridZ - 1);
+                    double PP = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
+                    P(i, j, nGridZ - 1) = PP;
+                    arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1] = PP;
+                    numP += PP;
                 }
             }
             // Correct for overspawning
@@ -2668,6 +2673,7 @@ void Colonies3D::spawnPhages() {
 
                 if (P(i, j, nGridZ - 1) > 0) {
                     P(i, j, nGridZ - 1)--;
+                    arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1]--;
                     numP--;
                 }
             }
@@ -2677,6 +2683,7 @@ void Colonies3D::spawnPhages() {
                 int j = RandI(nGridXY - 1);
 
                 P(i, j, nGridZ - 1)++;
+                arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1]++;
                 numP++;
             }
         }
@@ -2965,6 +2972,7 @@ double Colonies3D::RandP(double l, int i, int j, int k) {
 
     return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
 }
+
 // original RandP function
 // Returns poisson dist. number with mean l
 double Colonies3D::RandP(double l) {
