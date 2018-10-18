@@ -328,8 +328,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double N = 0; // privatize
 						// double M = 0; // privatize
 
-                        // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+            // Skip empty sites
+            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1)
+                and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
