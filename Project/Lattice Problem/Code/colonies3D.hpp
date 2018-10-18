@@ -172,6 +172,7 @@ class Colonies3D {
 
 	// Privatized array.
 	double* arr_M;
+    double* arr_GrowthModifier;
 
     // Nutrient matrix
     double* arr_nutrient;

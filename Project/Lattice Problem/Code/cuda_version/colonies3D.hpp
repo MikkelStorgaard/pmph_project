@@ -131,6 +131,7 @@ class Colonies3D {
 
 	// Privatized array.
 	double* arr_M;
+    double* arr_GrowthModifier;
 
     // Nutrient matrix
     double* arr_nutrient;
@@ -145,6 +146,7 @@ class Colonies3D {
 
     // Driver
     int         Run_LoopDistributed_CPU(double T_end);                          // Controls the evaluation of the simulation
+    int         Run_LoopDistributed_GPU(double T_end);                          // Controls the evaluation of the simulation
 
  private:
     void        Initialize();                                                   // Initialize the simulation
@@ -153,8 +155,7 @@ class Colonies3D {
     void        ComputeTimeStep();                                              // Computes the size of the time-step needed
     double      ComputeEvents(double n, double p, int flag, int i, int j, int k);                    // Returns the number of events ocurring for given n and p
     void        ComputeDiffusion(double n, double lambda,                       // Computes how many particles has moved to neighbouing points
-                    double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag);
-
+                    double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k);
  public:
     void        SetLength(double L);                                            // Set the side-length of the simulation
     void        SetHeight(double H);                                            // Set the height of the simulation
@@ -193,7 +194,7 @@ class Colonies3D {
  private:
     // Helping functions
     int         RandI(int n);                                                   // Returns random integer less than n
-    double      Rand(double n);                                                 // Returns random double less than n
+    double      Rand(std::mt19937);                                             // Returns random double less than n
     double      RandN(double m, double s);                                      // Returns random normal dist. number with mean m and variance s^2
     double      RandP(double l, int i, int j, int k);                           // Returns poisson dist. number with mean l
     double      RandP(double l);                                                // Returns poisson dist. number with mean l

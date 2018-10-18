@@ -1,9 +1,9 @@
 # Get the host
-CC=g++
-NCC=NVCC
+OCC=g++
+CC=nvcc
 
-CLINKS= -larmadillo -fopenmp
-CFLAGS= -g -std=c++0x -march=native
+CLINKS= -larmadillo
+CFLAGS= -g -std=c++11
 #CFLAGS= -g -std=c++0x -O3 -march=native
 
 
