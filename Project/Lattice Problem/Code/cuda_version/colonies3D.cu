@@ -268,7 +268,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-                            M = round(alpha * Beta * N);                        // Phages which reinfect the colony
+                            arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
                             // Non-bursting events
                             N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2);
@@ -942,11 +942,9 @@ void Colonies3D::spawnBacteria() {
                     if (BB < 1) continue;
 
                     // Store the number of clusters in this gridpoint
-                    nC(i, j, k) = BB;
                     arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = BB;
 
                     // Add the bacteria
-                    B(i, j, k) = BB;
                     arr_B[i*nGridXY*nGridZ + j*nGridZ + k] = BB;
                     numB += BB;
                 }
@@ -968,9 +966,6 @@ void Colonies3D::spawnBacteria() {
         }
 
         // Add the bacteria
-        B(i, j, k)++;
-        nC(i, j, k)++;
-
         arr_B[i*nGridXY*nGridZ + j*nGridZ + k]++;
         arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]++;
 
@@ -985,13 +980,7 @@ void Colonies3D::spawnBacteria() {
         int j = RandI(nGridXY - 1);
         int k = RandI(nGridZ  - 1);
 
-        if (B(i, j, k) < 1) continue;
-
-        B(i, j, k)--;
-        numB--;
-        nC(i, j, k)--;
-
-        // if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] < 1) continue;
+        if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] < 1) continue;
 
         arr_B[i*nGridXY*nGridZ + j*nGridZ + k]--;
         numB--;
@@ -1012,10 +1001,6 @@ void Colonies3D::spawnBacteria() {
             }
         }
     }
-
-
-    // Determine the occupancy
-    Occ = B + I0 + I1 + I2 + I3 + I4 + I5 + I6 + I7 + I8 + I9;
 
     // Determine the occupancy
     for (int k = 0; k < nGridZ; k++ ) {
@@ -1043,7 +1028,6 @@ void Colonies3D::spawnPhages() {
                 int i = RandI(nGridXY - 1);
                 int j = RandI(nGridXY - 1);
                 int k = RandI(nGridZ  - 1);
-                P(i, j, k)++;
                 arr_P[i*nGridXY*nGridZ + j*nGridZ + k]++;
                 numP++;
             }
@@ -1054,7 +1038,6 @@ void Colonies3D::spawnPhages() {
                         double PP = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
 
                         if (PP < 1) continue;
-                        P(i, j, k) = PP;
                         arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = PP;
                         numP += PP;
                     }
@@ -1066,8 +1049,7 @@ void Colonies3D::spawnPhages() {
                 int j = RandI(nGridXY - 1);
                 int k = RandI(nGridZ - 1);
 
-                if (P(i, j, k) > 0) {
-                    P(i, j, k)--;
+                if (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] > 0) {
                     arr_P[i*nGridXY*nGridZ + j*nGridZ + k]--;
                     numP--;
                 }
@@ -1078,7 +1060,6 @@ void Colonies3D::spawnPhages() {
                 int j = RandI(nGridXY - 1);
                 int k = RandI(nGridZ - 1);
 
-                P(i, j, k)++;
                 arr_P[i*nGridXY*nGridZ + j*nGridZ + k]++;
                 numP++;
             }
@@ -1093,14 +1074,14 @@ void Colonies3D::spawnPhages() {
         double numP = 0;
         if (nPhages <= nGridXY * nGridXY) {
             for (double n = 0; n < nPhages; n++) {
-                P(RandI(nGridXY - 1), RandI(nGridXY - 1), nGridZ - 1)++;
+                arr_P[(RandI(nGridXY - 1))*nGridXY*nGridZ + (RandI(nGridXY - 1))*nGridZ + (nGridZ - 1)]++;
                 numP++;
             }
         } else {
             for (int j = 0; j < nGridXY; j++ ) {
                 for (int i = 0; i < nGridXY; i++ ) {
-                        P(i, j, nGridZ - 1) = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
-                        numP += P(i, j, nGridZ - 1);
+                        arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1] = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
+                        numP += arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1];
                 }
             }
             // Correct for overspawning
@@ -1108,8 +1089,8 @@ void Colonies3D::spawnPhages() {
                 int i = RandI(nGridXY - 1);
                 int j = RandI(nGridXY - 1);
 
-                if (P(i, j, nGridZ - 1) > 0) {
-                    P(i, j, nGridZ - 1)--;
+                if (arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1] > 0) {
+                    arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1]--;
                     numP--;
                 }
             }
@@ -1118,7 +1099,7 @@ void Colonies3D::spawnPhages() {
                 int i = RandI(nGridXY - 1);
                 int j = RandI(nGridXY - 1);
 
-                P(i, j, nGridZ - 1)++;
+                arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1]++;
                 numP++;
             }
         }
