@@ -68,6 +68,10 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 
 };
 
+///////////////////////////////////////////////////////////////////////
+// CPU Loop start
+//////////////////////////////////////////////////////////////////////
+
 
 int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
     std::string filename_suffix = "loopDistributedCPU";
@@ -791,6 +795,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
     }
 }
 
+////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  Just a separator between CPU and GPU to make it easier to spot when scrolling
+///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+
+
 
 int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
     std::string filename_suffix = "loopDistributedGPU";
@@ -1112,6 +1123,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			}
 
             // Phage decay ///////////////////////////////////////////////////////////////////
+          
+          
+            
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -1130,11 +1144,16 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
                         // KERNEL BEGIN
                         p = delta*dT;
+                        
+                        // TODO: Check below is in the kernel. 
+                        // TODO: But put the cout outside kernel (check if warn_delta is true)
                         if ((p > 0.1) and (!Warn_delta)) {
                             cout << "\tWarning: Decay Probability Large!" << "\n";
                             f_log  << "Warning: Decay Probability Large!" << "\n";
                             Warn_delta = true;
                         }
+                        
+                        
                         N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5, i, j, k);
 
                         // Update count
@@ -1144,7 +1163,25 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					}
 				}
 			}
+  
 
+            // Så vidt jeg kan se, er p på dette tidspunkt udregnet fra konstanter, og behøver derfor ikke være i kernel.
+            
+/*            
+            double p;
+            p = delta*dT;
+            
+            double *d_arr_P;
+            cudaMalloc((void**)&d_arr_P , totalMemSize);
+            cudaMemcpy(d_arr_P, arr_P, totalMemSize, cudaMemcpyHostToDevice);
+            
+            // Kernel call to replace the above:
+            SixthKernel<<<gridSize, blockSize>>>(d_arr_P, p, &Warn_delta, totalElements);
+            cudaMemcpy(arr_P, d_arr_P, totalMemSize, cudaMemcpyDeviceToHost);
+            cudaFree(d_arr_P);
+            // logging of warning (cout <<... and f_log << ... moved outside
+            // loop to ensure it is only triggered once
+ */           
 
             // Movement ///////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
@@ -1398,6 +1435,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 f_log  << "Warning: Maximum Density Large!" << "\n";
                 Warn_density = true;
             }
+            
+            // cudaFree here!!
+            cudaFree(d_arr_nC);
+            cudaFree(d_arr_Occ);
+            cudaFree(d_arr_maxOccupancy);
+            
         }
 
         // Fast exit conditions
@@ -1489,7 +1532,15 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
         assert(accuNutrient >= 0);
         assert(accuNutrient <= n_0 * L * L * H);
     }
-
+    // TODO: Husk at kommenter nedenstående tilbage ind. 
+ /*  
+    // logging of warning moved outside loop to ensure.
+    // it is only triggered once. 
+    if(Warn_delta) {
+                cout << "\tWarning: Decay Probability Large!" << "\n";
+                f_log  << "Warning: Decay Probability Large!" << "\n";
+    }
+*/
     // Get stop time
     time_t  toc;
     time(&toc);
@@ -1535,6 +1586,11 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
         return 0;
     }
 }
+
+/////////////////////////////////////////////////////////////////////
+// GPU loop end
+/////////////////////////////////////////////////////////////////////
+
 
 
 // Initialize the simulation
@@ -1943,7 +1999,20 @@ double Colonies3D::ComputeEvents(double n, double p, int flag, int i, int j, int
 
     return round(N);
 }
+/*
+// Returns the number of events ocurring for given n and p, flat array
+double Colonies3D::ComputeEvents(double n, double p, int flag, int i) {
 
+    // Trivial cases
+    if (p == 1) return n;
+    if (p == 0) return 0.0;
+    if (n < 1)  return 0.0;
+
+    double N = RandP(n*p, i);
+
+    return round(N);
+}
+*/
 // Computes how many particles has moved to neighbouing points
 void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k) {
 
@@ -2095,6 +2164,15 @@ double Colonies3D::RandP(double l, int i, int j, int k) {
     poisson_distribution <long long> distr(l);
 
     return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+}
+
+// Returns poisson dist. number with mean l, flat array
+double Colonies3D::RandP(double l, int i) {
+
+    // Set limit on distribution
+    poisson_distribution <long long> distr(l);
+
+    return distr(arr_rng[i]);
 }
 
 // Returns poisson dist. number with mean l

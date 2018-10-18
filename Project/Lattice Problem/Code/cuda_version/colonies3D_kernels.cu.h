@@ -206,18 +206,24 @@ __global__ void FifthKernel(){
 // Update I0_new / P_bew
 
 }
+/*
+__global__ void SixthKernel(double* arr_P, double p, bool *warn_delta, int numberOfElements){
+    int i = blockIdx.x*blockDim.x + threadIdx.x;
+    if(i >= numberOfElements) return;
 
-__global__ void SixthKernel(){
+    // TODO: skip empty sites or not?? (Not included here)
+    double N = 0;
+ // TODO: figure out a shared variable warn      
+ //   if ((p > 0.1) and (!warn_delta)) &warn_delta = true;
+    
 
-// Phage decay
-
-// Compute p
-// Compute n
-
-// Update P
+    // TODO: do proper Compute events:
+    N = ComputeEvents(arr_P[i], p, 5, i); 
+    
+    arr_P[i]    = max(0.0, arr_P[i] - N);
 
 }
-
+*/
 __global__ void SeventhKernel(){
 
 // Phage decay
@@ -229,5 +235,5 @@ __global__ void SeventhKernel(){
 
 }
 
-
 #endif
+

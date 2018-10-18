@@ -154,6 +154,7 @@ class Colonies3D {
     void        spawnPhages();                                                  // Spawns the phages
     void        ComputeTimeStep();                                              // Computes the size of the time-step needed
     double      ComputeEvents(double n, double p, int flag, int i, int j, int k);                    // Returns the number of events ocurring for given n and p
+    double      ComputeEvents(double n, double p, int flag, int i);                    // Returns the number of events ocurring for given n and p, flat array
     void        ComputeDiffusion(double n, double lambda,                       // Computes how many particles has moved to neighbouing points
                     double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k);
  public:
@@ -197,6 +198,7 @@ class Colonies3D {
     double      Rand(std::mt19937);                                             // Returns random double less than n
     double      RandN(double m, double s);                                      // Returns random normal dist. number with mean m and variance s^2
     double      RandP(double l, int i, int j, int k);                           // Returns poisson dist. number with mean l
+    double      RandP(double l, int i);                           // Returns poisson dist. number with mean l, flat array
     double      RandP(double l);                                                // Returns poisson dist. number with mean l
     double      RandP_fast(double l);                                           // Returns poisson dist. number with mean l
 
