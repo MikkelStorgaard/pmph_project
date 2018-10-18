@@ -128,7 +128,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
             int gridSize = (totalElements + blockSize - 1) / blockSize;
 
             // Copy data needed in the first kernel to the device
-            double *d_arr_Occ, *d_arr_nC
+            double *d_arr_Occ, *d_arr_nC;
             cudaMalloc((void**)&d_arr_nC , totalMemSize);
             cudaMalloc((void**)&d_arr_Occ, totalMemSize);
             cudaMemcpy((void*) d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
@@ -141,13 +141,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 
             // Copy data needed in the first kernel to the device
-            double arr_maxOccupancy[gridSize]();
+            double *arr_maxOccupancy = new double[gridSize]();
             double *d_arr_maxOccupancy;
             cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
             cudaMemcpy((void*) d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
 
             // Run first Kernel
-            SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_maxOccupancy,
+            SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy,
                                                                 totalElements);
             // TODO: Is the syncronize needed?
             cudaThreadSynchronize();
@@ -236,7 +236,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						double p = 0; // privatize
 						double N = 0; // privatize
-						double M = 0; // privatize
 
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
