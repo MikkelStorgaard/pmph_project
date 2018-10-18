@@ -1496,7 +1496,7 @@ void Colonies3D::FastExit(){fastExit=true;}
 void Colonies3D::ExportAll(){exportAll=true;}
 
 // Master function to export the data
-void Colonies3D::ExportData(double t, std::string filename_suffix){
+void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
 
     // Verify the file stream is open
     string fileName = "PopulationSize_"+filename_suffix;

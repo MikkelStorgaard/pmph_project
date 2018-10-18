@@ -11,13 +11,8 @@ int main(int argc, char** argv){
     double eta   = 1e4;
     double tau   = 0.5;
 
-    int k = 0;
-
     for (int i = 0; i < argc; i++) {
         if (i == 1) {
-            k = atoi(argv[i]);
-        }
-        if (i == 2) {
             nGrid = atoi(argv[i]);
         }
     }
