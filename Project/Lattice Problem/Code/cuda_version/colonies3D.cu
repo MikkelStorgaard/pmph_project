@@ -1497,7 +1497,10 @@ void Colonies3D::ExportAll(){exportAll=true;}
 
 // Master function to export the data
 void Colonies3D::ExportData(double t, std::string filename_suffix){
+<<<<<<< ours
 
+=======
+>>>>>>> theirs
     // Verify the file stream is open
     string fileName = "PopulationSize_"+filename_suffix;
     OpenFileStream(f_N, fileName);
