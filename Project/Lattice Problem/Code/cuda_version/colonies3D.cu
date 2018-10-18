@@ -870,8 +870,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
             // Copy data back from device
             cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
-            cudaMemcpy(arr_Occ, d_arr_Occ, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
-            cudaMemcpy(arr_nC, d_arr_nC, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
+            cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
+            cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
 
             // excuse this for-loop
             for (int i = 0; i < gridSize; i++){
