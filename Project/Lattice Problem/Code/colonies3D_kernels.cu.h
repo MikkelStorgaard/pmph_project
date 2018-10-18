@@ -1,6 +1,6 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
-#define IJK i*gridX*gridZ+j*gridZ+k
+#define IJK i*gridX*gridZ + j*gridZ + k
 
 __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
 
@@ -12,6 +12,7 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
     return;
   }
 
+  // TODO: Should IJK be replaced with i?
   if (arr_Occ[IJK] < arr_nC[IJK]){
       arr_nC[IJK] = arr_Occ[IJK];
   }
