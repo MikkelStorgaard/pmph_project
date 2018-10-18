@@ -291,11 +291,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double p = 0; // privatize
 						double N = 0; // privatize
 
-						// Compute beta
-						double Beta = beta;
-						if (reducedBeta) {
-							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
-						}
 
                         // PRIVATIZE BOTH OF THESE
                         double s;   // The factor which modifies the adsorption rate
@@ -874,7 +869,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
             cudaThreadSynchronize();
 
             // Copy data back from device
-            cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
+            cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, totalMemSize, cudaMemcpyDeviceToHost);
             cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
             cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
 
