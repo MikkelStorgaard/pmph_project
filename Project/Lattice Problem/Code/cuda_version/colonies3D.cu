@@ -127,29 +127,35 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
             int blockSize = 256;
             int gridSize = (totalElements + blockSize - 1) / blockSize;
 
-            /* Copy data needed in the first kernel to the device */
-            double *d_arr_Occ, *d_arr_nC, *arr_maxOccupancy, *d_arr_maxOccupancy;
+            // Copy data needed in the first kernel to the device
+            double *d_arr_Occ, *d_arr_nC
             cudaMalloc((void**)&d_arr_nC , totalMemSize);
             cudaMalloc((void**)&d_arr_Occ, totalMemSize);
             cudaMemcpy((void*) d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
             cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
 
-            /* Run first Kernel */
+            // Run first Kernel
             FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
             // TODO: Is the syncronize needed?
             cudaThreadSynchronize();
 
 
-            /* Copy data needed in the first kernel to the device */
+            // Copy data needed in the first kernel to the device
+            double arr_maxOccupancy[gridSize]();
+            double *d_arr_maxOccupancy;
             cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
-            malloc((void**)&arr_maxOccupancy, sizeof(double)*gridSize);
+            cudaMemcpy((void*) d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
 
-            /* Run first Kernel */
+            // Run first Kernel
             SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_maxOccupancy,
                                                                 totalElements);
             // TODO: Is the syncronize needed?
             cudaThreadSynchronize();
+
+            // Copy data back from device
             cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
+            cudaMemcpy(arr_Occ, d_arr_Occ, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
+            cudaMemcpy(arr_nC, d_arr_nC, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
 
             // excuse this for-loop
             for (int i = 0; i < gridSize; i++){
@@ -171,12 +177,12 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double p = 0; // privatize
 						double N = 0; // privatize
 
-            // Skip empty sites
-            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-///////////// should the growth modifier have been an array instead?
+                        ///////////// should the growth modifier have been an array instead?
 
 						// Compute beta
 						double Beta = beta;
