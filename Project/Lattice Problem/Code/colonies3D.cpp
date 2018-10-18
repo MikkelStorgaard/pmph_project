@@ -1574,6 +1574,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
     }
 }
 
+
 int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
     std::string filename_suffix = "loopDistributedCPU";
 
@@ -1654,16 +1655,17 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
 						// Birth //////////////////////////////////////////////////////////////////////
 
 						double p = 0; // privatize
 						double N = 0; // privatize
 
-                        // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
 						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+                        double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+                        arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
 						p = g * growthModifier*dT;
 						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
@@ -1704,11 +1706,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
 						double p = 0; // privatize
 						double N = 0; // privatize
 
-						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+                        double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 
 						// Compute beta
 						double Beta = beta;
@@ -1787,19 +1791,16 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
-
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+						double p = 0; // privatize
+						double N = 0; // privatize
 
 						// Compute beta
 						double Beta = beta;
 						if (reducedBeta) {
-							Beta *= growthModifier;
+							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
                         // PRIVATIZE BOTH OF THESE
@@ -1876,6 +1877,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
 						double p = 0; // privatize
 						double N = 0; // privatize
 
@@ -1906,6 +1910,9 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
+
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 
                         if (nGridXY > 1) {
@@ -2118,7 +2125,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         }
 
                         double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-                        arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - 6 * alphaXY * tmp;
+                        arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
                         arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
                         arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
                         arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
@@ -2377,6 +2384,7 @@ void Colonies3D::Initialize() {
     arr_rng = new std::mt19937[nGridXY*nGridXY*nGridZ];
 
     arr_M = new double[nGridXY*nGridXY*nGridZ]();
+    arr_GrowthModifier = new double[nGridXY*nGridXY*nGridZ]();
 
     for (int i = 0; i < nGridXY; i++) {
         for (int j = 0; j < nGridXY; j++) {

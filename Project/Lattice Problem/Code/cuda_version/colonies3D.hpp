@@ -145,6 +145,7 @@ class Colonies3D {
 
     // Driver
     int         Run_LoopDistributed_CPU(double T_end);                          // Controls the evaluation of the simulation
+    int         Run_LoopDistributed_GPU(double T_end);                          // Controls the evaluation of the simulation
 
  private:
     void        Initialize();                                                   // Initialize the simulation
