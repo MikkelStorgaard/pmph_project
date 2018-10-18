@@ -326,7 +326,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 						double p = 0; // privatize
 						double N = 0; // privatize
-						double M = 0; // privatize
+						// double M = 0; // privatize
 
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
@@ -1066,19 +1066,18 @@ void Colonies3D::spawnPhages() {
 
         // Determine the number of phages to spawn
         double nPhages = (double)round(L * L * H * P_0 / 1e12);
-        double nGridXY = this->nGridXY;
 
         double numP = 0;
         if (nPhages <= nGridXY * nGridXY) {
             for (double n = 0; n < nPhages; n++) {
-                arr_P[RandI(nGridXY - 1)*nGridXY*nGridZ + RandI(nGridXY - 1)*nGridZ + nGridZ - 1)++;
+                arr_P[RandI(nGridXY - 1)*nGridXY*nGridZ + RandI(nGridXY - 1)*nGridZ + nGridZ - 1]++;
                 numP++;
             }
         } else {
             for (int j = 0; j < nGridXY; j++ ) {
                 for (int i = 0; i < nGridXY; i++ ) {
-                        arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1] = RandP(nPhages / (nGridXY * nGridXY * nGridZ));
-                        numP += arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1];
+                    arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1] = RandP(nPhages / (double)(nGridXY * nGridXY * nGridZ));
+                    numP += arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1];
                 }
             }
             // Correct for overspawning
@@ -1503,78 +1502,6 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
     string fileName = "PopulationSize_"+filename_suffix;
     OpenFileStream(f_N, fileName);
 
-    // Writes the time, number of cells, number of infected cells, number of phages
-    f_N << fixed    << setprecision(2);
-    f_N << setw(6)  << t       << "\t";
-    f_N << setw(12) << round(accu(B))    << "\t";
-    f_N << setw(12) << round(accu(I0) + accu(I1) + accu(I2) + accu(I3) + accu(I4) + accu(I5) + accu(I6) + accu(I7) + accu(I8) + accu(I9))    << "\t";
-    f_N << setw(12) << round(accu(P))    << "\t";
-
-    uvec nz = find(B);
-    f_N << setw(12) << static_cast<double>(nz.n_elem) / initialOccupancy << "\t";
-    f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accu(nutrient) << "\t";
-    f_N << setw(12) << accu(nC) << endl;
-
-    if (exportAll) {
-        // Save the position data
-        // Verify the file stream is open
-        fileName = "CellDensity_"+filename_suffix;
-        OpenFileStream(f_B, fileName);
-
-        fileName = "InfectedDensity_"+filename_suffix;
-        OpenFileStream(f_I, fileName);
-
-        fileName = "PhageDensity_"+filename_suffix;
-        OpenFileStream(f_P, fileName);
-
-        fileName = "NutrientDensity_"+filename_suffix;
-        OpenFileStream(f_n, fileName);
-
-        // Write file as MATLAB would a 3D matrix!
-        // row 1 is x_vector, for y_1 and z_1
-        // row 2 is x_vector, for y_2 and z_1
-        // row 3 is x_vector, for y_3 and z_1
-        // ...
-        // When y_vector for x_n has been printed, it goes:
-        // row n+1 is x_vector, for y_1 and z_2
-        // row n+2 is x_vector, for y_2 and z_2
-        // row n+3 is x_vector, for y_3 and z_2
-        // ... and so on
-
-        // Loop over z
-        for (int z = 0; z < nGridZ; z++) {
-
-            // Loop over x
-            for (int x = 0; x < nGridXY; x++) {
-
-                // Loop over y
-                for (int y = 0; y < nGridXY - 1; y++) {
-
-                    f_B << setw(6) << B(x,y,z) << "\t";
-                    f_P << setw(6) << P(x,y,z) << "\t";
-                    double nI = round(I0(x,y,z) + I1(x,y,z) + I2(x,y,z) + I3(x,y,z) + I4(x,y,z) + I5(x,y,z) + I6(x,y,z) + I7(x,y,z) + I8(x,y,z) + I9(x,y,z));
-                    f_I << setw(6) << nI       << "\t";
-                    f_n << setw(6) << nutrient(x,y,z) << "\t";
-                }
-
-                // Write last line ("\n" instead of tab)
-                f_B << setw(6) << round(B(x,nGridXY - 1,z)) << "\n";
-                f_P << setw(6) << round(P(x,nGridXY - 1,z)) << "\n";
-                double nI = round(I0(x,nGridXY - 1,z) + I1(x,nGridXY - 1,z) + I2(x,nGridXY - 1,z) + I3(x,nGridXY - 1,z) + I4(x,nGridXY - 1,z) + I5(x,nGridXY - 1,z) + I6(x,nGridXY - 1,z) + I7(x,nGridXY - 1,z) + I8(x,nGridXY - 1,z) + I9(x,nGridXY - 1,z));
-                f_I << setw(6) << nI                        << "\n";
-                f_n << setw(6) << round(nutrient(x,nGridXY - 1,z)) << "\n";
-            }
-        }
-    }
-
-}
-
-void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
-
-    // Verify the file stream is open
-    string fileName = "PopulationSize_"+filename_suffix;
-    OpenFileStream(f_N, fileName);
-
 
     double accuB = 0.0;
     double accuI = 0.0;
@@ -1600,8 +1527,18 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
     f_N << setw(12) << round(accuI)    << "\t";
     f_N << setw(12) << round(accuP)    << "\t";
 
-    uvec nz = find(B);
-    f_N << setw(12) << static_cast<double>(nz.n_elem) / initialOccupancy << "\t";
+    int nz = 0;
+    for (int i = 0; i < nGridXY; i++) {
+        for (int j = 0; j < nGridXY; j++ ) {
+            for (int k = 0; k < nGridZ; k++ ) {
+                if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 0) {
+                    nz++;
+                }
+            }
+        }
+    }
+
+    f_N << setw(12) << static_cast<double>(nz) / initialOccupancy << "\t";
     f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accuNutrient << "\t";
     f_N << setw(12) << accuClusters << endl;
 
