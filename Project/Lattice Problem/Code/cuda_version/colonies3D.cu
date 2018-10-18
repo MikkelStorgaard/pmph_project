@@ -132,7 +132,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
       cudaMalloc((void**)&d_arr_nC , totalMemSize);
       cudaMalloc((void**)&d_arr_Occ, totalMemSize);
 
-      cudaMemcpy((void*) d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
+      cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
       cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
       FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
       cudaThreadSynchronize();

@@ -41,4 +41,12 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc, in
   }
 }
 
+__global__ void ThirdKernel(double* arr_Occ,
+                            double* arr_P,
+                            double* arr_nutrient,
+                            double* arr_B,
+                            double* arr_B_new,
+                            double* , int N){
+}
+
 #endif
