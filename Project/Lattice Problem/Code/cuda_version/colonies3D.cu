@@ -830,7 +830,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			/* Do all the allocations and other CUDA device stuff here
 			 * remember to do them outside the nSamplings loop afterwards
-       */
+            */
 
             /* Allocate arrays on the device */
             int totalElements = nGridXY * nGridXY * nGridZ;
@@ -864,7 +864,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
             cudaThreadSynchronize();
 
             // Copy data back from device
-            cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, totalMemSize, cudaMemcpyDeviceToHost);
+            cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
             cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
             cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
 
@@ -885,9 +885,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
-
-                        // Birth //////////////////////////////////////////////////////////////////////
 
 						double p = 0; // privatize
 						double N = 0; // privatize
@@ -929,6 +926,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				}
 			}
 
+            // Increase Infections ////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -953,7 +951,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 							Beta *= growthModifier;
 						}
 
-                        // Increase Infections ////////////////////////////////////////////////////////
                         if (r > 0.0) {
                             /* BEGIN tredje Map-kernel */
 
@@ -1016,6 +1013,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				}
 			}
 
+            // New infections ///////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -1097,13 +1095,11 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                                 }
                             }
                         }
-
-                        // Phage Decay ////////////////////////////////////////////////////////////////
-
 					}
 				}
 			}
 
+            // Phage decay ///////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -1137,6 +1133,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				}
 			}
 
+
+            // Movement ///////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -1149,7 +1147,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-                        // Movement ///////////////////////////////////////////////////////////////////
                         if (nGridXY > 1) {
                             // KERNEL BEGIN
                             // Update positions
