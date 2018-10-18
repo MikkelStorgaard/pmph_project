@@ -14,7 +14,7 @@ int main(int argc, char** argv){
     double P_0 = pow(10,5);
     double T   = 20;
 
-    string pathName = "3D_Example_Full_Model";
+    string pathName = "3D_Example_Benchmarking";
 
 
     for (int k = 0; k < 3; k++) {

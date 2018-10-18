@@ -3246,7 +3246,6 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
             }
         }
     }
-
 }
 
 // Open filstream if not allready opened

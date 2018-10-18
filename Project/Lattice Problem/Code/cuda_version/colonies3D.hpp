@@ -209,7 +209,6 @@ class Colonies3D {
     void        ExportAll();                                                    // Sets the simulation to export everything
 
  private:
-    void        ExportData(double t, std::string filename_suffix);              // Master function to export the data
     void        ExportData_arr(double t, std::string filename_suffix);              // Master function to export the data
 
     // Data handling
