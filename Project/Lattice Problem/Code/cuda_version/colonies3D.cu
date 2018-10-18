@@ -845,11 +845,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
             cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
             cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
 
-            double sum1 = 0.0;
-            for (int i = 0; i < nGridXY*nGridXY*nGridZ; i++) {
-                sum1 += arr_nC[i];
-            }
-
             // Run first Kernel
             FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
             // TODO: Is the syncronize needed?
@@ -872,13 +867,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
             cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, totalMemSize, cudaMemcpyDeviceToHost);
             cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
             cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
-
-            double sum2 = 0.0;
-            for (int i = 0; i < nGridXY*nGridXY*nGridZ; i++) {
-                sum2 += arr_nC[i];
-            }
-
-            assert(sum2 > sum1);
 
             // excuse this for-loop
             for (int i = 0; i < gridSize; i++){
