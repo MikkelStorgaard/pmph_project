@@ -854,7 +854,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			/* Do all the allocations and other CUDA device stuff here
 			 * remember to do them outside the nSamplings loop afterwards
-             */
+       */
 
             /* Allocate arrays on the device */
             int totalElements = nGridXY * nGridXY * nGridZ;
@@ -1631,7 +1631,6 @@ void Colonies3D::Initialize() {
         }
     }
 
-    // Fill the laplace operator
     // Compute the size of the time step
     ComputeTimeStep();
 
@@ -1648,6 +1647,7 @@ void Colonies3D::Initialize() {
 
     // Initialize the bacteria and phage populations
     spawnBacteria();
+
     if (T_i <= dT) {
         spawnPhages();
         T_i = -1;
@@ -1801,7 +1801,6 @@ void Colonies3D::spawnPhages() {
 
         // Determine the number of phages to spawn
         double nPhages = (double)round(L * L * H * P_0 / 1e12);
-
         double numP = 0;
         if (nPhages <= nGridXY * nGridXY) {
             for (double n = 0; n < nPhages; n++) {
@@ -2320,6 +2319,7 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
 
                 // Loop over y
                 for (int y = 0; y < nGridXY - 1; y++) {
+                    #define XYZ x*nGridXY*nGridZ+y*nGridZ+z
 
                     f_B << setw(6) << arr_B[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
                     f_P << setw(6) << arr_P[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
@@ -2328,6 +2328,7 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
                     f_n << setw(6) << arr_nutrient[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
                 }
 
+                #define XnGridXYZ x*nGridXY*nGridZ+(nGridXY-1)*nGridZ+z
                 // Write last line ("\n" instead of tab)
                 f_B << setw(6) << round(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
                 f_P << setw(6) << round(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";

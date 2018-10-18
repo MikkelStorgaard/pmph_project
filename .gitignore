@@ -16,6 +16,10 @@ Project/Lattice Problem/Code/data/
 Project/Lattice Problem/Code/cuda_version/data/
 
 Project/Lattice Problem/Code/Lattice problem\.sln
+Project/Lattice Problem/Code/example3D
+Project/Lattice Problem/Code/growthCurve3D
+Project/Lattice Problem/Code/cuda_version/example3D
+Project/Lattice Problem/Code/cuda_version/growthCurve3D
 
 Project/Lattice Problem/Code/Lattice problem\.vcxproj
 

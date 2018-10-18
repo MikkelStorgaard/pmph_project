@@ -372,6 +372,7 @@ int Colonies3D::Run_Original(double T_end) {
                     }
                 }
             }
+            cout << maxOccupancy << "\n";
 
             // Update arrays
             B.swap(B_new);      B_new.zeros();
@@ -1030,7 +1031,6 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
             // Reset density counter
             double maxOccupancy = 0.0;
-
             for (int i = 0; i < nGridXY; i++) {
                 if (exit) break;
 
