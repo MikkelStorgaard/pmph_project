@@ -1025,8 +1025,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
                         if (exit) break;
 
-                        // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+            // Skip empty sites
+            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1)
+                and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 
 						double p = 0; // privatize
