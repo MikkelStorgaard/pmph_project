@@ -47,6 +47,99 @@ __global__ void ThirdKernel(double* arr_Occ,
                             double* arr_B,
                             double* arr_B_new,
                             double* , int N){
+
+
+// Birth
+
+// Compute p
+
+// Return warning
+
+// Update B_new
+// Update Nutrient
+
 }
+
+__global__ void FourhtKernel(){
+
+// Increase Infections
+
+// Compute Beta
+
+// Compute p
+
+// Update I9
+// Update Occ
+// Update P_new
+// Update M
+
+// Compute N
+// Update I8,I9
+
+// Compute N
+// Update I7,I8
+
+// Compute N
+// Update I6,I7
+
+// Compute N
+// Update I5,I6
+
+// Compute N
+// Update I4,I5
+
+// Compute N
+// Update I3,I4
+
+// Compute N
+// Update I2,I3
+
+// Compute N
+// Update I1,I2
+
+}
+
+__global__ void FifthKernel(){
+
+// New infections
+
+// Compute s
+// Compute n
+
+// Compute N
+
+// Compute S
+
+// Compute p
+
+// Compute N
+
+// Update B_new
+// Update I0_new / P_bew
+
+}
+
+__global__ void SixthKernel(){
+
+// Phage decay
+
+// Compute p
+// Compute n
+
+// Update P
+
+}
+
+__global__ void SeventhKernel(){
+
+// Phage decay
+
+// Compute p
+// Compute n
+
+// Update P
+
+}
+
 
 #endif
