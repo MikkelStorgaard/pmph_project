@@ -1,5 +1,6 @@
 # Get the host
 CC=g++
+NCC=NVCC
 
 CLINKS= -larmadillo -fopenmp
 CFLAGS= -g -std=c++0x -march=native

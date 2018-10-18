@@ -119,38 +119,44 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 			/* Do all the allocations and other CUDA device stuff here
 			 * remember to do them outside the nSamplings loop afterwards
-       */
+             */
 
-      /* Allocate arrays on the device */
-      int totalElements = nGridXY * nGridXY * nGridZ;
-      int totalMemSize = totalElements * sizeof(double);
-      int blockSize = 256;
-      int gridSize = (totalElements + blockSize - 1) / blockSize;
+            /* Allocate arrays on the device */
+            int totalElements = nGridXY * nGridXY * nGridZ;
+            int totalMemSize = totalElements * sizeof(double);
+            int blockSize = 256;
+            int gridSize = (totalElements + blockSize - 1) / blockSize;
 
-      double *d_arr_Occ, *d_arr_nC, *arr_maxOccupancy, *d_arr_maxOccupancy;
+            /* Copy data needed in the first kernel to the device */
+            double *d_arr_Occ, *d_arr_nC, *arr_maxOccupancy, *d_arr_maxOccupancy;
+            cudaMalloc((void**)&d_arr_nC , totalMemSize);
+            cudaMalloc((void**)&d_arr_Occ, totalMemSize);
+            cudaMemcpy((void*) d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
+            cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
 
-      cudaMalloc((void**)&d_arr_nC , totalMemSize);
-      cudaMalloc((void**)&d_arr_Occ, totalMemSize);
+            /* Run first Kernel */
+            FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
+            // TODO: Is the syncronize needed?
+            cudaThreadSynchronize();
 
-      cudaMemcpy((void*) d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-      cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
-      FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
-      cudaThreadSynchronize();
 
-      cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
-      malloc((void**)&arr_maxOccupancy, sizeof(double)*gridSize);
+            /* Copy data needed in the first kernel to the device */
+            cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
+            malloc((void**)&arr_maxOccupancy, sizeof(double)*gridSize);
 
-      SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_maxOccupancy,
-                                                          totalElements);
-      cudaThreadSynchronize();
-      cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
+            /* Run first Kernel */
+            SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_maxOccupancy,
+                                                                totalElements);
+            // TODO: Is the syncronize needed?
+            cudaThreadSynchronize();
+            cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
 
-      // excuse this for-loop
-      for (int i = 0; i < gridSize; i++){
-        maxOccupancy = max(maxOccupancy, arr_maxOccupancy[i]);
-      }
+            // excuse this for-loop
+            for (int i = 0; i < gridSize; i++){
+                maxOccupancy = max(maxOccupancy, arr_maxOccupancy[i]);
+            }
 
-      // Birth //////////////////////////////////////////////////////////////////////
+            // Birth //////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 

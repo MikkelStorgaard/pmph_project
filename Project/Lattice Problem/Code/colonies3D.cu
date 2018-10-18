@@ -1,5 +1,5 @@
 #include "colonies3D.hpp"
-#include "mssp-kernels.cu.h"
+#include "colonies3D_kernels.cu.h"
 
 using namespace std;
 

@@ -13,8 +13,8 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
   }
 
   // TODO: Should IJK be replaced with i?
-  if (arr_Occ[IJK] < arr_nC[IJK]){
-      arr_nC[IJK] = arr_Occ[IJK];
+  if (arr_Occ[i] < arr_nC[i]){
+      arr_nC[i] = arr_Occ[i];
   }
 }
 
