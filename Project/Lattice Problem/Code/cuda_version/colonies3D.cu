@@ -116,6 +116,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 			// Main loop start //////////////////////////////////
 			/////////////////////////////////////////////////////
 
+            // Kernel 1-2: nC update and maxOccupancy //////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -139,7 +140,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					}
 				}
 			}
-			// Birth //////////////////////////////////////////////////////////////////////
+            // Kernel 3: Birth //////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -152,8 +153,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						// Birth //////////////////////////////////////////////////////////////////////
-
 						double p = 0; // privatize
 						double N = 0; // privatize
 
@@ -161,10 +160,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
                         arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
-						p = g * growthModifier*dT;
-						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
-							p = 0;
-						}
+						p = g * growthModifier*dT;				// MO flyttet til kernel 2
+						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
+							p = 0;								//
+						}										//
 
 						if ((p > 0.1) and (!Warn_g)) {
                             cout << "\tWarning: Birth Probability Large!" << "\n";
@@ -172,6 +171,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             Warn_g = true;
                         }
 
+                        /* BEGIN anden Map-kernel */
                         N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
                         // Ensure there is enough nutrient
                         if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
@@ -187,10 +187,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         // Update count
                         arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
                         arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+                        /* END anden Map-kernel */
+
 					}
 				}
 			}
 
+            // Kernel 4: Increase Infections ////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -206,7 +209,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						double p = 0; // privatize
 						double N = 0; // privatize
 
-                        double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+						// Compute the growth modifier
+						double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 
 						// Compute beta
 						double Beta = beta;
@@ -214,8 +218,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 							Beta *= growthModifier;
 						}
 
-                        // Increase Infections ////////////////////////////////////////////////////////
                         if (r > 0.0) {
+                            /* BEGIN tredje Map-kernel */
 
                             p = r*growthModifier*dT;
                             if ((p > 0.25) and (!Warn_r)) {
@@ -276,6 +280,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 				}
 			}
 
+            // Kernel 5: New infections ///////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -283,14 +288,21 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					if (exit) break;
 
 					for (int k = 0; k < nGridZ; k++) {
-						if (exit) break;
+                        if (exit) break;
 
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
+
 						double p = 0; // privatize
 						double N = 0; // privatize
+                        // double M = 0; // privatize
 
+						// Compute beta
+						double Beta = beta;
+						if (reducedBeta) {
+							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+						}
 
                         // PRIVATIZE BOTH OF THESE
                         double s;   // The factor which modifies the adsorption rate
@@ -350,13 +362,11 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                                 }
                             }
                         }
-
-
-
 					}
 				}
 			}
-			// Phage Decay ////////////////////////////////////////////////////////////////
+
+            // Kernel 6: Phage decay ///////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -364,15 +374,16 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 					if (exit) break;
 
 					for (int k = 0; k < nGridZ; k++) {
-						if (exit) break;
+                        if (exit) break;
 
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
+
 						double p = 0; // privatize
 						double N = 0; // privatize
 
-
+                        // KERNEL BEGIN
                         p = delta*dT;
                         if ((p > 0.1) and (!Warn_delta)) {
                             cout << "\tWarning: Decay Probability Large!" << "\n";
@@ -383,11 +394,146 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                         // Update count
                         arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-
+                        // KERNEL END
 
 					}
 				}
 			}
+
+
+            // Movement ///////////////////////////////////////////////////////////////////
+			for (int i = 0; i < nGridXY; i++) {
+				if (exit) break;
+
+				for (int j = 0; j < nGridXY; j++) {
+					if (exit) break;
+
+					for (int k = 0; k < nGridZ; k++) {
+                        if (exit) break;
+
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+                        if (nGridXY > 1) {
+                            // KERNEL BEGIN
+                            // Update positions
+
+                            // Skip empty sites
+                            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+                            int ip, jp, kp, im, jm, km;
+
+                            if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+                            else ip = i + 1;
+
+                            if (i == 0) im = nGridXY - 1;
+                            else im = i - 1;
+
+                            if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+                            else jp = j + 1;
+
+                            if (j == 0) jm = nGridXY - 1;
+                            else jm = j - 1;
+
+                            if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+                                if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+                                else kp = k + 1;
+
+                                if (k == 0) km = nGridZ - 1;
+                                else km = k - 1;
+
+                            } else {    // Reflective boundaries in Z direction
+
+                                if (k + 1 >= nGridZ) kp = k - 1;
+                                else kp = k + 1;
+
+                                if (k == 0) km = k + 1;
+                                else km = k - 1;
+
+                            }
+
+                            // Update counts
+                            double n_0; // No movement
+                            double n_u; // Up
+                            double n_d; // Down
+                            double n_l; // Left
+                            double n_r; // Right
+                            double n_f; // Front
+                            double n_b; // Back
+
+                            // CELLS
+                            ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
+                            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                            if (r > 0.0) {
+                                ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                                ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                                ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                                ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                                ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                                ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                                ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                                ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                                ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                                ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                            }
+
+                            // PHAGES
+                            ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+                            // KERNEL END
+
+
+
+                        } else {
+                            // KERNEL BEGIN
+                            // CELLS
+                            // Skip empty sites
+                            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+                            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+
+                            if (r > 0.0) {
+                                arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k];
+                                arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I1[i*nGridXY*nGridZ + j*nGridZ + k];
+                                arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I2[i*nGridXY*nGridZ + j*nGridZ + k];
+                                arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I3[i*nGridXY*nGridZ + j*nGridZ + k];
+                                arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I4[i*nGridXY*nGridZ + j*nGridZ + k];
+                                arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I5[i*nGridXY*nGridZ + j*nGridZ + k];
+                                arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I6[i*nGridXY*nGridZ + j*nGridZ + k];
+                                arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I7[i*nGridXY*nGridZ + j*nGridZ + k];
+                                arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I8[i*nGridXY*nGridZ + j*nGridZ + k];
+                                arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
+                            }
+
+                            // PHAGES
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
+                            // KERNEL END
+                        }
+                    }
+                }
+            }
 
 			// Movement ///////////////////////////////////////////////////////////////////
 
