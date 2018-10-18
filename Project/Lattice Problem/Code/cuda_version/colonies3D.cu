@@ -888,25 +888,18 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-						// Birth //////////////////////////////////////////////////////////////////////
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+
+                        // Birth //////////////////////////////////////////////////////////////////////
 
 						double p = 0; // privatize
 						double N = 0; // privatize
 
-                        // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
 						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-                        ///////////// should the growth modifier have been an array instead?
-
-						// Compute beta
-						double Beta = beta;
-						if (reducedBeta) {
-							Beta *= growthModifier;
-						}
-
-
+                        double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+                        arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
 						p = g * growthModifier*dT;				// MO flyttet til kernel 2
 						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
@@ -950,15 +943,15 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
-
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
+						double p = 0; // privatize
+						double N = 0; // privatize
+
 						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-                        ///////////// should the growth modifier have been an array instead?
+						double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+
 						// Compute beta
 						double Beta = beta;
 						if (reducedBeta) {
@@ -968,9 +961,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                         // Increase Infections ////////////////////////////////////////////////////////
                         if (r > 0.0) {
                             /* BEGIN tredje Map-kernel */
-
-
-
 
                             p = r*growthModifier*dT;
                             if ((p > 0.25) and (!Warn_r)) {
@@ -1038,22 +1028,20 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					if (exit) break;
 
 					for (int k = 0; k < nGridZ; k++) {
-						if (exit) break;
-
-						double p = 0; // privatize
-						double N = 0; // privatize
-						// double M = 0; // privatize
+                        if (exit) break;
 
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-                        ///////////// should the growth modifier have been an array instead?
+
+						double p = 0; // privatize
+						double N = 0; // privatize
+                        // double M = 0; // privatize
+
 						// Compute beta
 						double Beta = beta;
 						if (reducedBeta) {
-							Beta *= growthModifier;
+							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
                         // PRIVATIZE BOTH OF THESE
@@ -1128,13 +1116,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					if (exit) break;
 
 					for (int k = 0; k < nGridZ; k++) {
-						if (exit) break;
-
-						double p = 0; // privatize
-						double N = 0; // privatize
+                        if (exit) break;
 
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+
+						double p = 0; // privatize
+						double N = 0; // privatize
 
                         // KERNEL BEGIN
                         p = delta*dT;
@@ -1160,7 +1149,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					if (exit) break;
 
 					for (int k = 0; k < nGridZ; k++) {
-						if (exit) break;
+                        if (exit) break;
+
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
                         // Movement ///////////////////////////////////////////////////////////////////
                         if (nGridXY > 1) {
