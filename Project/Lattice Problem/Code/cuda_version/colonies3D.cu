@@ -186,10 +186,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
                         arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
-						p = g * growthModifier*dT;				// MO flyttet til kernel 2
-						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
-							p = 0;								//
-						}										//
+						p = g * growthModifier*dT;				
+						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		
+							p = 0;								
+						}										
 
 						if ((p > 0.1) and (!Warn_g)) {
                             cout << "\tWarning: Birth Probability Large!" << "\n";
@@ -976,48 +976,70 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
-            // Skip empty sites
-            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+                        // Skip empty sites
+                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 						double p = 0; // privatize
 						double N = 0; // privatize
 
 						// Compute the growth modifier
-            double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-            arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
+                        double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+                        arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
-						p = g * growthModifier*dT;				// MO flyttet til kernel 2
+                        p = g * growthModifier*dT;				
 						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
-							p = 0;								//
-						}										//
+                            p = 0;								
+                        }										
 
 						if ((p > 0.1) and (!Warn_g)) {
-              cout << "\tWarning: Birth Probability Large!" << "\n";
-              f_log  << "Warning: Birth Probability Large!" << "\n";
-              Warn_g = true;
-            }
+                            cout << "\tWarning: Birth Probability Large!" << "\n";
+                            f_log  << "Warning: Birth Probability Large!" << "\n";
+                            Warn_g = true;
+                        }
 
             /* BEGIN anden Map-kernel */
-            N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
-            // Ensure there is enough nutrient
-            if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
-              if (!Warn_fastGrowth) {
-                cout << "\tWarning: Colonies growing too fast!" << "\n";
-                f_log  << "Warning: Colonies growing too fast!" << "\n";
-                Warn_fastGrowth = true;
-              }
+                        N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
+                        // Ensure there is enough nutrient
+                        if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
+                            if (!Warn_fastGrowth) {
+                                cout << "\tWarning: Colonies growing too fast!" << "\n";
+                                f_log  << "Warning: Colonies growing too fast!" << "\n";
+                                Warn_fastGrowth = true;
+                            }
 
-              N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
-            }
+                            N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+                        }
 
-            // Update count
-            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-            arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-            /* END anden Map-kernel */
+                        // Update count
+                        arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+                        arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+                        /* END anden Map-kernel */
 
 					}
 				}
 			}
+            
+            /*      
+            double *d_arr_GrowthModifier;
+            double *d_arr_nutrient;
+            double *d_arr_B_new;
+            cudaMemcpy(d_arr_GrowthModifier, arr_GrowthModifier, totalMemSize, cudaMemcpyHostToDevice);
+            cudaMemcpy(d_arr_nutrient, arr_nutrient, totalMemSize, cudaMemcpyHostToDevice);
+            cudaMemcpy(d_arr_B_new, arr_B_new, totalMemSize, cudaMemcpyHostToDevice);
+            cudaMemcpy(d_warn_g, &this->Warn_g, sizeof(bool), cudaMemcpyHostToDevice);
+            cudaMemcpy(d_warn_fastGrowth, &this->Warn_fastGrowth, sizeof(bool), cudaMemcpyHostToDevice);
+                
+            ThirdKernel<<<gridSize, blockSize>>>(d_arr_IsActive, d_arr_GrowthModifier, d_arr_nutrient, K, g, dT, d_warn_g)
+            ThirdTwoKernel<<<gridSize, blockSize>>>(d_arr_IsActive, d_arr_nutrient, d_arr_B_new, d_warn_fastGrowth)
+        
+            cudaMemcpy(arr_nutrient, d_arr_nutrient, totalMemSize, cudaMemcpyDeviceToHost);
+            cudaMemcpy(arr_B_new, d_arr_B_new, totalMemSize, cudaMemcpyDeviceToHost);
+            cudaMemcpy(arr_GrowthModifier, d_arr_GrowthModifier, totalMemSize, cudaMemcpyDeviceToHost);
+            cudaMemcpy(&this->Warn_g, d_warn_g, sizeof(bool), cudaMemcpyDeviceToHost);
+            cudaMemcpy(&this->Warn_fastGrowth, d_warn_fastGrowth, sizeof(bool), cudaMemcpyDeviceToHost);
+        
+        
+            */
 
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
@@ -1644,6 +1666,15 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
   cout << "\tWarning: Decay Probability Large!" << "\n";
   f_log  << "Warning: Decay Probability Large!" << "\n";
   }
+  if(Warn_g) {
+    cout << "\tWarning: Birth Probability Large!" << "\n";
+    f_log  << "Warning: Birth Probability Large!" << "\n";
+  }
+  if(Warn_fastGrowth){
+    cout << "\tWarning: Colonies growing too fast!" << "\n";
+    f_log  << "Warning: Colonies growing too fast!" << "\n";
+  }
+            
   */
   // Get stop time
   time_t  toc;

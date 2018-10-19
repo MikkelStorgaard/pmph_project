@@ -98,6 +98,51 @@ __global__ void UpdateCountKernel(double* arr_GrowthModifier,
   arr_M[i] = round(alpha * Beta * tmp); // Phages which reinfect the colony
 }
 
+//Kernel 3.1: Birth
+__global__ void ThirdKernel(bool* arr_IsActive, double* arr_GrowthModifier, double* arr_nutrient, double K, double g, double dT, bool* warn_g){
+    int i = blockIdx.x*blockDim.x + threadIdx.x;
+    
+// Skip empty sites     
+    if (!(arr_IsActive[i])) return;
+    
+	double p = 0;
+    
+	// Compute the growth modifier
+    double growthModifier = arr_nutrient[i] / (arr_nutrient[i] + K);
+    arr_GrowthModifier[i] = growthModifier;
+    p = g * growthModifier*dT;				
+	if (arr_nutrient[i] < 1) { p = 0; }
+    
+    if ((p > 0.1) and (!*warn_g)) { *warn_g = true; }
+
+}    
+//Kernel 3.2 Birth 2
+
+__global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double* arr_B_new, bool* warn_fastGrowth){
+    int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+    // Skip empty sites     
+    if (!(arr_IsActive[i])) return;
+    
+    
+        double N = 0;
+  
+    // TODO: Proper compute events  
+    //  N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
+    N = 1;
+    
+    // Ensure there is enough nutrient
+    if ( N > arr_nutrient[i] ) {
+        if (!*warn_fastGrowth) { *warn_fastGrowth = true;    }
+        N = round( arr_nutrient[i] );
+    }
+
+    // Update count
+    arr_B_new[i] += N;
+    arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);   
+}
+
+
 
 __global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* arr_p, bool* arr_IsActive){
   int i = blockIdx.x*blockDim.x + threadIdx.x;
