@@ -308,64 +308,64 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
-                        // PRIVATIZE BOTH OF THESE
-                        double s;   // The factor which modifies the adsorption rate
-                        double n;   // The number of targets the phage has
+            // PRIVATIZE BOTH OF THESE
+            double s;   // The factor which modifies the adsorption rate
+            double n;   // The number of targets the phage has
                         // Infectons
 
 
                         // KERNEL THIS
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-                            if (clustering) {   // Check if clustering is enabled
-                                s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-                                n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-                            } else {            // Else use mean field computation
-                                s = 1.0;
-                                n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-                            }
-                        }
+            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
+              if (clustering) {   // Check if clustering is enabled
+                s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+                n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+              } else {            // Else use mean field computation
+                s = 1.0;
+                n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+              }
+            }
 
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-                            // Compute the number of hits
-                            if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
-                                N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-                            } else {
-                                p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
-                            }
+            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
+              // Compute the number of hits
+              if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+                N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
+              } else {
+                p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
+              }
 
-                            if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
-                                // If bacteria were hit, update events
-                                arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
+              if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
+                // If bacteria were hit, update events
+                arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
 
-                                double S;
-                                if (shielding) {
-                                    // Absorbing medium model
-                                    double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
-                                               pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-                                    S = exp(-zeta * d); // Probability of hitting succebtible target
+                double S;
+                if (shielding) {
+                  // Absorbing medium model
+                  double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
+                    pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+                  S = exp(-zeta * d); // Probability of hitting succebtible target
 
-                                } else {
-                                    // Well mixed model
-                                    S = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-                                }
+                } else {
+                  // Well mixed model
+                  S = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+                }
 
-                                p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
-                                                 S)); // Probability of hitting succebtible target
-                                N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
+                p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
+                                 S)); // Probability of hitting succebtible target
+                N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
 
-                                if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
-                                    N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
+                if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
+                  N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
 
-                                // Update the counts
-                                arr_B[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_B[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-                                if (r > 0.0) {
-                                    arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-                                } else {
-                                    arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
-                                }
-                            }
-                        }
+                // Update the counts
+                arr_B[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_B[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+                if (r > 0.0) {
+                  arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+                } else {
+                  arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
+                }
+              }
+            }
 					}
 				}
 			}
@@ -956,18 +956,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 
       if (r > 0.0){
-        UpdateCountKernel<<<gridSize, blockSize>>>(d_arr_GrowthModifier,
-                                                   d_arr_I9,
-                                                   d_arr_Occ,
-                                                   d_arr_P_new,
-                                                   d_arr_M,
-                                                   d_arr_p,
-                                                   d_arr_IsActive,
-                                                   alpha,
-                                                   beta,
-                                                   r,
-                                                   dT,
-                                                   d_Warn_r,
+        UpdateCountKernel<<<gridSize, blockSize>>>(d_arr_GrowthModifier, d_arr_I9,
+                                                   d_arr_Occ, d_arr_P_new, d_arr_M,
+                                                   d_arr_p, d_arr_IsActive,
+                                                   alpha, beta, r, dT, d_Warn_r,
                                                    reducedBeta);
 
         if(!Warn_r){
@@ -989,179 +981,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
         NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_arr_IsActive);
         NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_arr_IsActive);
       }
-      // Increase Infections ////////////////////////////////////////////////////////
-			for (int i = 0; i < nGridXY; i++) {
-				if (exit) break;
 
-				for (int j = 0; j < nGridXY; j++) {
-					if (exit) break;
-
-					for (int k = 0; k < nGridZ; k++) {
-						if (exit) break;
-
-            // Skip empty sites
-            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
-            if (r > 0.0) {
-
-              double p = 0; // privatize
-              double N = 0; // privatize
-
-              // Compute the growth modifier
-              double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
-
-              // Compute beta
-              double Beta = beta;
-              if (reducedBeta) {
-                Beta *= growthModifier;
-              }
-
-              /* BEGIN tredje Map-kernel */
-
-              p = r*growthModifier*dT;
-              if ((p > 0.25) and (!Warn_r)) {
-                cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-                f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-                Warn_r = true;
-              }
-              N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
-
-              // Update count
-              arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-              arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
-
-              // Non-bursting events
-              N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-              arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-              N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-              arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-              N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-              arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-              N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-              arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-              N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-              arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-              N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-              arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-              N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-              arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-              N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-              arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-              N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-              arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-              arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-              /* END tredje Map-kernel */
-
-            }
-
-					}
-				}
-			}
-
-      // New infections ///////////////////////////////////////////////////////////////////
-			for (int i = 0; i < nGridXY; i++) {
-				if (exit) break;
-
-				for (int j = 0; j < nGridXY; j++) {
-					if (exit) break;
-
-					for (int k = 0; k < nGridZ; k++) {
-            if (exit) break;
-
-            // Skip empty sites
-            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
-
-						double p = 0; // privatize
-						double N = 0; // privatize
-            // double M = 0; // privatize
-
-						// Compute beta
-						double Beta = beta;
-						if (reducedBeta) {
-							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
-						}
-
-            // PRIVATIZE BOTH OF THESE
-            double s;   // The factor which modifies the adsorption rate
-            double n;   // The number of targets the phage has
-                        // Infectons
-
-
-                        // KERNEL THIS
-            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-              if (clustering) {   // Check if clustering is enabled
-                s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-                n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-              } else {            // Else use mean field computation
-                s = 1.0;
-                n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-              }
-            }
-
-            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-              // Compute the number of hits
-              if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
-                N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-              } else {
-                p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
-              }
-
-              if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
-                // If bacteria were hit, update events
-                arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
-
-                double S;
-                if (shielding) {
-                  // Absorbing medium model
-                  double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
-                    pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-                  S = exp(-zeta * d); // Probability of hitting succebtible target
-
-                } else {
-                  // Well mixed model
-                  S = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-                }
-
-                p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
-                                 S)); // Probability of hitting succebtible target
-                N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
-
-                if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
-                  N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
-
-                // Update the counts
-                arr_B[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_B[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-                if (r > 0.0) {
-                  arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-                } else {
-                  arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
-                }
-              }
-            }
-					}
-				}
-			}
+      NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
+                                                   d_arr_GrowthModifier, d_arr_B, d_arr_B_new,
+                                                   d_arr_M, d_arr_I0_new, d_arr_IsActive,
+                                                   reducedBeta, clustering, shielding,
+                                                   K, alpha, beta, eta, zeta, dT, r);
 
 
       // Phage decay ///////////////////////////////////////////////////////////////////

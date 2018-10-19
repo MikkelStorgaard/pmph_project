@@ -117,27 +117,26 @@ __global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* ar
   arr_B[i] += tmp;
 }
 
-__global__ void ThirdKernel(double* arr_Occ,
-                            double* arr_nC,
-                            double* arr_P,
-                            double* arr_P_new,
-                            double* arr_nutrient,
-                            double* arr_B,
-                            double* arr_B_new,
-                            double* arr_M,
-                            double* arr_I0_new,
-                            bool* arr_IsActive,
-                            bool reducedBeta,
-                            bool clustering,
-                            bool shielding,
-                            double K,
-                            double alpha,
-                            double beta,
-                            double eta,
-                            double zeta,
-                            double dT,
-                            double r,
-                            int N){
+__global__ void NewInfectionsKernel(double* arr_Occ,
+                                    double* arr_nC,
+                                    double* arr_P,
+                                    double* arr_P_new,
+                                    double* arr_GrowthModifier,
+                                    double* arr_B,
+                                    double* arr_B_new,
+                                    double* arr_M,
+                                    double* arr_I0_new,
+                                    bool* arr_IsActive,
+                                    bool reducedBeta,
+                                    bool clustering,
+                                    bool shielding,
+                                    double K,
+                                    double alpha,
+                                    double beta,
+                                    double eta,
+                                    double zeta,
+                                    double dT,
+                                    double r){
 
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   bool isInactive = (!(arr_IsActive[tid]));
@@ -145,18 +144,17 @@ __global__ void ThirdKernel(double* arr_Occ,
     return;
   }
 
-  double B = isInactive ? 0.0 : arr_B[tid];
-  double nC = isInactive ? 0.0 : arr_nC[tid];
-  double Occ = isInactive ? 0.0 : arr_Occ[tid];
-  double P = isInactive ? 0.0 : arr_P[tid];
-  double M = isInactive ? 0.0 : arr_M[tid];
+  double B = arr_B[tid];
+  double nC = arr_nC[tid];
+  double Occ = arr_Occ[tid];
+  double P = arr_P[tid];
+  double M = arr_M[tid];
   double tmp;
 
 
 	// Compute the growth modifier
-	double growthModifier =
-     arr_nutrient[tid] / (arr_nutrient[tid] + K);
-  ///////////// should the growth modifier have been an array instead?
+	double growthModifier = arr_GrowthModifier[tid];
+
   // Compute beta
   double Beta = beta;
   if (reducedBeta) {
@@ -214,7 +212,7 @@ __global__ void ThirdKernel(double* arr_Occ,
       tmp = min(tmp, B); // If more bacteria than present are set to be infeced, round down
 
       // Update the counts
-      arr_B[tid] = max(0.0, B - N);
+      arr_B[tid] = max(0.0, B - tmp);
       if (r > 0.0) {
         arr_I0_new[tid] += tmp;
       } else {
