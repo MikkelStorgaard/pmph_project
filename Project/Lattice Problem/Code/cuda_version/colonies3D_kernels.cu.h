@@ -16,18 +16,26 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
   }
 }
 
-__global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc, int N){
+__global__ void SetIsActive(double* arr_Occ, double* arr_nC, bool* arr_IsActive, int N){
+
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+  bool insideBounds = (i < N);
+
+  double nC =  insideBounds ? arr_nC[tid] : 0.0;
+  double Occ = insideBounds ? arr_Occ[tid] : 0.0;
+  arr_IsActive[i] = insideBounds && (nC >= 1.0 || Occ >= 1.0);
+
+}
+
+__global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
+                             bool* arr_IsActive, int N){
 
   extern __shared__ double shared[];
   int i = blockIdx.x*blockDim.x + threadIdx.x;
   int tid = threadIdx.x;
 
-  bool outOfBounds = (i >= N);
-  double nC = outOfBounds ? 0.0 : arr_nC[tid];
-  double Occ = outOfBounds ? 0.0 : arr_Occ[tid];
-  bool active = nC >= 1.0 || Occ >= 1.0;
-
-  shared[tid] = (outOfBounds || !active) ? 0.0 : Occ;
+  shared[tid] = arr_IsActive[i] ? arr_Occ[i] : 0.0;
 
   for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
     if (tid < s) {
@@ -50,6 +58,7 @@ __global__ void ThirdKernel(double* arr_Occ,
                             double* arr_B_new,
                             double* arr_M,
                             double* arr_I0_new,
+                            bool* arr_IsActive,
                             bool reducedBeta,
                             bool clustering,
                             bool shielding,
@@ -63,19 +72,18 @@ __global__ void ThirdKernel(double* arr_Occ,
                             int N){
 
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
-
-  bool outOfBounds = (tid >= N);
-  double B = outOfBounds ? 0.0 : arr_B[tid];
-  double nC = outOfBounds ? 0.0 : arr_nC[tid];
-  double Occ = outOfBounds ? 0.0 : arr_Occ[tid];
-  double P = outOfBounds ? 0.0 : arr_P[tid];
-  double M = outOfBounds ? 0.0 : arr_M[tid];
-  double tmp;
-
-  bool active = nC >= 1.0 || Occ >= 1.0;
-  if (!active){
+  bool isInactive = (!(arr_IsActive[tid]));
+  if (isInactive){
     return;
   }
+
+  double B = isInactive ? 0.0 : arr_B[tid];
+  double nC = isInactive ? 0.0 : arr_nC[tid];
+  double Occ = isInactive ? 0.0 : arr_Occ[tid];
+  double P = isInactive ? 0.0 : arr_P[tid];
+  double M = isInactive ? 0.0 : arr_M[tid];
+  double tmp;
+
 
 	// Compute the growth modifier
 	double growthModifier =
