@@ -28,5 +28,18 @@ Project/Lattice Problem/Code/Lattice problem\.vcxproj\.filters
 Project/Lattice Problem/Code/Lattice problem\.vcxproj\.user
 
 *.o
+*.txt
 
-Project/lattice problem/
+*.sln
+
+*.vcxproj
+
+Project/Lattice Problem/Code/PMPHtest2\.vcxproj\.filters
+
+Project/Lattice Problem/Code/PMPHtest2\.vcxproj\.user
+
+Project/Lattice Problem/Code/Debug/PMPHtest2\.log
+
+Project/Lattice Problem/Code/cuda_version/Ny mappe/
+
+Project/Lattice Problem/Code/\.vs/
