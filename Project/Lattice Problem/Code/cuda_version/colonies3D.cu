@@ -862,7 +862,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
       int gridSize = (totalElements + blockSize - 1) / blockSize;
 
       // Copy data needed in the first kernel to the device
-      double *d_arr_Occ, *d_arr_nC;
+      double *d_arr_Occ, *d_arr_nC, *d_arr_GrowthModifier, *d_arr_I9, *d_arr_P_new, *d_arr_M; 
       bool *d_arr_IsActive;
       bool *d_Warn_r;
 
@@ -960,12 +960,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 
       if (r > 0.0){
-        UpdateCountKernel<<<gridSize, blockSize>>>(arr_GrowthModifier,
-                                                   arr_I9,
-                                                   arr_Occ,
-                                                   arr_P_new,
-                                                   arr_M,
-                                                   arr_IsActive,
+        UpdateCountKernel<<<gridSize, blockSize>>>(d_arr_GrowthModifier,
+                                                   d_arr_I9,
+                                                   d_arr_Occ,
+                                                   d_arr_P_new,
+                                                   d_arr_M,
+                                                   d_arr_IsActive,
+                                                   alpha,
+                                                   beta,
                                                    r,
                                                    dT,
                                                    d_Warn_r,
