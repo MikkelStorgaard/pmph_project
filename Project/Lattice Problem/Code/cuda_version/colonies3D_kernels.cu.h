@@ -22,8 +22,8 @@ __global__ void SetIsActive(double* arr_Occ, double* arr_nC, bool* arr_IsActive,
 
   bool insideBounds = (i < N);
 
-  double nC =  insideBounds ? arr_nC[tid] : 0.0;
-  double Occ = insideBounds ? arr_Occ[tid] : 0.0;
+  double nC =  insideBounds ? arr_nC[i] : 0.0;
+  double Occ = insideBounds ? arr_Occ[i] : 0.0;
   arr_IsActive[i] = insideBounds && (nC >= 1.0 || Occ >= 1.0);
 
 }
