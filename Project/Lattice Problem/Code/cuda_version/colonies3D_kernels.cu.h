@@ -22,8 +22,8 @@ __global__ void SetIsActive(double* arr_Occ, double* arr_nC, bool* arr_IsActive,
 
   bool insideBounds = (i < N);
 
-  double nC =  insideBounds ? arr_nC[tid] : 0.0;
-  double Occ = insideBounds ? arr_Occ[tid] : 0.0;
+  double nC =  insideBounds ? arr_nC[i] : 0.0;
+  double Occ = insideBounds ? arr_Occ[i] : 0.0;
   arr_IsActive[i] = insideBounds && (nC >= 1.0 || Occ >= 1.0);
 
 }
@@ -155,6 +155,76 @@ __global__ void ThirdKernel(double* arr_Occ,
     }
   }
 }
+
+
+
+
+__global__ void UpdateCountKernel(double* arr_GrowthModifier,
+                                  double* arr_I9,
+                                  double* arr_Occ,
+                                  double* arr_P_new,
+                                  double* arr_M,
+                                  bool* arr_IsActive,
+                                  double alpha,
+                                  double beta,
+                                  double r,
+                                  double dT,
+                                  bool* Warn_r,
+                                  bool reducedBeta
+                                  ){
+
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  if (!(arr_IsActive[i])){
+    return;
+  }
+
+  double p;
+  double tmp;
+
+  // Compute the growth modifier
+  double growthModifier = arr_GrowthModifier[i];
+
+  // Compute beta
+  double Beta = beta;
+  if (reducedBeta) {
+    Beta *= growthModifier;
+  }
+
+  /* BEGIN tredje Map-kernel */
+
+  p = r*growthModifier*dT;
+  if ((p > 0.25) and (!(*Warn_r))) {
+    *Warn_r = true;
+  }
+
+  //tmp = ComputeEvents(arr_I9[i], p, 2, i);  // Bursting events
+  tmp = 1.0;
+  // Update count
+  arr_I9[i]    = max(0.0, arr_I9[i] - tmp);
+  arr_Occ[i]   = max(0.0, arr_Occ[i] - tmp);
+  arr_P_new[i] += round( (1 - alpha) * Beta * tmp);  // Phages which escape the colony
+  arr_M[i] = round(alpha * Beta * tmp); // Phages which reinfect the colony
+}
+
+
+__global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* arr_p, bool* arr_IsActive){
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+  if (!(arr_IsActive[i])){
+    return;
+  }
+
+  double tmp;
+  double A = arr_A[i];
+  double p = arr_p[i];
+
+  // TODO: FIX ComputeEvents
+  //tmp = ComputeEvents(A, p, 2, i);
+  tmp = 1.0;
+  arr_A[i] = max(0.0, A - tmp);
+  arr_B[i] += tmp;
+}
+
 
 __global__ void FourhtKernel(){
 

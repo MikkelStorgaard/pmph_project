@@ -891,8 +891,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
       cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
 
       // Run first Kernel
-      SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy,
-                                                          totalElements);
+      SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, totalElements);
       // TODO: Is the syncronize needed?
       cudaThreadSynchronize();
 
