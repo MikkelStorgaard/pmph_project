@@ -1,3 +1,5 @@
+// #include "colonies3D_helpers.cu"
+
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
@@ -128,7 +130,7 @@ __global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double*
         double N = 0;
   
     // TODO: Proper compute events  
-    //  N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
+    //N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
     N = 1;
     
     // Ensure there is enough nutrient
@@ -156,7 +158,7 @@ __global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* ar
   double p = arr_p[i];
 
   // TODO: FIX ComputeEvents
-  //tmp = ComputeEvents(A, p, 2, i);
+  // tmp = ComputeEvents(A, p, 2, i);
   tmp = 1.0;
   arr_A[i] = max(0.0, A - tmp);
   arr_B[i] += tmp;
@@ -225,7 +227,7 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
       tmp = P;
     } else {
       p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-      // tmp = ComputeEvents(P, p, 4, tid);           // Number of targets hit //
+      //tmp = ComputeEvents(P, p, 4, tid);           // Number of targets hit //
       tmp = 1;
       // TODO: replace ComputeEvents with something that works
       /* ComputeEvents used to be (..., i, j, k), but in this flat kernel,

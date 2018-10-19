@@ -1,5 +1,6 @@
 #include "colonies3D.hpp"
 #include "colonies3D_kernels.cu.h"
+// #include "colonies3D_helpers.cu"
 
 #define GPU_NC false
 #define GPU_MAXOCCUPANCY false
@@ -2134,7 +2135,7 @@ double Colonies3D::ComputeEvents(double n, double p, int flag, int i, int j, int
 
     return round(N);
 }
-/*
+
 // Returns the number of events ocurring for given n and p, flat array
 double Colonies3D::ComputeEvents(double n, double p, int flag, int i) {
 
@@ -2147,7 +2148,7 @@ double Colonies3D::ComputeEvents(double n, double p, int flag, int i) {
 
     return round(N);
 }
-*/
+
 // Computes how many particles has moved to neighbouing points
 void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k) {
 
