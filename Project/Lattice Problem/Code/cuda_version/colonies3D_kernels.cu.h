@@ -164,6 +164,7 @@ __global__ void UpdateCountKernel(double* arr_GrowthModifier,
                                   double* arr_Occ,
                                   double* arr_P_new,
                                   double* arr_M,
+                                  double* arr_p,
                                   bool* arr_IsActive,
                                   double alpha,
                                   double beta,
@@ -196,6 +197,7 @@ __global__ void UpdateCountKernel(double* arr_GrowthModifier,
   if ((p > 0.25) and (!(*Warn_r))) {
     *Warn_r = true;
   }
+  arr_p[i] = p;
 
   //tmp = ComputeEvents(arr_I9[i], p, 2, i);  // Bursting events
   tmp = 1.0;
