@@ -227,46 +227,6 @@ __global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* ar
   arr_B[i] += tmp;
 }
 
-
-__global__ void FourhtKernel(){
-
-// Increase Infections
-
-// Compute Beta
-
-// Compute p
-
-// Update I9
-// Update Occ
-// Update P_new
-// Update M
-
-// Compute N
-// Update I8,I9
-
-// Compute N
-// Update I7,I8
-
-// Compute N
-// Update I6,I7
-
-// Compute N
-// Update I5,I6
-
-// Compute N
-// Update I4,I5
-
-// Compute N
-// Update I3,I4
-
-// Compute N
-// Update I2,I3
-
-// Compute N
-// Update I1,I2
-
-}
-
 __global__ void FifthKernel(){
 
 // New infections
