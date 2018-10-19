@@ -861,11 +861,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
       int blockSize = 256;
       int gridSize = (totalElements + blockSize - 1) / blockSize;
 
-      // Copy data needed in the first kernel to the device
-      double *d_arr_Occ, *d_arr_nC, *d_arr_GrowthModifier, *d_arr_I9, *d_arr_P_new, *d_arr_M, *d_arr_p; 
-      double *d_arr_I8, *d_arr_I7, *d_arr_I6, *d_arr_I5, *d_arr_I4, *d_arr_I3, *d_arr_I2, *d_arr_I1, *d_arr_I0;
-      bool *d_arr_IsActive;
-      bool *d_Warn_r;
 
 
       cudaMalloc((void**)&d_arr_nC , totalMemSize);

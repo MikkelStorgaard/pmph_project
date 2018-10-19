@@ -129,16 +129,67 @@ class Colonies3D {
     double* arr_I8_new;      // Infected bacteria
     double* arr_I9_new;      // Infected bacteria
 
+  // allocations for array
+    double* d_arr_B;           // Sensitive bacteria
+    double* d_arr_P;           // Phages
+    double* d_arr_I0;          // Infected bacteria
+    double* d_arr_I1;          // Infected bacteria
+    double* d_arr_I2;          // Infected bacteria
+    double* d_arr_I3;          // Infected bacteria
+    double* d_arr_I4;          // Infected bacteria
+    double* d_arr_I5;          // Infected bacteria
+    double* d_arr_I6;          // Infected bacteria
+    double* d_arr_I7;          // Infected bacteria
+    double* d_arr_I8;          // Infected bacteria
+    double* d_arr_I9;          // Infected bacteria
+    double* d_arr_nC;          // Number of colonies in gridpoint
+
+    double* d_arr_B_new;       // Sensitive bacteria
+    double* d_arr_P_new;       // Phages
+    double* d_arr_I0_new;      // Infected bacteria
+    double* d_arr_I1_new;      // Infected bacteria
+    double* d_arr_I2_new;      // Infected bacteria
+    double* d_arr_I3_new;      // Infected bacteria
+    double* d_arr_I4_new;      // Infected bacteria
+    double* d_arr_I5_new;      // Infected bacteria
+    double* d_arr_I6_new;      // Infected bacteria
+    double* d_arr_I7_new;      // Infected bacteria
+    double* d_arr_I8_new;      // Infected bacteria
+    double* d_arr_I9_new;      // Infected bacteria
+
+
+
 	// Privatized array.
 	double* arr_M;
-    double* arr_GrowthModifier;
+  double* arr_GrowthModifier;
+  double* arr_p;
 
-    // Nutrient matrix
-    double* arr_nutrient;
-    double* arr_nutrient_new;
+  // Nutrient matrix
+  double* arr_nutrient;
+  double* arr_nutrient_new;
 
-    // Occupancy of grid
-    double* arr_Occ;
+  // Occupancy of grid
+  double* arr_Occ;
+
+	// Privatized array.
+	double* d_arr_M;
+  double* d_arr_GrowthModifier;
+  double* d_arr_p;
+
+  // Nutrient matrix
+  double* d_arr_nutrient;
+  double* d_arr_nutrient_new;
+
+  // Occupancy of grid
+  double* d_arr_Occ;
+
+  // Active-array
+  bool* d_arr_IsActive;
+
+  // Active-array
+  bool* d_Warn_r;
+
+
 
  public:
     // Constructers
