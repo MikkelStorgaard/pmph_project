@@ -222,7 +222,7 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
   }
 }
 
-/*
+
 __global__ void SixthKernel(double* arr_P, double p, bool *warn_delta, int numberOfElements){
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     if(i >= numberOfElements) return;
@@ -234,12 +234,12 @@ __global__ void SixthKernel(double* arr_P, double p, bool *warn_delta, int numbe
     
 
     // TODO: do proper Compute events:
-    N = ComputeEvents(arr_P[i], p, 5, i); 
-    
+//    N = ComputeEvents(arr_P[i], p, 5, i); 
+    N = 1.0  
     arr_P[i]    = max(0.0, arr_P[i] - N);
 
 }
-*/
+
 __global__ void SeventhKernel(){
 
 // Phage decay

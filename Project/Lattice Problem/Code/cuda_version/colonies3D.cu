@@ -164,10 +164,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
                         arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
-						p = g * growthModifier*dT;				// MO flyttet til kernel 2
-						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
-							p = 0;								//
-						}										//
+						p = g * growthModifier*dT;				
+						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		
+							p = 0;								
+						}										
 
 						if ((p > 0.1) and (!Warn_g)) {
                             cout << "\tWarning: Birth Probability Large!" << "\n";
@@ -1401,8 +1401,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
   // logging of warning moved outside loop to ensure.
   // it is only triggered once. 
   if(Warn_delta) {
-  cout << "\tWarning: Decay Probability Large!" << "\n";
-  f_log  << "Warning: Decay Probability Large!" << "\n";
+    cout << "\tWarning: Decay Probability Large!" << "\n";
+    f_log  << "Warning: Decay Probability Large!" << "\n";
+  }
+  if(Warn_g) {
+    cout << "\tWarning: Birth Probability Large!" << "\n";
+    f_log  << "Warning: Birth Probability Large!" << "\n";
   }
   */
   // Get stop time
