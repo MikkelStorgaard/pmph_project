@@ -864,11 +864,17 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
       // Copy data needed in the first kernel to the device
       double *d_arr_Occ, *d_arr_nC;
       bool *d_arr_IsActive;
+      bool *d_Warn_r;
+
+
       cudaMalloc((void**)&d_arr_nC , totalMemSize);
       cudaMalloc((void**)&d_arr_Occ, totalMemSize);
       cudaMalloc((void**)&d_arr_IsActive, gridSize*sizeof(bool));
+      cudaMalloc((void**)&d_Warn_r, sizeof(bool));
+
       cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
       cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
+      cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
 
       // Run first Kernel
       FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
@@ -953,6 +959,28 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				}
 			}
 
+
+      if (r > 0.0){
+        UpdateCountKernel<<<gridSize, blockSize>>>(arr_GrowthModifier,
+                                                   arr_I9,
+                                                   arr_Occ,
+                                                   arr_P_new,
+                                                   arr_M,
+                                                   arr_IsActive,
+                                                   r,
+                                                   dT,
+                                                   d_Warn_r,
+                                                   reducedBeta);
+
+        if(!Warn_r){
+          cudaThreadSynchronize();
+          cudaMemcpy(&Warn_r, d_Warn_r, sizeof(bool), cudaMemcpyDeviceToHost);
+          if (Warn_r) {
+            cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+            f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+          }
+        }
+      }
       // Increase Infections ////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
@@ -966,19 +994,20 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
             // Skip empty sites
             if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
-
-						// Compute the growth modifier
-						double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
-
-						// Compute beta
-						double Beta = beta;
-						if (reducedBeta) {
-							Beta *= growthModifier;
-						}
-
             if (r > 0.0) {
+
+              double p = 0; // privatize
+              double N = 0; // privatize
+
+              // Compute the growth modifier
+              double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+
+              // Compute beta
+              double Beta = beta;
+              if (reducedBeta) {
+                Beta *= growthModifier;
+              }
+
               /* BEGIN tredje Map-kernel */
 
               p = r*growthModifier*dT;
@@ -1126,10 +1155,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				}
 			}
 
+
       // Phage decay ///////////////////////////////////////////////////////////////////
-          
-          
-            
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
