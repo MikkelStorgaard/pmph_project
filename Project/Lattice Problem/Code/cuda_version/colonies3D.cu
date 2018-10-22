@@ -860,7 +860,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	// Define 3D grid and blocks
 	int bs = 8;
-	int gs = (max(nGridXY,nGridZ) + bs - 1) / bs;
+	int gs = (totalElements + bs - 1) / bs;
 	dim3 blockSize(bs,bs,bs);
 	dim3 gridSize(gs,gs,gs);
 
