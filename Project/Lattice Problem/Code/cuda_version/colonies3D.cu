@@ -867,12 +867,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	cudaError_t err = cudaSuccess;
 
 	// Allocating nC
-	double *d_arr_nC;
 	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
 	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nC on the device! error=%s\n", cudaGetErrorString(err));
 
 	// Allocating Occ
-	double *d_arr_Occ;
 	err = cudaMalloc((void**)&d_arr_Occ, totalMemSize);
 	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_Occ on the device! error=%s\n", cudaGetErrorString(err));
 
@@ -926,7 +924,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			*/
 
 			// Kernel 1
-			if (GPU_NC) {
+			if (GPU_NC){
 
 				// Copying to device
 				err = cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
