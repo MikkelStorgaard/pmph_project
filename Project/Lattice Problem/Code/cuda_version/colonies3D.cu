@@ -869,12 +869,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	// Allocating nC
 	double *d_arr_nC;
 	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
-	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err));
+	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nC on the device! error=%s\n", cudaGetErrorString(err));
 
 	// Allocating Occ
 	double *d_arr_Occ;
 	err = cudaMalloc((void**)&d_arr_Occ, totalMemSize);
-	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_Occ on the device! error = %s\n", cudaGetErrorString(err));
+	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_Occ on the device! error=%s\n", cudaGetErrorString(err));
 
 
 
@@ -930,24 +930,21 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 				// Copying to device
 				err = cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to device! error = %s\n", cudaGetErrorString(err));
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to device! error=%s\n", cudaGetErrorString(err));
 
 				err = cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to device! error = %s\n", cudaGetErrorString(err));
-
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to device! error=%s\n", cudaGetErrorString(err));
 
 				// Run first Kernel
 				FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
 				err = cudaGetLastError();
-				if (err != cudaSuccess)	fprintf(stderr, "Error in FirstKernel! error = %s\n", cudaGetErrorString(err));
+				if (err != cudaSuccess)	fprintf(stderr, "Error in FirstKernel! error=%s\n", cudaGetErrorString(err));
 
 				// Copying to host
 				err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to host! error = %s\n", cudaGetErrorString(err));
-
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to host! error=%s\n", cudaGetErrorString(err));
 				err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to host! error = %s\n", cudaGetErrorString(err));
-
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to host! error=%s\n", cudaGetErrorString(err));
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
