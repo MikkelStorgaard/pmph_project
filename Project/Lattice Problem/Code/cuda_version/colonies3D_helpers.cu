@@ -25,10 +25,13 @@ using namespace std;
 // Returns poisson dist. number with mean l
 double RandP(double l, int i, int j, int k) {
 
+    int nGridXY = Colonies3D::pub_nGridXY;
+    int nGridZ = Colonies3D::pub_nGridZ;
+
     // Set limit on distribution
     poisson_distribution <long long> distr(l);
 
-    return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+    return distr(Colonies3D::arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
 }
 
 // Returns poisson dist. number with mean l, flat array
@@ -37,7 +40,7 @@ double RandP(double l, int i) {
     // Set limit on distribution
     poisson_distribution <long long> distr(l);
 
-    return distr(arr_rng[i]);
+    return distr(Colonies3D::arr_rng[i]);
 }
 
 // Returns poisson dist. number with mean l
@@ -46,7 +49,7 @@ double RandP(double l) {
     // Set limit on distribution
     poisson_distribution <long long> distr(l);
 
-    return distr(rng);
+    return distr(Colonies3D::rng);
 }
 
 // Returns the number of events ocurring for given n and p
