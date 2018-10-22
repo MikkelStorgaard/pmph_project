@@ -66,7 +66,7 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 
     rngSeed                 = -1;       // Random number seed  ( set to -1 if unused )
 
-};
+}
 
 
 // Controls the evaluation of the simulation
