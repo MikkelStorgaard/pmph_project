@@ -1,8 +1,6 @@
 #ifndef COLONIES3DDEF
 #define COLONIES3DDEF
 
-#define ARMA_NO_DEBUG
-
 #include <iostream>         // Input and output
 #include <iomanip>          // Input and output formatting
 #include <fstream>          // File streams

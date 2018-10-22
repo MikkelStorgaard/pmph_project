@@ -3,10 +3,11 @@
 // #include "colonies3D_helpers.cu"
 
 #define GPU_NC true
-#define GPU_MAXOCCUPANCY true
+#define GPU_MAXOCCUPANCY false
+#define GPU_BIRTH false
 #define GPU_UPDATECOUNT false
 #define GPU_NONBURSTINGEVENTS false
-#define GPU_NEWINFECTION false
+#define GPU_NEWINFECTIONS false
 #define GPU_MOVEMENT false
 
 
@@ -333,10 +334,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
-			// PRIVATIZE BOTH OF THESE
-			double s;   // The factor which modifies the adsorption rate
-			double n;   // The number of targets the phage has
-						// Infectons
+						// PRIVATIZE BOTH OF THESE
+						double s;   // The factor which modifies the adsorption rate
+						double n;   // The number of targets the phage has
+									// Infectons
 
 
 						// KERNEL THIS
@@ -863,13 +864,13 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	cudaMalloc((void**)&d_arr_nC , totalMemSize);
 	cudaMalloc((void**)&d_arr_Occ, totalMemSize);
-	cudaMalloc((void**)&d_arr_IsActive, gridSize*sizeof(bool));
+	cudaMalloc((void**)&d_arr_IsActive, gs*sizeof(bool));
 	cudaMalloc((void**)&d_Warn_r, sizeof(bool));
 
 	// Copy data needed in the first kernel to the device
-	double *arr_maxOccupancy = new double[gridSize]();
+	double *arr_maxOccupancy = new double[gs]();
 	double *d_arr_maxOccupancy;
-	cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
+	cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gs);
 
 	cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
@@ -877,110 +878,186 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	// Loop over samplings
 	for (int n = 0; n < nSamplings; n++) {
-	if (exit) break;
-
-	// Determine the number of timesteps between sampings
-	int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
-
-	for (int t = 0; t < nStepsPerSample; t++) {
 		if (exit) break;
 
-		// Increase time
-		T += dT;
+		// Determine the number of timesteps between sampings
+		int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
 
-		// Spawn phages
-		if ((T_i >= 0) and (abs(T - T_i) < dT / 2)) {
-			spawnPhages();
-			T_i = -1;
-		}
+		for (int t = 0; t < nStepsPerSample; t++) {
+			if (exit) break;
 
-		// Reset density counter
-		double maxOccupancy = 0.0;
+			// Increase time
+			T += dT;
 
-		// /////////////////////////////////////////////////////
-		// // Main loop start //////////////////////////////////
-		// /////////////////////////////////////////////////////
+			// Spawn phages
+			if ((T_i >= 0) and (abs(T - T_i) < dT / 2)) {
+				spawnPhages();
+				T_i = -1;
+			}
 
-		/* Do all the allocations and other CUDA device stuff here
-			 * remember to do them outside the nSamplings loop afterwards
-		 */
+			// Reset density counter
+			double maxOccupancy = 0.0;
 
-		// Kernel 1
-		if (GPU_NC){
-			cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-			cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
+			// /////////////////////////////////////////////////////
+			// // Main loop start //////////////////////////////////
+			// /////////////////////////////////////////////////////
 
-			// Run first Kernel
-			FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
-			cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-			cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
+			/* Do all the allocations and other CUDA device stuff here
+				* remember to do them outside the nSamplings loop afterwards
+			*/
 
-		} else {
-			for (int i = 0; i < nGridXY; i++) {
-				if (exit) break;
+			// Kernel 1
+			if (GPU_NC){
+				cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
+				cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
 
-				for (int j = 0; j < nGridXY; j++) {
+				// Run first Kernel
+				FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
+				cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
+				cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
+
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
 
-					for (int k = 0; k < nGridZ; k++) {
+					for (int j = 0; j < nGridXY; j++) {
 						if (exit) break;
 
-						// Ensure nC is updated
-						if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]){
-							arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Ensure nC is updated
+							if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]){
+								arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+							}
 						}
 					}
 				}
 			}
-		}
 
-		// Kernel 2
-		if (GPU_MAXOCCUPANCY){
-			cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-			cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
+			// Kernel 2
+			if (GPU_MAXOCCUPANCY){
+				cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
+				cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
 
-			// set active flags
-			SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_IsActive, totalElements);
+				// set active flags
+				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_IsActive, totalElements);
 
-			// Run second Kernel
-			SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, totalElements);
+				// Run second Kernel
+				SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, totalElements);
 
-			// Copy data back from device
-			cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
-			cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-			cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
+				// Copy data back from device
+				cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gs, cudaMemcpyDeviceToHost);
+				cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
+				cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
 
-			// excuse this for-loop
-			for (int i = 0; i < gridSize; i++){
-				maxOccupancy = max(maxOccupancy, arr_maxOccupancy[i]);
-			}
-		} else {
-			for (int i = 0; i < nGridXY; i++) {
-				if (exit) break;
-
-				for (int j = 0; j < nGridXY; j++) {
+				// excuse this for-loop
+				for (int i = 0; i < gs; i++){
+					maxOccupancy = max(maxOccupancy, arr_maxOccupancy[i]);
+				}
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
 
-					for (int k = 0; k < nGridZ; k++) {
+					for (int j = 0; j < nGridXY; j++) {
 						if (exit) break;
 
-						// Skip empty sites
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
 
-						// Record the maximum observed density
-						if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] > maxOccupancy) {
-							maxOccupancy = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+							// Skip empty sites
+							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+							// Record the maximum observed density
+							if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] > maxOccupancy) {
+								maxOccupancy = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+							}
 						}
 					}
 				}
 			}
-		}
 
-		// Kernel 3
-		// Birth //////////////////////////////////////////////////////////////////////
-		if (GPU_BIRTH){
-			// Do stuff
-		} else {
+			// Kernel 3
+			// Birth //////////////////////////////////////////////////////////////////////
+			if (GPU_BIRTH){
+				// Do stuff
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
+					if (exit) break;
+
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
+
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Skip empty sites
+							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+							double p = 0; // privatize
+							double N = 0; // privatize
+
+							// Compute the growth modifier
+							double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+							arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
+
+							p = g * growthModifier*dT;
+							if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
+								p = 0;
+							}
+
+							if ((p > 0.1) and (!Warn_g)) {
+								cout << "\tWarning: Birth Probability Large!" << "\n";
+								f_log  << "Warning: Birth Probability Large!" << "\n";
+								Warn_g = true;
+							}
+
+							/* BEGIN anden Map-kernel */
+							N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
+							// Ensure there is enough nutrient
+							if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
+								if (!Warn_fastGrowth) {
+									cout << "\tWarning: Colonies growing too fast!" << "\n";
+									f_log  << "Warning: Colonies growing too fast!" << "\n";
+									Warn_fastGrowth = true;
+								}
+
+								N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+							}
+
+							// Update count
+							arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+							arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							/* END anden Map-kernel */
+
+						}
+					}
+				}
+			}
+
+			/*
+			double *d_arr_GrowthModifier;
+			double *d_arr_nutrient;
+			double *d_arr_B_new;
+			cudaMemcpy(d_arr_GrowthModifier, arr_GrowthModifier, totalMemSize, cudaMemcpyHostToDevice);
+			cudaMemcpy(d_arr_nutrient, arr_nutrient, totalMemSize, cudaMemcpyHostToDevice);
+			cudaMemcpy(d_arr_B_new, arr_B_new, totalMemSize, cudaMemcpyHostToDevice);
+			cudaMemcpy(d_warn_g, &this->Warn_g, sizeof(bool), cudaMemcpyHostToDevice);
+			cudaMemcpy(d_warn_fastGrowth, &this->Warn_fastGrowth, sizeof(bool), cudaMemcpyHostToDevice);
+
+			ThirdKernel<<<gridSize, blockSize>>>(d_arr_IsActive, d_arr_GrowthModifier, d_arr_nutrient, K, g, dT, d_warn_g)
+			ThirdTwoKernel<<<gridSize, blockSize>>>(d_arr_IsActive, d_arr_nutrient, d_arr_B_new, d_warn_fastGrowth)
+
+			cudaMemcpy(arr_nutrient, d_arr_nutrient, totalMemSize, cudaMemcpyDeviceToHost);
+			cudaMemcpy(arr_B_new, d_arr_B_new, totalMemSize, cudaMemcpyDeviceToHost);
+			cudaMemcpy(arr_GrowthModifier, d_arr_GrowthModifier, totalMemSize, cudaMemcpyDeviceToHost);
+			cudaMemcpy(&this->Warn_g, d_warn_g, sizeof(bool), cudaMemcpyDeviceToHost);
+			cudaMemcpy(&this->Warn_fastGrowth, d_warn_fastGrowth, sizeof(bool), cudaMemcpyDeviceToHost);
+
+
+			*/
+
+
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -997,702 +1074,631 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 						double N = 0; // privatize
 
 						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-						arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
+						double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 
-						p = g * growthModifier*dT;
-						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
-							p = 0;
+						// Compute beta
+						double Beta = beta;
+
+						if (reducedBeta) {
+							Beta *= growthModifier;
 						}
 
-						if ((p > 0.1) and (!Warn_g)) {
-							cout << "\tWarning: Birth Probability Large!" << "\n";
-							f_log  << "Warning: Birth Probability Large!" << "\n";
-							Warn_g = true;
-						}
+						if (r > 0.0) {
+							if (GPU_UPDATECOUNT){
+								UpdateCountKernel<<<gridSize, blockSize>>>(d_arr_GrowthModifier, d_arr_I9,
+																		d_arr_Occ, d_arr_P_new, d_arr_M,
+																		d_arr_p, d_arr_IsActive,
+																		alpha, beta, r, dT, d_Warn_r,
+																		reducedBeta);
 
-						/* BEGIN anden Map-kernel */
-						N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
-						// Ensure there is enough nutrient
-						if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
-							if (!Warn_fastGrowth) {
-								cout << "\tWarning: Colonies growing too fast!" << "\n";
-								f_log  << "Warning: Colonies growing too fast!" << "\n";
-								Warn_fastGrowth = true;
+								if(!Warn_r) {
+									cudaThreadSynchronize();
+									cudaMemcpy(&Warn_r, d_Warn_r, sizeof(bool), cudaMemcpyDeviceToHost);
+									if (Warn_r) {
+										cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+										f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+									}
+								}
 							}
+						} else {
+							p = r*growthModifier*dT;
+							if ((p > 0.25) and (!Warn_r)) {
+								cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+								f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+								Warn_r = true;
+							}
+							N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
 
-							N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+							// Update count
+							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
 						}
 
-						// Update count
-						arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-						arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-						/* END anden Map-kernel */
+						if (GPU_NONBURSTINGEVENTS){
+							NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I8, d_arr_I9, d_arr_p, d_arr_IsActive);
+							NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I7, d_arr_I8, d_arr_p, d_arr_IsActive);
+							NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I6, d_arr_I7, d_arr_p, d_arr_IsActive);
+							NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I5, d_arr_I6, d_arr_p, d_arr_IsActive);
+							NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I4, d_arr_I5, d_arr_p, d_arr_IsActive);
+							NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I3, d_arr_I4, d_arr_p, d_arr_IsActive);
+							NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I2, d_arr_I3, d_arr_p, d_arr_IsActive);
+							NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_arr_IsActive);
+							NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_arr_IsActive);
+						} else {
+							// Non-bursting events
+							N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
+							N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+							N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+							N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+							N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+							N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+							N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+							N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+							N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								/* END tredje Map-kernel */
+						}
 					}
 				}
 			}
-		}
 
-		/*
-		double *d_arr_GrowthModifier;
-		double *d_arr_nutrient;
-		double *d_arr_B_new;
-		cudaMemcpy(d_arr_GrowthModifier, arr_GrowthModifier, totalMemSize, cudaMemcpyHostToDevice);
-		cudaMemcpy(d_arr_nutrient, arr_nutrient, totalMemSize, cudaMemcpyHostToDevice);
-		cudaMemcpy(d_arr_B_new, arr_B_new, totalMemSize, cudaMemcpyHostToDevice);
-		cudaMemcpy(d_warn_g, &this->Warn_g, sizeof(bool), cudaMemcpyHostToDevice);
-		cudaMemcpy(d_warn_fastGrowth, &this->Warn_fastGrowth, sizeof(bool), cudaMemcpyHostToDevice);
-
-		ThirdKernel<<<gridSize, blockSize>>>(d_arr_IsActive, d_arr_GrowthModifier, d_arr_nutrient, K, g, dT, d_warn_g)
-		ThirdTwoKernel<<<gridSize, blockSize>>>(d_arr_IsActive, d_arr_nutrient, d_arr_B_new, d_warn_fastGrowth)
-
-		cudaMemcpy(arr_nutrient, d_arr_nutrient, totalMemSize, cudaMemcpyDeviceToHost);
-		cudaMemcpy(arr_B_new, d_arr_B_new, totalMemSize, cudaMemcpyDeviceToHost);
-		cudaMemcpy(arr_GrowthModifier, d_arr_GrowthModifier, totalMemSize, cudaMemcpyDeviceToHost);
-		cudaMemcpy(&this->Warn_g, d_warn_g, sizeof(bool), cudaMemcpyDeviceToHost);
-		cudaMemcpy(&this->Warn_fastGrowth, d_warn_fastGrowth, sizeof(bool), cudaMemcpyDeviceToHost);
-
-
-		*/
-
-
-		for (int i = 0; i < nGridXY; i++) {
-			if (exit) break;
-
-			for (int j = 0; j < nGridXY; j++) {
+			if (GPU_NEWINFECTIONS){
+				NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
+															d_arr_GrowthModifier, d_arr_B, d_arr_B_new,
+															d_arr_M, d_arr_I0_new, d_arr_IsActive,
+															reducedBeta, clustering, shielding,
+															K, alpha, beta, eta, zeta, dT, r);
+			} else {
+				// Kernel 5: New infections ///////////////////////////////////////////////////////////////////
+				for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
-				for (int k = 0; k < nGridZ; k++) {
+				for (int j = 0; j < nGridXY; j++) {
+					if (exit) break;
+
+					for (int k = 0; k < nGridZ; k++) {
 					if (exit) break;
 
 					// Skip empty sites
 					if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
+
 					double p = 0; // privatize
 					double N = 0; // privatize
-
-					// Compute the growth modifier
-					double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+					// double M = 0; // privatize
 
 					// Compute beta
 					double Beta = beta;
-
 					if (reducedBeta) {
-						Beta *= growthModifier;
+						Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 					}
 
-					if (r > 0.0) {
-						if (GPU_UPDATECOUNT){
-							UpdateCountKernel<<<gridSize, blockSize>>>(d_arr_GrowthModifier, d_arr_I9,
-																	d_arr_Occ, d_arr_P_new, d_arr_M,
-																	d_arr_p, d_arr_IsActive,
-																	alpha, beta, r, dT, d_Warn_r,
-																	reducedBeta);
+					// PRIVATIZE BOTH OF THESE
+					double s;   // The factor which modifies the adsorption rate
+					double n;   // The number of targets the phage has
+					// Infectons
 
-							if(!Warn_r) {
-								cudaThreadSynchronize();
-								cudaMemcpy(&Warn_r, d_Warn_r, sizeof(bool), cudaMemcpyDeviceToHost);
-								if (Warn_r) {
-									cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-									f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-								}
-							}
+
+					// KERNEL THIS
+					if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
+						if (clustering) {   // Check if clustering is enabled
+						s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+						n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+						} else {            // Else use mean field computation
+						s = 1.0;
+						n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
-					} else {
-						p = r*growthModifier*dT;
-						if ((p > 0.25) and (!Warn_r)) {
-							cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-							f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-							Warn_r = true;
+					}
+
+					if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
+						// Compute the number of hits
+						if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+						N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
+						} else {
+						p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+						N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
 						}
-						N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
 
-						// Update count
-						arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-						arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-						arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-						arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
-					}
+						if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
+						// If bacteria were hit, update events
+						arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
 
-				if (GPU_NONBURSTINGEVENTS){
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I8, d_arr_I9, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I7, d_arr_I8, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I6, d_arr_I7, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I5, d_arr_I6, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I4, d_arr_I5, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I3, d_arr_I4, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I2, d_arr_I3, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_arr_IsActive);
-				} else {
-				// Non-bursting events
-				N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-				arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-				arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+						double S;
+						if (shielding) {
+							// Absorbing medium model
+							double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
+							pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+							S = exp(-zeta * d); // Probability of hitting succebtible target
 
-				N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-				arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-				arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+						} else {
+							// Well mixed model
+							S = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						}
 
-				N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-				arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-				arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+						p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
+										S)); // Probability of hitting succebtible target
+						N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
 
-				N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-				arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-				arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+						if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
+							N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
 
-				N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-				arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-				arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-				N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-				arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-				arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-				N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-				arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-				arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-				N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-				arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-				arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-				N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-				arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-				arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-				/* END tredje Map-kernel */
-				}
-			}
-		}
-
-		if (GPU_NEWINFECTIONS){
-			NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
-														d_arr_GrowthModifier, d_arr_B, d_arr_B_new,
-														d_arr_M, d_arr_I0_new, d_arr_IsActive,
-														reducedBeta, clustering, shielding,
-														K, alpha, beta, eta, zeta, dT, r);
-		} else {
-			// Kernel 5: New infections ///////////////////////////////////////////////////////////////////
-			for (int i = 0; i < nGridXY; i++) {
-			if (exit) break;
-
-			for (int j = 0; j < nGridXY; j++) {
-				if (exit) break;
-
-				for (int k = 0; k < nGridZ; k++) {
-				if (exit) break;
-
-				// Skip empty sites
-				if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
-
-				double p = 0; // privatize
-				double N = 0; // privatize
-				// double M = 0; // privatize
-
-				// Compute beta
-				double Beta = beta;
-				if (reducedBeta) {
-					Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
-				}
-
-				// PRIVATIZE BOTH OF THESE
-				double s;   // The factor which modifies the adsorption rate
-				double n;   // The number of targets the phage has
-				// Infectons
-
-
-				// KERNEL THIS
-				if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-					if (clustering) {   // Check if clustering is enabled
-					s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-					n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-					} else {            // Else use mean field computation
-					s = 1.0;
-					n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-				}
-
-				if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-					// Compute the number of hits
-					if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
-					N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-					} else {
-					p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-					N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
-					}
-
-					if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
-					// If bacteria were hit, update events
-					arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
-
-					double S;
-					if (shielding) {
-						// Absorbing medium model
-						double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
-						pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-						S = exp(-zeta * d); // Probability of hitting succebtible target
-
-					} else {
-						// Well mixed model
-						S = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-
-					p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
-									S)); // Probability of hitting succebtible target
-					N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
-
-					if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
-						N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
-
-					// Update the counts
-					arr_B[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_B[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-					if (r > 0.0) {
-						arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-					} else {
-						arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
+						// Update the counts
+						arr_B[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_B[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+						if (r > 0.0) {
+							arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+						} else {
+							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
+						}
+						}
 					}
 					}
 				}
 				}
 			}
-			}
-		}
 
 
-		// Phage decay ///////////////////////////////////////////////////////////////////
-		if (GPU_NEWINFECTIONS){
-			// Do stuff
-		} else {
-			for (int i = 0; i < nGridXY; i++) {
-				if (exit) break;
-
-				for (int j = 0; j < nGridXY; j++) {
+			// Phage decay ///////////////////////////////////////////////////////////////////
+			if (GPU_NEWINFECTIONS){
+				// Do stuff
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
 
-					for (int k = 0; k < nGridZ; k++) {
-					if (exit) break;
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
 
-					// Skip empty sites
-					if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
-					double p = 0; // privatize
-					double N = 0; // privatize
-
-					// KERNEL BEGIN
-					p = delta*dT;
-
-					// TODO: Check below is in the kernel.
-					// TODO: But put the cout outside kernel (check if warn_delta is true)
-					if ((p > 0.1) and (!Warn_delta)) {
-						cout << "\tWarning: Decay Probability Large!" << "\n";
-						f_log  << "Warning: Decay Probability Large!" << "\n";
-						Warn_delta = true;
-					}
-
-					N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5, i, j, k);
-
-					// Update count
-					arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-					// KERNEL END
-
-					}
-				}
-			}
-		}
-
-
-		// Så vidt jeg kan se, er p på dette tidspunkt udregnet fra konstanter, og behøver derfor ikke være i kernel.
-
-		/*
-					double p;
-					p = delta*dT;
-
-					double *d_arr_P;
-					cudaMalloc((void**)&d_arr_P , totalMemSize);
-					cudaMemcpy(d_arr_P, arr_P, totalMemSize, cudaMemcpyHostToDevice);
-
-					// Kernel call to replace the above:
-					SixthKernel<<<gridSize, blockSize>>>(d_arr_P, p, &Warn_delta, totalElements);
-					cudaMemcpy(arr_P, d_arr_P, totalMemSize, cudaMemcpyDeviceToHost);
-					cudaFree(d_arr_P);
-					// logging of warning (cout <<... and f_log << ... moved outside
-					// loop to ensure it is only triggered once
-					*/
-
-		// Movement ///////////////////////////////////////////////////////////////////
-		if (GPU_MOVEMENT) {
-			MovementKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_B, d_arr_IsActive, blockSize, totalElements);
-			// Do stuff
-		} else {
-			for (int i = 0; i < nGridXY; i++) {
-				if (exit) break;
-
-				for (int j = 0; j < nGridXY; j++) {
-					if (exit) break;
-
-					for (int k = 0; k < nGridZ; k++) {
+						for (int k = 0; k < nGridZ; k++) {
 						if (exit) break;
 
 						// Skip empty sites
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						if (nGridXY > 1) {
-							// KERNEL BEGIN
-							// Update positions
+						double p = 0; // privatize
+						double N = 0; // privatize
 
-							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+						// KERNEL BEGIN
+						p = delta*dT;
 
-							int ip, jp, kp, im, jm, km;
+						// TODO: Check below is in the kernel.
+						// TODO: But put the cout outside kernel (check if warn_delta is true)
+						if ((p > 0.1) and (!Warn_delta)) {
+							cout << "\tWarning: Decay Probability Large!" << "\n";
+							f_log  << "Warning: Decay Probability Large!" << "\n";
+							Warn_delta = true;
+						}
 
-							if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-							else ip = i + 1;
+						N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5, i, j, k);
 
-							if (i == 0) im = nGridXY - 1;
-							else im = i - 1;
+						// Update count
+						arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+						// KERNEL END
 
-							if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-							else jp = j + 1;
-
-							if (j == 0) jm = nGridXY - 1;
-							else jm = j - 1;
-
-							if (not experimentalConditions) {   // Periodic boundaries in Z direction
-
-								if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-								else kp = k + 1;
-
-								if (k == 0) km = nGridZ - 1;
-								else km = k - 1;
-
-							} else {    // Reflective boundaries in Z direction
-
-								if (k + 1 >= nGridZ) kp = k - 1;
-								else kp = k + 1;
-
-								if (k == 0) km = k + 1;
-								else km = k - 1;
-
-							}
-
-							// Update counts
-							double n_0; // No movement
-							double n_u; // Up
-							double n_d; // Down
-							double n_l; // Left
-							double n_r; // Right
-							double n_f; // Front
-							double n_b; // Back
-
-							// CELLS
-							ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
-							arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-							if (r > 0.0) {
-								ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-								arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-							}
-
-							// PHAGES
-							ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
-							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-							// KERNEL END
-
-
-						} else {
-							// KERNEL BEGIN
-							// CELLS
-							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
-							arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-
-							if (r > 0.0) {
-								arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k];
-								arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I1[i*nGridXY*nGridZ + j*nGridZ + k];
-								arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I2[i*nGridXY*nGridZ + j*nGridZ + k];
-								arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I3[i*nGridXY*nGridZ + j*nGridZ + k];
-								arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I4[i*nGridXY*nGridZ + j*nGridZ + k];
-								arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I5[i*nGridXY*nGridZ + j*nGridZ + k];
-								arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I6[i*nGridXY*nGridZ + j*nGridZ + k];
-								arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I7[i*nGridXY*nGridZ + j*nGridZ + k];
-								arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I8[i*nGridXY*nGridZ + j*nGridZ + k];
-								arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
-							}
-
-							// PHAGES
-							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-							// KERNEL END
 						}
 					}
 				}
 			}
+
+
+			// Så vidt jeg kan se, er p på dette tidspunkt udregnet fra konstanter, og behøver derfor ikke være i kernel.
+
+			/*
+						double p;
+						p = delta*dT;
+
+						double *d_arr_P;
+						cudaMalloc((void**)&d_arr_P , totalMemSize);
+						cudaMemcpy(d_arr_P, arr_P, totalMemSize, cudaMemcpyHostToDevice);
+
+						// Kernel call to replace the above:
+						SixthKernel<<<gridSize, blockSize>>>(d_arr_P, p, &Warn_delta, totalElements);
+						cudaMemcpy(arr_P, d_arr_P, totalMemSize, cudaMemcpyDeviceToHost);
+						cudaFree(d_arr_P);
+						// logging of warning (cout <<... and f_log << ... moved outside
+						// loop to ensure it is only triggered once
+						*/
+
+			// Movement ///////////////////////////////////////////////////////////////////
+			if (GPU_MOVEMENT) {
+				// MovementKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_B, d_arr_IsActive, bs, totalElements);
+				// Do stuff
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
+					if (exit) break;
+
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
+
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Skip empty sites
+							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+							if (nGridXY > 1) {
+								// KERNEL BEGIN
+								// Update positions
+
+								// Skip empty sites
+								if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+								int ip, jp, kp, im, jm, km;
+
+								if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+								else ip = i + 1;
+
+								if (i == 0) im = nGridXY - 1;
+								else im = i - 1;
+
+								if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+								else jp = j + 1;
+
+								if (j == 0) jm = nGridXY - 1;
+								else jm = j - 1;
+
+								if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+									if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+									else kp = k + 1;
+
+									if (k == 0) km = nGridZ - 1;
+									else km = k - 1;
+
+								} else {    // Reflective boundaries in Z direction
+
+									if (k + 1 >= nGridZ) kp = k - 1;
+									else kp = k + 1;
+
+									if (k == 0) km = k + 1;
+									else km = k - 1;
+
+								}
+
+								// Update counts
+								double n_0; // No movement
+								double n_u; // Up
+								double n_d; // Down
+								double n_l; // Left
+								double n_r; // Right
+								double n_f; // Front
+								double n_b; // Back
+
+								// CELLS
+								ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
+								arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+								if (r > 0.0) {
+									ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+								}
+
+								// PHAGES
+								ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
+								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+								// KERNEL END
+
+
+							} else {
+								// KERNEL BEGIN
+								// CELLS
+								// Skip empty sites
+								if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+								arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+
+								if (r > 0.0) {
+									arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I1[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I2[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I3[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I4[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I5[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I6[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I7[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I8[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
+								}
+
+								// PHAGES
+								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
+								// KERNEL END
+							}
+						}
+					}
+				}
+			}
+
+
+				/////////////////////////////////////////////////////
+				// Main loop end ////////////////////////////////////
+				/////////////////////////////////////////////////////
+
+			// Swap pointers
+			std::swap(arr_B, arr_B_new);
+			std::swap(arr_I0, arr_I0_new);
+			std::swap(arr_I1, arr_I1_new);
+			std::swap(arr_I2, arr_I2_new);
+			std::swap(arr_I3, arr_I3_new);
+			std::swap(arr_I4, arr_I4_new);
+			std::swap(arr_I5, arr_I5_new);
+			std::swap(arr_I6, arr_I6_new);
+			std::swap(arr_I7, arr_I7_new);
+			std::swap(arr_I8, arr_I8_new);
+			std::swap(arr_I9, arr_I9_new);
+			std::swap(arr_P, arr_P_new);
+
+			// Zero the _new arrays
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+						arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+					}
+				}
+			}
+
+
+			// Update occupancy
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
+					}
+				}
+			}
+
+
+			// NUTRIENT DIFFUSION
+			double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
+			double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
+
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+
+						// Update positions
+						int ip, jp, kp, im, jm, km;
+
+						if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+						else ip = i + 1;
+
+						if (i == 0) im = nGridXY - 1;
+						else im = i - 1;
+
+						if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+						else jp = j + 1;
+
+						if (j == 0) jm = nGridXY - 1;
+						else jm = j - 1;
+
+						if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+							if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+							else kp = k + 1;
+
+							if (k == 0) km = nGridZ - 1;
+							else km = k - 1;
+
+						} else {    // Reflective boundaries in Z direction
+
+							if (k + 1 >= nGridZ) kp = k - 1;
+							else kp = k + 1;
+
+							if (k == 0) km = k + 1;
+							else km = k - 1;
+
+						}
+
+						double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+						arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
+						arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+						arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+						arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
+						arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
+						arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
+						arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
+					}
+				}
+			}
+
+			std::swap(arr_nutrient, arr_nutrient_new);
+
+			// Zero the _new arrays
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+					}
+				}
+			}
+
+			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
+				cout << "\tWarning: Maximum Density Large!" << "\n";
+				f_log  << "Warning: Maximum Density Large!" << "\n";
+				Warn_density = true;
+			}
+
+			// cudaFree here!!
+			cudaFree(d_arr_nC);
+			cudaFree(d_arr_Occ);
+			cudaFree(d_arr_maxOccupancy);
+
 		}
-			/////////////////////////////////////////////////////
-			// Main loop end ////////////////////////////////////
-			/////////////////////////////////////////////////////
 
-		// Swap pointers
-		std::swap(arr_B, arr_B_new);
-		std::swap(arr_I0, arr_I0_new);
-		std::swap(arr_I1, arr_I1_new);
-		std::swap(arr_I2, arr_I2_new);
-		std::swap(arr_I3, arr_I3_new);
-		std::swap(arr_I4, arr_I4_new);
-		std::swap(arr_I5, arr_I5_new);
-		std::swap(arr_I6, arr_I6_new);
-		std::swap(arr_I7, arr_I7_new);
-		std::swap(arr_I8, arr_I8_new);
-		std::swap(arr_I9, arr_I9_new);
-		std::swap(arr_P, arr_P_new);
-
-		// Zero the _new arrays
+		// Fast exit conditions
+		// 1) There are no more sucebtible cells
+		// -> Convert all infected cells to phages and stop simulation
+		double accuB = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-			for (int k = 0; k < nGridZ; k++ ) {
-			arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-			arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+			for (int j = 0; j < nGridXY; j++ ) {
+				for (int k = 0; k < nGridZ; k++ ) {
+					accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+				}
 			}
 		}
+		if ((fastExit) and (accuB < 1)) {
+			// Update the P array
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						arr_P[i*nGridXY*nGridZ + j*nGridZ + k] += (1-alpha)*beta * (arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]);
+					}
+				}
+			}
+
+
+			// Zero the I arrays
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+					}
+				}
+			}
+			exit = true;
 		}
 
+		// 2) There are no more alive cells
+		// -> Stop simulation
 
-		// Update occupancy
+		double accuOcc = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-			for (int k = 0; k < nGridZ; k++ ) {
-			arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
+			for (int j = 0; j < nGridXY; j++ ) {
+				for (int k = 0; k < nGridZ; k++ ) {
+					accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+				}
 			}
 		}
+
+		if ((fastExit) and (accuOcc < 1)) {
+			exit = true;
 		}
 
+		// 3) The food is on average less than one per gridpoint
+		// and the maximal nutrient at any point in space is less than 1
 
-		// NUTRIENT DIFFUSION
-		double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
-		double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
-
+		double accuNutrient = 0.0;
+		double maxNutrient  = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-			for (int k = 0; k < nGridZ; k++ ) {
+			for (int j = 0; j < nGridXY; j++ ) {
+				for (int k = 0; k < nGridZ; k++ ) {
+					double tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+					accuNutrient += tmpN;
 
-			// Update positions
-			int ip, jp, kp, im, jm, km;
-
-			if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-			else ip = i + 1;
-
-			if (i == 0) im = nGridXY - 1;
-			else im = i - 1;
-
-			if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-			else jp = j + 1;
-
-			if (j == 0) jm = nGridXY - 1;
-			else jm = j - 1;
-
-			if (not experimentalConditions) {   // Periodic boundaries in Z direction
-
-				if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-				else kp = k + 1;
-
-				if (k == 0) km = nGridZ - 1;
-				else km = k - 1;
-
-			} else {    // Reflective boundaries in Z direction
-
-				if (k + 1 >= nGridZ) kp = k - 1;
-				else kp = k + 1;
-
-				if (k == 0) km = k + 1;
-				else km = k - 1;
-
-			}
-
-			double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-			arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
-			arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-			arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-			arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
-			arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
-			arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
-			arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
+					if (tmpN > maxNutrient) {
+						maxNutrient = tmpN;
+					}
+				}
 			}
 		}
-		}
 
-		std::swap(arr_nutrient, arr_nutrient_new);
-
-		// Zero the _new arrays
-		for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-			for (int k = 0; k < nGridZ; k++ ) {
-			arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+		if (fastExit) {
+			if  ((accuNutrient < nGridZ*pow(nGridXY,2)) && (maxNutrient < 0.5)) {
+			exit = true;
 			}
 		}
+
+		// Store the state
+		ExportData_arr(T,filename_suffix);
+
+		// Check for nutrient stability
+		assert(accuNutrient >= 0);
+		assert(accuNutrient <= n_0 * L * L * H);
+
+		// TODO: Husk at kommenter nedenstående tilbage ind.
+		/*
+		// logging of warning moved outside loop to ensure.
+		// it is only triggered once.
+		if(Warn_delta) {
+		cout << "\tWarning: Decay Probability Large!" << "\n";
+		f_log  << "Warning: Decay Probability Large!" << "\n";
 		}
-
-		if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
-		cout << "\tWarning: Maximum Density Large!" << "\n";
-		f_log  << "Warning: Maximum Density Large!" << "\n";
-		Warn_density = true;
+		if(Warn_g) {
+		cout << "\tWarning: Birth Probability Large!" << "\n";
+		f_log  << "Warning: Birth Probability Large!" << "\n";
 		}
-
-		// cudaFree here!!
-		cudaFree(d_arr_nC);
-		cudaFree(d_arr_Occ);
-		cudaFree(d_arr_maxOccupancy);
-
-	}
-
-	// Fast exit conditions
-	// 1) There are no more sucebtible cells
-	// -> Convert all infected cells to phages and stop simulation
-	double accuB = 0.0;
-	for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-		for (int k = 0; k < nGridZ; k++ ) {
-			accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+		if(Warn_fastGrowth){
+		cout << "\tWarning: Colonies growing too fast!" << "\n";
+		f_log  << "Warning: Colonies growing too fast!" << "\n";
 		}
-		}
-	}
-	if ((fastExit) and (accuB < 1)) {
-		// Update the P array
-		for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-			for (int k = 0; k < nGridZ; k++ ) {
-			arr_P[i*nGridXY*nGridZ + j*nGridZ + k] += (1-alpha)*beta * (arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]);
-			}
-		}
-		}
-
-
-		// Zero the I arrays
-		for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-			for (int k = 0; k < nGridZ; k++ ) {
-			arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-			}
-		}
-		}
-		exit = true;
-	}
-
-	// 2) There are no more alive cells
-	// -> Stop simulation
-
-	double accuOcc = 0.0;
-	for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-		for (int k = 0; k < nGridZ; k++ ) {
-			accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-		}
-		}
-	}
-
-	if ((fastExit) and (accuOcc < 1)) {
-		exit = true;
-	}
-
-	// 3) The food is on average less than one per gridpoint
-	// and the maximal nutrient at any point in space is less than 1
-
-	double accuNutrient = 0.0;
-	double maxNutrient  = 0.0;
-	for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-		for (int k = 0; k < nGridZ; k++ ) {
-			double tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-			accuNutrient += tmpN;
-
-			if (tmpN > maxNutrient) {
-			maxNutrient = tmpN;
-			}
-		}
-		}
-	}
-
-	if (fastExit) {
-		if  ((accuNutrient < nGridZ*pow(nGridXY,2)) && (maxNutrient < 0.5)) {
-		exit = true;
-		}
-	}
-
-	// Store the state
-	ExportData_arr(T,filename_suffix);
-
-	// Check for nutrient stability
-	assert(accuNutrient >= 0);
-	assert(accuNutrient <= n_0 * L * L * H);
-	}
-	// TODO: Husk at kommenter nedenstående tilbage ind.
-	/*
-	// logging of warning moved outside loop to ensure.
-	// it is only triggered once.
-	if(Warn_delta) {
-	cout << "\tWarning: Decay Probability Large!" << "\n";
-	f_log  << "Warning: Decay Probability Large!" << "\n";
-	}
-	if(Warn_g) {
-	cout << "\tWarning: Birth Probability Large!" << "\n";
-	f_log  << "Warning: Birth Probability Large!" << "\n";
-	}
-	if(Warn_fastGrowth){
-	cout << "\tWarning: Colonies growing too fast!" << "\n";
-	f_log  << "Warning: Colonies growing too fast!" << "\n";
-	}
-
 	*/
+	}
+
+
 	// Get stop time
 	time_t  toc;
 	time(&toc);
