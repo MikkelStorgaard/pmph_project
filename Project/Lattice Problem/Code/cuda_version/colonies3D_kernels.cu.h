@@ -18,7 +18,7 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
 	}
 
 	if (arr_Occ[id] < arr_nC[id]){
-			arr_nC[id] = arr_Occ[id];
+		arr_nC[id] = arr_Occ[id];
 	}
 }
 
