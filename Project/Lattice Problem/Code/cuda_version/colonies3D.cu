@@ -864,18 +864,33 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	dim3 blockSize(bs,bs,bs);
 	dim3 gridSize(gs,gs,gs);
 
-	cudaMalloc((void**)&d_arr_nC , totalMemSize);
-	cudaMalloc((void**)&d_arr_Occ, totalMemSize);
-	cudaMalloc((void**)&d_arr_IsActive, gs*sizeof(bool));
-	cudaMalloc((void**)&d_Warn_r, sizeof(bool));
+	cudaError_t err = cudaSuccess;
+
+	// Allocating nC
+	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
+	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nC on the device! error=%s\n", cudaGetErrorString(err));}
+
+	// Allocating Occ
+	err = cudaMalloc((void**)&d_arr_Occ, totalMemSize);
+	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_Occ on the device! error=%s\n", cudaGetErrorString(err));}
+
+
+
+
+
+	// cudaMalloc((void**)&d_arr_IsActive, totalMemSize*sizeof(bool));
+	// cudaMalloc((void**)&d_Warn_r, sizeof(bool));
+
+
+
 
 	// Copy data needed in the first kernel to the device
-	double *arr_maxOccupancy = new double[gs]();
-	double *d_arr_maxOccupancy;
-	cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gs);
+	// double *arr_maxOccupancy = new double[gs]();
+	// double *d_arr_maxOccupancy;
+	// cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gs);
 
-	cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
+	// cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
+	// cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
 
 
 	// Loop over samplings
@@ -910,13 +925,24 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			// Kernel 1
 			if (GPU_NC){
-				cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-				cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
+
+				// Copying to device
+				err = cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to device! error=%s\n", cudaGetErrorString(err));}
+
+				err = cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to device! error=%s\n", cudaGetErrorString(err));}
 
 				// Run first Kernel
 				FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
-				cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-				cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
+				err = cudaGetLastError();
+				if (err != cudaSuccess)	fprintf(stderr, "Error in FirstKernel! error=%s\n", cudaGetErrorString(err));}
+
+				// Copying to host
+				err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to host! error=%s\n", cudaGetErrorString(err));}
+				err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to host! error=%s\n", cudaGetErrorString(err));}
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
