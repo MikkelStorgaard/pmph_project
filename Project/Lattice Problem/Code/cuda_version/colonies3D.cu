@@ -2,8 +2,8 @@
 #include "colonies3D_kernels.cu.h"
 // #include "colonies3D_helpers.cu"
 
-#define GPU_NC false
-#define GPU_MAXOCCUPANCY false
+#define GPU_NC true
+#define GPU_MAXOCCUPANCY true
 #define GPU_UPDATECOUNT false
 #define GPU_NONBURSTINGEVENTS false
 #define GPU_NEWINFECTIONSKERNEL false
@@ -1053,6 +1053,19 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
             // Skip empty sites
             if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+            
+            double p = 0; // privatize
+            double N = 0; // privatize
+
+            // Compute the growth modifier
+            double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+
+            // Compute beta
+            double Beta = beta;
+
+            if (reducedBeta) {
+                Beta *= growthModifier;
+            }
 
             if (r > 0.0){
               if (GPU_UPDATECOUNT){
@@ -1072,18 +1085,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 }
               }
               else {
-                double p = 0; // privatize
-                double N = 0; // privatize
-
-                // Compute the growth modifier
-                double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
-
-                // Compute beta
-                double Beta = beta;
-
-                if (reducedBeta) {
-                  Beta *= growthModifier;
-                }
+                
 
                 p = r*growthModifier*dT;
                 if ((p > 0.25) and (!Warn_r)) {
@@ -1111,8 +1113,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_arr_IsActive);
                 NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_arr_IsActive);
               } else {
-                double N = 0; // privatize
-                double p = 0; // privatize
                 // Non-bursting events
                 N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
                 arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
