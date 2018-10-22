@@ -1615,12 +1615,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				f_log  << "Warning: Maximum Density Large!" << "\n";
 				Warn_density = true;
 			}
-
-			// cudaFree here!!
-			cudaFree(d_arr_nC);
-			cudaFree(d_arr_Occ);
-			// cudaFree(d_arr_maxOccupancy);
-
 		}
 
 		// Fast exit conditions
@@ -1770,6 +1764,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	f_timing.flush();
 	f_timing.close();
+
+	// cudaFree here!!
+	cudaFree(d_arr_nC);
+	cudaFree(d_arr_Occ);
+	// cudaFree(d_arr_maxOccupancy);
+
 
 	if (exit) {
 	return 1;
