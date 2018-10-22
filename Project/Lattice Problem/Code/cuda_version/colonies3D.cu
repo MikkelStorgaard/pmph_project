@@ -859,10 +859,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	int totalMemSize = totalElements * sizeof(double);
 
 	// Define 3D grid and blocks
-	int bs = 512;
-	int gs = (totalElements + bs - 1) / bs;
-	dim3 blockSize(bs,1,1);
-	dim3 gridSize(gs,1,1);
+	int bs = 8;
+	int gs = (max(nGridXY,nGridZ) + bs - 1) / bs;
+	dim3 blockSize(bs,bs,bs);
+	dim3 gridSize(gs,gs,gs);
 
 	cudaError_t err = cudaSuccess;
 
