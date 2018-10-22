@@ -896,13 +896,13 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 
 	// Loop over samplings
-	for (int n = 0; n < 1; n++) {
+	for (int n = 0; n < nSamplings; n++) {
 		if (exit) break;
 
 		// Determine the number of timesteps between sampings
 		int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
 
-		for (int t = 0; t < 1; t++) {
+		for (int t = 0; t < nStepsPerSample; t++) {
 			if (exit) break;
 
 			// Increase time
