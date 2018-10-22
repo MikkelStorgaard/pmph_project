@@ -868,11 +868,11 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	// Allocating nC
 	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
-	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nC on the device! error=%s\n", cudaGetErrorString(err));
+	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nC on the device! error=%s\n", cudaGetErrorString(err));}
 
 	// Allocating Occ
 	err = cudaMalloc((void**)&d_arr_Occ, totalMemSize);
-	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_Occ on the device! error=%s\n", cudaGetErrorString(err));
+	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_Occ on the device! error=%s\n", cudaGetErrorString(err));}
 
 
 
@@ -928,21 +928,21 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 				// Copying to device
 				err = cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to device! error=%s\n", cudaGetErrorString(err));
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to device! error=%s\n", cudaGetErrorString(err));}
 
 				err = cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to device! error=%s\n", cudaGetErrorString(err));
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to device! error=%s\n", cudaGetErrorString(err));}
 
 				// Run first Kernel
 				FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
 				err = cudaGetLastError();
-				if (err != cudaSuccess)	fprintf(stderr, "Error in FirstKernel! error=%s\n", cudaGetErrorString(err));
+				if (err != cudaSuccess)	fprintf(stderr, "Error in FirstKernel! error=%s\n", cudaGetErrorString(err));}
 
 				// Copying to host
 				err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to host! error=%s\n", cudaGetErrorString(err));
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to host! error=%s\n", cudaGetErrorString(err));}
 				err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to host! error=%s\n", cudaGetErrorString(err));
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to host! error=%s\n", cudaGetErrorString(err));}
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
@@ -965,24 +965,24 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			// Kernel 2
 			if (GPU_MAXOCCUPANCY){
-				// cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-				// cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
+				cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
+				cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
 
-				// // set active flags
-				// SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_IsActive, totalElements);
+				// set active flags
+				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_IsActive, totalElements);
 
-				// // Run second Kernel
-				// SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, totalElements);
+				// Run second Kernel
+				SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, totalElements);
 
-				// // Copy data back from device
-				// cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gs, cudaMemcpyDeviceToHost);
-				// cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-				// cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
+				// Copy data back from device
+				cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gs, cudaMemcpyDeviceToHost);
+				cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
+				cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
 
-				// // excuse this for-loop
-				// for (int i = 0; i < gs; i++){
-				// 	maxOccupancy = max(maxOccupancy, arr_maxOccupancy[i]);
-				// }
+				// excuse this for-loop
+				for (int i = 0; i < gs; i++){
+					maxOccupancy = max(maxOccupancy, arr_maxOccupancy[i]);
+				}
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
@@ -1614,7 +1614,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			// cudaFree here!!
 			cudaFree(d_arr_nC);
 			cudaFree(d_arr_Occ);
-			// cudaFree(d_arr_maxOccupancy);
+			cudaFree(d_arr_maxOccupancy);
 
 		}
 
