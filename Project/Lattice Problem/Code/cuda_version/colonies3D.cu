@@ -4,7 +4,7 @@
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH false
+#define GPU_BIRTH true
 #define GPU_INFECTIONS false
 #define GPU_UPDATECOUNT false
 #define GPU_NONBURSTINGEVENTS false
@@ -856,7 +856,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	cudaError_t err = cudaSuccess;
 
-
+	// Allocate on GPU
 	if (GPU_NC) {
 		err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err));
@@ -877,6 +877,31 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 		err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyHostToDevice);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_maxOccupancy to the device! error = %s\n", cudaGetErrorString(err));
+	}
+
+	if (GPU_BIRTH) {
+
+		err = cudaMalloc((void**)&d_arr_B, totalMemSize);
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_B on the device! error = %s\n", cudaGetErrorString(err));
+
+		err = cudaMalloc((void**)&d_arr_B_new, totalMemSize);
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_B_new on the device! error = %s\n", cudaGetErrorString(err));
+
+		err = cudaMalloc((void**)&d_arr_nutrient, totalMemSize);
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nutrient on the device! error = %s\n", cudaGetErrorString(err));
+
+		err = cudaMalloc((void**)&d_arr_GrowthModifier, totalMemSize);
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_GrowthModifier to the device! error = %s\n", cudaGetErrorString(err));
+
+		err = cudaMalloc((void**)&d_Warn_g, sizeof(bool));
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate Warn_g on the device! error = %s\n", cudaGetErrorString(err));
+
+		err = cudaMalloc((void**)&d_Warn_fastGrowth, sizeof(bool));
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_Warn_fastGrowth on the device! error = %s\n", cudaGetErrorString(err));
+
+		err = cudaMalloc((void**)&d_arr_rng, sizeof(std::mt19937)*totalElements);
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_arr_rng on the device! error = %s\n", cudaGetErrorString(err));
+
 	}
 
 	err = cudaMalloc((void**)&d_Warn_r, sizeof(bool));
@@ -917,6 +942,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			 */
 
 			if (GPU_NC){
+
 				err = cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
 				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to the device! error = %s\n", cudaGetErrorString(err));
 
@@ -928,11 +954,15 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				err = cudaGetLastError();
 				if (err != cudaSuccess)	fprintf(stderr, "Failure in FirstKernel! error = %s\n", cudaGetErrorString(err));
 
-				err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to the host! error = %s\n", cudaGetErrorString(err));
+				if (!GPU_MAXOCCUPANCY) {	// Only ofload if next part is not on GPU
 
-				err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to the host! error = %s\n", cudaGetErrorString(err));
+					err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
+					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to the host! error = %s\n", cudaGetErrorString(err));
+
+					err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
+					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to the host! error = %s\n", cudaGetErrorString(err));
+
+				}
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
@@ -954,19 +984,40 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			}
 
 			if (GPU_MAXOCCUPANCY) {
-				cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-				cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
+				if (!GPU_NC) { // Only load if previous part was not on GPU
+
+					err = cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
+					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to the device! error = %s\n", cudaGetErrorString(err));
+
+					err = cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
+					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to the device! error = %s\n", cudaGetErrorString(err));
+
+				}
 
 				// set active flags
 				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_IsActive, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess)	fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err));
+
 
 				// Run second Kernel
 				SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess)	fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err));
 
 				// Copy data back from device
-				cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
-				cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-				cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
+				if (!GPU_BIRTH) { // Only ofload if next part is not on GPU
+
+					err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
+					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
+
+					err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
+					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to the host! error = %s\n", cudaGetErrorString(err));
+
+					err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
+					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to the host! error = %s\n", cudaGetErrorString(err));
+
+				}
 
 				// excuse this for-loop
 				for (int i = 0; i < gridSize; i++){
@@ -996,7 +1047,56 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			// Birth //////////////////////////////////////////////////////////////////////
 			if (GPU_BIRTH){
-				// DO stuff
+
+				err = cudaMemcpy(d_arr_B, arr_B, totalMemSize, cudaMemcpyHostToDevice);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_B to the device! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(d_arr_B_new, arr_B_new, totalMemSize, cudaMemcpyHostToDevice);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_B_new to the device! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(d_arr_nutrient, arr_nutrient, totalMemSize, cudaMemcpyHostToDevice);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nutrient to the device! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(d_arr_GrowthModifier, arr_GrowthModifier, totalMemSize, cudaMemcpyHostToDevice);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_GrowthModifier to the device! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(d_Warn_g, &this->Warn_g, sizeof(bool), cudaMemcpyHostToDevice);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy Warn_g to the device! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(d_Warn_fastGrowth, &this->Warn_fastGrowth, sizeof(bool), cudaMemcpyHostToDevice);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy Warn_fastGrowth to the device! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(d_arr_rng, arr_rng, sizeof(std::mt19937)*totalElements, cudaMemcpyHostToDevice);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy d_arr_rng to the device! error = %s\n", cudaGetErrorString(err));
+
+
+				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_arr_rng, totalElements);
+
+				if (!GPU_INFECTIONS) { // Only ofload if next part is not on GPU
+
+				err = cudaMemcpy(arr_B, d_arr_B, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_B to the host! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(arr_B_new, d_arr_B_new, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_B_new to the host! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(arr_nutrient, d_arr_nutrient, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nutrient to the host! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(arr_GrowthModifier, d_arr_GrowthModifier, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_GrowthModifier to the host! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(&this->Warn_g, d_Warn_g, sizeof(bool), cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy Warn_g to the host! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(&this->Warn_fastGrowth, d_Warn_fastGrowth, sizeof(bool), cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy Warn_fastGrowth to the host! error = %s\n", cudaGetErrorString(err));
+
+				err = cudaMemcpy(arr_rng, d_arr_rng, sizeof(std::mt19937)*totalElements, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy d_arr_rng to the host! error = %s\n", cudaGetErrorString(err));
+
+
+				}
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;

@@ -1,4 +1,5 @@
 // #include "colonies3D_helpers.cu"
+#include <curand.h>
 
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
@@ -7,9 +8,8 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  bool outOfBounds = (i >= N);
-
-  if (outOfBounds){
+  // Out of bounds check
+  if (i>= N){
     return;
   }
 
@@ -50,6 +50,58 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
     maxOcc[blockIdx.x] = shared[0];
   }
 }
+
+//Kernel 3.1: Birth
+__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, std::mt19937* arr_rng, int totalElements){
+
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Out of bounds check
+  if (i>= totalElements){
+    return;
+  }
+
+  // Compute the growth modifier
+  double growthModifier = arr_nutrient[i] / (arr_nutrient[i] + K);
+  arr_GrowthModifier[i] = growthModifier;
+
+  // Compute birth probability
+  double p = g * growthModifier*dT;
+  if (arr_nutrient[i] < 1) {
+    p = 0;
+  }
+
+  // Produce warning
+  if ((p > 0.1) and (!Warn_g)) *Warn_g = true;
+
+
+  // Compute the number of births
+  double N = 0.0;
+
+   // Trivial cases
+  if (p == 1) {
+    N = round(arr_B[i]);
+  } else {
+
+    // Set limit on distribution
+    N = round(1);
+  }
+
+  // Ensure there is enough nutrient
+	if ( N > arr_nutrient[i] ) {
+
+    if (!Warn_fastGrowth) *Warn_fastGrowth = true;
+
+    N = round( arr_nutrient[i] );
+  }
+
+  // Update count
+  arr_B_new[i] += N;
+  arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
+
+}
+//Kernel 3.2 Birth 2
+
 
 __global__ void UpdateCountKernel(double* arr_GrowthModifier,
                                   double* arr_I9,
@@ -100,25 +152,7 @@ __global__ void UpdateCountKernel(double* arr_GrowthModifier,
   arr_M[i] = round(alpha * Beta * tmp); // Phages which reinfect the colony
 }
 
-//Kernel 3.1: Birth
-__global__ void ThirdKernel(bool* arr_IsActive, double* arr_GrowthModifier, double* arr_nutrient, double K, double g, double dT, bool* warn_g){
-    int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-// Skip empty sites
-    if (!(arr_IsActive[i])) return;
-
-	double p = 0;
-
-	// Compute the growth modifier
-    double growthModifier = arr_nutrient[i] / (arr_nutrient[i] + K);
-    arr_GrowthModifier[i] = growthModifier;
-    p = g * growthModifier*dT;
-	if (arr_nutrient[i] < 1) { p = 0; }
-
-    if ((p > 0.1) and (!*warn_g)) { *warn_g = true; }
-
-}
-//Kernel 3.2 Birth 2
 
 __global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double* arr_B_new, bool* warn_fastGrowth){
     int i = blockIdx.x*blockDim.x + threadIdx.x;
