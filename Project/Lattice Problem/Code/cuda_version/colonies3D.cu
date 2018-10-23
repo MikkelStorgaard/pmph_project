@@ -1045,6 +1045,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			}
 
 
+
+			// RANDOM NUMBER GENERATOR
+			// cudaMalloc((void**)&d_arr_crng, sizeof(curandState)*totalElements);
+
+
+
 			// Birth //////////////////////////////////////////////////////////////////////
 			if (GPU_BIRTH){
 
@@ -1070,7 +1076,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy d_arr_rng to the device! error = %s\n", cudaGetErrorString(err));
 
 
-				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_arr_rng, totalElements);
+				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, totalElements);
 
 				if (!GPU_INFECTIONS) { // Only ofload if next part is not on GPU
 
@@ -1936,7 +1942,7 @@ void Colonies3D::Initialize() {
 		arr_M = new double[nGridXY*nGridXY*nGridZ]();
 		arr_GrowthModifier = new double[nGridXY*nGridXY*nGridZ]();
 
-		// Initialize nutrient
+		// Initialize arrays
 		for (int i = 0; i < nGridXY; i++) {
 				for (int j = 0; j < nGridXY; j++) {
 					 for (int k = 0; k < nGridZ; k++) {

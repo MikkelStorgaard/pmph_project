@@ -1,5 +1,5 @@
 // #include "colonies3D_helpers.cu"
-#include <curand.h>
+//#include <curand_kernel.h>
 
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
@@ -51,8 +51,15 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   }
 }
 
-//Kernel 3.1: Birth
-__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, std::mt19937* arr_rng, int totalElements){
+
+// __global__ void InitRNG(curandState *state){
+
+//   int i = blockIdx.x*blockDim.x + threadIdx.x;
+//   curand_init(i, 0, 0, &state[idx]);
+// }
+
+
+__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, int totalElements){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -84,7 +91,14 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   } else {
 
     // Set limit on distribution
-    N = round(1);
+    // std::mt19937 rng;
+    // std::uniform_real_distribution  <double> rand;
+    // N = rand(rng);
+    // size_t rand_n = 1;
+    // unsigned int r;
+    // curandGeneratePoisson(arr_rng[i], &r, rand_n, arr_B[i]*p);
+    // N = (double) r;
+    N = 1;
   }
 
   // Ensure there is enough nutrient

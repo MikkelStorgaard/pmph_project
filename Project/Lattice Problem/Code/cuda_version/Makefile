@@ -3,7 +3,7 @@ CC=nvcc
 
 #CLINKS= -larmadillo -fopenmp
 #CFLAGS= -g -std=c++0x -march=native
-CFLAGS= -std=c++11
+CFLAGS= -std=c++11 -lcurand
 
 
 all : example3D growthCurve3D
