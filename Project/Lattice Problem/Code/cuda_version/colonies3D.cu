@@ -1,6 +1,6 @@
 #include "colonies3D.hpp"
 #include "colonies3D_kernels.cu.h"
-//#include "colonies3D_helpers.cu"
+// #include "colonies3D_helpers.cu"
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY false
@@ -31,9 +31,7 @@ Colonies3D::Colonies3D(double B_0, double P_0){
     L                       = 1e4;      // [µm]     Side-length of simulation array
     H                       = L;        // [µm]     Height of the simulation array
     nGridXY                 = 50;       //          Number of gridpoints
-//  Colonies3D::pub_nGridXY = nGridXY;
     nGridZ                  = nGridXY;  //          Number of gridpoints
-//  Colonies3D::pub_nGridZ  = nGridZ;
 
 	nSamp                   = 10;       //          Number of samples to save per simulation hour
 
@@ -2199,8 +2197,6 @@ double Colonies3D::ComputeEvents(double n, double p, int flag, int i) {
 	return round(N);
 }
 
-
-
 // Computes how many particles has moved to neighbouing points
 void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k) {
 
@@ -2345,8 +2341,6 @@ double Colonies3D::RandN(double m, double s) {
 	return distr(rng);
 }
 
-
-
 // Returns poisson dist. number with mean l
 double Colonies3D::RandP(double l, int i, int j, int k) {
 
@@ -2373,8 +2367,6 @@ double Colonies3D::RandP(double l) {
 
 	return distr(rng);
 }
-
-
 
 // Returns poisson dist. number with mean l
 double Colonies3D::RandP_fast(double l) {

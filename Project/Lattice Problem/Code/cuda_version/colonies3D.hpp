@@ -33,9 +33,7 @@ class Colonies3D {
     double L;                       // [µm]     Side-length of simulation array
     double H;                       // [µm]     Height of the simulation array
     int    nGridXY;                 //          Number of gridpoints
-    public: static int pub_nGridXY;                 //          Number of gridpoints
     int    nGridZ;                  //          Number of gridpoints
-    public: static int pub_nGridZ;                  //          Number of gridpoints
 
     double nSamp;                   //          Number of samples to save per simulation hour
 
@@ -88,9 +86,7 @@ class Colonies3D {
 
     double rngSeed;                 // The seed for the random number generator
     std::mt19937 rng;               // Mersenne twister, random number generator
-//    public: static std::mt19937 rng;               // Mersenne twister, random number generator
     std::mt19937* arr_rng;          // Mersenne twister, random number generator
-//    public: static std::mt19937* arr_rng;          // Mersenne twister, random number generator
     std::uniform_real_distribution  <double> rand;
     std::normal_distribution        <double> randn;
 
