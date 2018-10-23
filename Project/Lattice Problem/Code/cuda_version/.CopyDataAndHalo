@@ -1,0 +1,59 @@
+// // Alocate shared memory
+	// extern __shared__ double shared[blockDim.x+2][blockDim.y+2][blockDim.z+2]();
+
+	// // Get index of thread
+	// int i = blockIdx.x*blockDim.x + threadIdx.x;
+	// int j = blockIdx.y*blockDim.y + threadIdx.y;
+	// int k = blockIdx.z*blockDim.z + threadIdx.z;
+
+	// int id = i*gridDim.x*gridDim.y + j*gridDim.y + k;
+
+	// // Skip sites outside
+	// if (id < N) {
+
+	// 	// Copy the values into shared
+	// 	shared[i][j][k] = arr[i*gridDim.x*gridDim.y + j*gridDim.y + k];
+
+	// 	// Border points copy the extra values
+	// 	// X Border
+	// 	if (threadIdx.x == 0) && (i == 0) {	// Periodic copy
+	// 		shared[i-1][j][k] = arr[nGridXY*gridDim.x*gridDim.y + j*gridDim.y + k]; // Copy from the other side
+	// 	} else if (threadIdx.x == 0) { // Simple copy
+	// 		shared[i-1][j][k] = arr[(i-1)*gridDim.x*gridDim.y + j*gridDim.y + k]; // Copy from the left
+	// 	}
+
+	// 	if (i == nGridXY) { // Periodic copy
+	// 		shared[i+1][j][k] = arr[j*gridDim.y + k]; // Copy from the other side
+	// 	} else if (threadIdx.x == blockDim.x) { // Simple copy
+	// 		shared[i+1][j][k] = arr[(i+1)*gridDim.x*gridDim.y + j*gridDim.y + k]; // Copy from the right
+	// 	}
+
+	// 	// Y Border
+	// 	if (threadIdx.y == 0) && (j == 0) {	// Periodic copy
+	// 		shared[i][j-1][k] = arr[i*gridDim.x*gridDim.y + nGridXY*gridDim.y + k]; // Copy from the other side
+	// 	} else if (threadIdx.y == 0) { // Simple copy
+	// 		shared[i][j-1][k] = arr[(i*gridDim.x*gridDim.y + (j-1)*gridDim.y + k]; // Copy from the left
+	// 	}
+
+	// 	if (j == nGridXY) {	// Periodic copy
+	// 		shared[i][j+1][k] = arr[i*gridDim.x*gridDim.y + k]; // Copy from the other side
+	// 	} else if (threadIdx.y == blockDim.y) // Simple copy
+	// 		shared[i][j+1][k] = arr[(i*gridDim.x*gridDim.y + (j+1)*gridDim.y + k]; // Copy from the right
+	// 	}
+
+	// 	// Z Border
+	// 	if (threadIdx.z == 0) && (k == 0) {	// Periodic copy
+	// 		shared[i][j][k-1] = arr[i*gridDim.x*gridDim.y + j*gridDim.y + nGridZ]; // Copy from the other side
+	// 	} else if (threadIdx.z == 0) { // Simple copy
+	// 		shared[i][j][k-1] = arr[i*gridDim.x*gridDim.y + j*gridDim.y + (k-1)]; // Copy from the left
+	// 	}
+
+	// 	if (k == nGridZ) {	// Periodic copy
+	// 		shared[i][j][k+1] = arr[i*gridDim.x*gridDim.y + j*gridDim.y]; // Copy from the other side
+	// 	} else if (threadIdx.z == blockDim.z) // Simple copy
+	// 		shared[i][j][k+1] = arr[i*gridDim.x*gridDim.y + j*gridDim.y + (k+1)]; // Copy from the right
+	// 	}
+	// }
+
+	// // Make sure all data has been copied
+	// __syncthreads();

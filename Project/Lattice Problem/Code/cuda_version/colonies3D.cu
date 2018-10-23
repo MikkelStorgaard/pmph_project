@@ -875,7 +875,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		err = cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_maxOccupancy on the device! error = %s\n", cudaGetErrorString(err));
 
-		err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, totalMemSize, cudaMemcpyHostToDevice);
+		err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyHostToDevice);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_maxOccupancy to the device! error = %s\n", cudaGetErrorString(err));
 	}
 
