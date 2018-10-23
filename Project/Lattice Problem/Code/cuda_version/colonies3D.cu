@@ -2,15 +2,15 @@
 #include "colonies3D_kernels.cu.h"
 // #include "colonies3D_helpers.cu"
 
-#define GPU_NC true
+#define GPU_NC false
 #define GPU_MAXOCCUPANCY false
 #define GPU_BIRTH false
 #define GPU_INFECTIONS false
 #define GPU_UPDATECOUNT false
 #define GPU_NONBURSTINGEVENTS false
 #define GPU_NEWINFECTIONSKERNEL false
-#define GPU_PHAGEDECAY false;
-#define GPU_MOVEMENT false;
+#define GPU_PHAGEDECAY false
+#define GPU_MOVEMENT false
 
 
 
@@ -865,12 +865,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
     if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_Occ on the device! error = %s\n", cudaGetErrorString(err));
   }
 
+  double *arr_maxOccupancy = new double[gridSize]();
+  double *d_arr_maxOccupancy;
+
   if (GPU_MAXOCCUPANCY) {
 	  err = cudaMalloc((void**)&d_arr_IsActive, gridSize*sizeof(bool));
 	  if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_IsActive on the device! error = %s\n", cudaGetErrorString(err));
-
-  	double *arr_maxOccupancy = new double[gridSize]();
-  	double *d_arr_maxOccupancy;
 
   	err = cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
   	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_maxOccupancy on the device! error = %s\n", cudaGetErrorString(err));
@@ -1190,7 +1190,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
         }
       }
 
-			if (GPU_NEWINFECTIONSKERNEL){
+			if (GPU_NEWINFECTIONSKERNEL) {
 				NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
 																										 d_arr_GrowthModifier, d_arr_B, d_arr_B_new,
 																										 d_arr_M, d_arr_I0_new, d_arr_IsActive,
@@ -1287,6 +1287,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			// Phage decay ///////////////////////////////////////////////////////////////////
       if (GPU_PHAGEDECAY) {
+        // Do Stuff
       } else {
         for (int i = 0; i < nGridXY; i++) {
           if (exit) break;
@@ -1348,7 +1349,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			// Movement ///////////////////////////////////////////////////////////////////
       if (GPU_MOVEMENT) {
-
+        // Do
       } else {
         for (int i = 0; i < nGridXY; i++) {
           if (exit) break;
