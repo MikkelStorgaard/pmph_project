@@ -8,10 +8,9 @@
 #define GPU_INFECTIONS false
 #define GPU_UPDATECOUNT false
 #define GPU_NONBURSTINGEVENTS false
-#define GPU_NEWINFECTIONSKERNEL false
+#define GPU_NEWINFECTIONS false
 #define GPU_PHAGEDECAY false
 #define GPU_MOVEMENT false
-
 
 
 
@@ -879,6 +878,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_maxOccupancy to the device! error = %s\n", cudaGetErrorString(err));
 	}
 
+	if (GPU_BIRTH || GPU_INFECTIONS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT) {
+		err = cudaMalloc(&d_state, totalElements*sizeof(curandState));
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_state on the device! error = %s\n", cudaGetErrorString(err));
+
+		initRNG<<<gridSize,blockSize>>>(d_state);
+	}
+
+
 	if (GPU_BIRTH) {
 
 		err = cudaMalloc((void**)&d_arr_B, totalMemSize);
@@ -1001,7 +1008,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 
 				// Run second Kernel
-				SecondKernel<<<gridSize, blockSize, totalMemSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, totalElements);
+				SecondKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, totalElements);
 				err = cudaGetLastError();
 				if (err != cudaSuccess)	fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err));
 
@@ -1045,12 +1052,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			}
 
 
-
-			// RANDOM NUMBER GENERATOR
-			// cudaMalloc((void**)&d_arr_crng, sizeof(curandState)*totalElements);
-
-
-
 			// Birth //////////////////////////////////////////////////////////////////////
 			if (GPU_BIRTH){
 
@@ -1076,7 +1077,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy d_arr_rng to the device! error = %s\n", cudaGetErrorString(err));
 
 
-				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, totalElements);
+				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_state, totalElements);
 
 				if (!GPU_INFECTIONS) { // Only ofload if next part is not on GPU
 
@@ -1296,7 +1297,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				}
 			}
 
-			if (GPU_NEWINFECTIONSKERNEL) {
+			if (GPU_NEWINFECTIONS) {
 				NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
 																										 d_arr_GrowthModifier, d_arr_B, d_arr_B_new,
 																										 d_arr_M, d_arr_I0_new, d_arr_IsActive,
@@ -1864,6 +1865,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	}
 	if (GPU_MAXOCCUPANCY) {
 		cudaFree(d_arr_maxOccupancy);
+	}
+	if (GPU_BIRTH || GPU_INFECTIONS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT) {
+		cudaFree(d_state);
 	}
 
 

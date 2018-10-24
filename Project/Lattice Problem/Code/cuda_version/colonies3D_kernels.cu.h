@@ -52,14 +52,12 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
 }
 
 
-// __global__ void InitRNG(curandState *state){
+__global__ void initRNG(curandState *state){
+  int idx = threadIdx.x+blockDim.x*blockIdx.x;
+  curand_init(0, idx, 0, &state[idx]);
+}
 
-//   int i = blockIdx.x*blockDim.x + threadIdx.x;
-//   curand_init(i, 0, 0, &state[idx]);
-// }
-
-
-__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, int totalElements){
+__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *d_state, int totalElements){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -90,15 +88,7 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
     N = round(arr_B[i]);
   } else {
 
-    // Set limit on distribution
-    // std::mt19937 rng;
-    // std::uniform_real_distribution  <double> rand;
-    // N = rand(rng);
-    // size_t rand_n = 1;
-    // unsigned int r;
-    // curandGeneratePoisson(arr_rng[i], &r, rand_n, arr_B[i]*p);
-    // N = (double) r;
-    N = 1;
+    N = curand_poisson(&d_state[i], arr_B[i]*p);
   }
 
   // Ensure there is enough nutrient

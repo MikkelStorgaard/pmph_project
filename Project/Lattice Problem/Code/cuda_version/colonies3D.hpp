@@ -8,8 +8,8 @@
 #include <fstream>          // File streams
 
 #include <random>           // Random numbers
-#include <curand.h>         // Cuda random numbers
-#include <curand_kernel.h>         // Cuda random numbers
+#include <curand.h>
+#include <curand_kernel.h>
 #include <math.h>           // Mathmatical constants
 #include <algorithm>        // Mathmatical constants
 
@@ -92,8 +92,7 @@ class Colonies3D {
   std::mt19937 rng;               // Mersenne twister, random number generator
   std::mt19937* arr_rng;          // Mersenne twister, random number generator
   std::mt19937* d_arr_rng;        // Mersenne twister, random number generator
-
-  curandState* d_arr_crng;
+	curandState *d_state;
 
   std::uniform_real_distribution  <double> rand;
   std::normal_distribution        <double> randn;
