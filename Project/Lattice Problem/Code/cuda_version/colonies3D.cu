@@ -2,9 +2,9 @@
 #include "colonies3D_kernels.cu.h"
 // #include "colonies3D_helpers.cu"
 
-#define GPU_NC true
+#define GPU_NC false
 #define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH true
+#define GPU_BIRTH false
 #define GPU_INFECTIONS false
 #define GPU_UPDATECOUNT false
 #define GPU_NONBURSTINGEVENTS false
@@ -78,6 +78,8 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 	exportAll               = false;    // Boolean to export everything, not just populationsize
 
 	rngSeed                 = -1;       // Random number seed  ( set to -1 if unused )
+    
+    
 
 };
 
@@ -826,6 +828,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	std::string filename_suffix = "loopDistributedGPU";
+    
+    int errC        = 20;
 
 	this->T_end = T_end;
 
@@ -856,7 +860,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	cudaError_t err = cudaSuccess;
 
 	// Allocate on GPU
-	if (GPU_NC) {
+	if (GPU_NC || GPU_MAXOCCUPANCY) {
 		err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err));
 
@@ -994,35 +998,43 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (!GPU_NC) { // Only load if previous part was not on GPU
 
 					err = cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to the device! error = %s\n", cudaGetErrorString(err));
+					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_Occ to the device! error = %s\n", cudaGetErrorString(err));
+                        errC--;}
 
 					err = cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
-					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to the device! error = %s\n", cudaGetErrorString(err));
+					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_nC to the device! error = %s\n", cudaGetErrorString(err));
+                        errC--;}
 
 				}
 
 				// set active flags
 				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_IsActive, totalElements);
 				err = cudaGetLastError();
-				if (err != cudaSuccess)	fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err));
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err));
+                    errC--;}
 
 
 				// Run second Kernel
 				SecondKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, totalElements);
 				err = cudaGetLastError();
-				if (err != cudaSuccess)	fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err));
+				if (err != cudaSuccess && errC > 0){	fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err));
+                    errC--;}
 
 				// Copy data back from device
 				if (!GPU_BIRTH) { // Only ofload if next part is not on GPU
 
 					err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
+					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
+                        errC--; }
 
 					err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_Occ to the host! error = %s\n", cudaGetErrorString(err));
+					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_Occ to the host! error = %s\n", cudaGetErrorString(err));
+                        errC--;}
+                    
 
 					err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_nC to the host! error = %s\n", cudaGetErrorString(err));
+					if (err != cudaSuccess && errC > 0){	fprintf(stderr, "Failed to copy arr_nC to the host! error = %s\n", cudaGetErrorString(err));
+                    errC--;}
 
 				}
 

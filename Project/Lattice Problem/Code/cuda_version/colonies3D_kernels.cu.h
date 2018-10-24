@@ -4,6 +4,18 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
+__device__ double ComputeEvents(double n, double p, int flag, int i, curandState *my_curandstate){
+    // Trivial cases
+    
+    if (p == 1) return n;
+    if (p == 0) return 0.0;
+    if (n < 1)  return 0.0;
+
+    double N = (double)curand_poisson(&my_curandstate[i], n*p); 
+
+    return round(N);
+}    
+
 __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -36,6 +48,11 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   extern __shared__ double shared[];
   int i = blockIdx.x*blockDim.x + threadIdx.x;
   int tid = threadIdx.x;
+  
+  //outOfBounds check
+  if (i>= N){
+    return;
+  }
 
   shared[tid] = arr_IsActive[i] ? arr_Occ[i] : 0.0;
 
