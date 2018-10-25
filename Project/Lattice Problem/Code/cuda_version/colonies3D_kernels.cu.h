@@ -1,20 +1,20 @@
 // #include "colonies3D_helpers.cu"
-//#include <curand_kernel.h>
+
 
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
 __device__ double ComputeEvents(double n, double p, int flag, int i, curandState *my_curandstate){
     // Trivial cases
-    
+
     if (p == 1) return n;
     if (p == 0) return 0.0;
     if (n < 1)  return 0.0;
 
-    double N = (double)curand_poisson(&my_curandstate[i], n*p); 
+    double N = (double)curand_poisson(&my_curandstate[i], n*p);
 
     return round(N);
-}    
+}
 
 __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
 
@@ -48,9 +48,9 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   extern __shared__ double shared[];
   int i = blockIdx.x*blockDim.x + threadIdx.x;
   int tid = threadIdx.x;
-  
+
   //outOfBounds check
-  if (i>= N){
+  if (i >= N){
     return;
   }
 
@@ -71,8 +71,8 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
 
 __global__ void initRNG(curandState *state, int N){
   int idx = threadIdx.x+blockDim.x*blockIdx.x;
-  if (i < N) {
-    curand_init(0, idx, 0, &state);
+  if (idx < N) {
+    curand_init(0, idx, 0, state);
   }
 }
 

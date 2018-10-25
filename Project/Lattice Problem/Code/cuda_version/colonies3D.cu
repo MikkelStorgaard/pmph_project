@@ -78,8 +78,8 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 	exportAll               = false;    // Boolean to export everything, not just populationsize
 
 	rngSeed                 = -1;       // Random number seed  ( set to -1 if unused )
-    
-    
+
+
 
 };
 
@@ -828,7 +828,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	std::string filename_suffix = "loopDistributedGPU";
-    
+
     int errC        = 20;
 
 	this->T_end = T_end;
@@ -886,7 +886,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		err = cudaMalloc(&d_state, totalElements*sizeof(curandState));
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_state on the device! error = %s\n", cudaGetErrorString(err));
 
-		initRNG<<<gridSize,blockSize>>>(d_state);
+		initRNG<<<gridSize,blockSize>>>(d_state, totalElements);
 	}
 
 
@@ -1030,7 +1030,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
 					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_Occ to the host! error = %s\n", cudaGetErrorString(err));
                         errC--;}
-                    
+
 
 					err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
 					if (err != cudaSuccess && errC > 0){	fprintf(stderr, "Failed to copy arr_nC to the host! error = %s\n", cudaGetErrorString(err));

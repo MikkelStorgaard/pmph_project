@@ -10,6 +10,8 @@
 #include <armadillo>        // Matrix library
 
 #include <random>           // Random numbers
+#include <curand.h>
+#include <curand_kernel.h>
 #include <math.h>           // Mathmatical constants
 #include <algorithm>        // Mathmatical constants
 
