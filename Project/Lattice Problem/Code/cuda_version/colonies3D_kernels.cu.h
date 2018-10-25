@@ -201,39 +201,57 @@ __global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double*
 }
 
 __global__ void BurstingEventsKernel(double* arr_I9, double* P_new, double* arr_M, double* arr_p, bool* arr_IsActive){
-  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  // int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  if (!(arr_IsActive[i])){
-    return;
-  }
+  // if (!(arr_IsActive[i])){
+  //   return;
+  // }
 
-  double tmp;
-  double A = arr_A[i];
-  double p = arr_p[i];
 
-  // TODO: FIX ComputeEvents
-  // tmp = ComputeEvents(A, p, 2, i);
-  tmp = 1.0;
-  arr_A[i] = max(0.0, A - tmp);
-  arr_B[i] += tmp;
+  //                           p = r*growthModifier*dT;
+  //                           if ((p > 0.25) and (!Warn_r)) {
+  //                               cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+  //                               f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+  //                               Warn_r = true;
+  //                           }
+  //                           N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
+
+  //                           // Update count
+  //                           arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+  //                           arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+  //                           arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+  //                           M = round(alpha * Beta * N);
+
+
+
+
+  // double tmp;
+  // double A = arr_A[i];
+  // double p = arr_p[i];
+
+  // // TODO: FIX ComputeEvents
+  // // tmp = ComputeEvents(A, p, 2, i);
+  // tmp = 1.0;
+  // arr_A[i] = max(0.0, A - tmp);
+  // arr_B[i] += tmp;
 }
 
 __global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* arr_p, bool* arr_IsActive){
-  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  // int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  if (!(arr_IsActive[i])){
-    return;
-  }
+  // if (!(arr_IsActive[i])){
+  //   return;
+  // }
 
-  double tmp;
-  double A = arr_A[i];
-  double p = arr_p[i];
+  // double tmp;
+  // double A = arr_A[i];
+  // double p = arr_p[i];
 
-  // TODO: FIX ComputeEvents
-  // tmp = ComputeEvents(A, p, 2, i);
-  tmp = 1.0;
-  arr_A[i] = max(0.0, A - tmp);
-  arr_B[i] += tmp;
+  // // TODO: FIX ComputeEvents
+  // // tmp = ComputeEvents(A, p, 2, i);
+  // tmp = 1.0;
+  // arr_A[i] = max(0.0, A - tmp);
+  // arr_B[i] += tmp;
 }
 
 __global__ void NewInfectionsKernel(double* arr_Occ,
