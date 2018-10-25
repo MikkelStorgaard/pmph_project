@@ -1013,7 +1013,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 				err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
 				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to copy arr_nC to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-		}
 
 				// excuse this for-loop
 				for (int i = 0; i < gridSize; i++){

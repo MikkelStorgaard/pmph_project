@@ -74,7 +74,7 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   }
 }
 
-__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *d_state, bool* arr_IsActive){
+__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, bool* arr_IsActive){
 // __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, int totalElements){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
