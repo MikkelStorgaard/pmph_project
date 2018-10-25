@@ -49,23 +49,28 @@ __global__ void SetIsActive(double* arr_Occ, bool* arr_IsActive, int N){
 }
 
 __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
-                             bool* arr_IsActive){
+                             bool* arr_IsActive, int N){
 
-  extern __shared__ double Occ[blockDim.x];
+  extern __shared__ double shared[];
   int i = blockIdx.x*blockDim.x + threadIdx.x;
   int tid = threadIdx.x;
 
-  Occ[tid] = arr_IsActive[i] ? arr_Occ[i] : 0.0;
+  //outOfBounds check
+  if (i >= N){
+    return;
+  }
 
-  for (unsigned int s = blockDim.x/2; s > 0; s >>= 1) {
+  shared[tid] = arr_IsActive[i] ? arr_Occ[i] : 0.0;
+
+  for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
     if (tid < s) {
-      Occ[tid] = max(Occ[tid], Occ[tid + s]);
+      shared[tid] = max(shared[tid], shared[tid + s]);
     }
     __syncthreads();
   }
   // write result for this block to global mem
   if(tid == 0){
-    maxOcc[blockIdx.x] = Occ[0];
+    maxOcc[blockIdx.x] = shared[0];
   }
 }
 
