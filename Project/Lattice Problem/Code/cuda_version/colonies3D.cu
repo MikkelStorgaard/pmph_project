@@ -389,7 +389,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 								}
 							}
 						}
-					}
+ 					}
 				}
 			}
 
@@ -828,7 +828,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	std::string filename_suffix = "loopDistributedGPU";
 
-    int errC = 20;
+    int errC = 1;
 
 	this->T_end = T_end;
 
@@ -888,6 +888,51 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	err = cudaMalloc((void**)&d_arr_B_new, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_B_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_P, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_P_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_P, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_P_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I0, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I0 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I1, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I1 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I2, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I2 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I3, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I3 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I4, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I4 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I5, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I5 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I6, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I6 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I7, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I7 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I8, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I8 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I9, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I9 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_M, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_M on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	err = cudaMalloc((void**)&d_arr_nutrient, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nutrient on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1043,6 +1088,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			// Birth //////////////////////////////////////////////////////////////////////
 			if (GPU_BIRTH){
 
+				// Copy to the device
 				err = cudaMemcpy(d_arr_B, arr_B, totalMemSize, cudaMemcpyHostToDevice);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_B to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -1140,6 +1186,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 
 			if (GPU_INFECTIONS){
+
+				// Copy to the device
 				err = cudaMemcpy(d_arr_M, arr_M, totalMemSize, cudaMemcpyHostToDevice);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_M to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -1179,59 +1227,83 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				err = cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-
 				// Infections kernels
-				BurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_M, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I8, d_arr_I9, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I7, d_arr_I8, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I6, d_arr_I7, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I5, d_arr_I6, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I4, d_arr_I5, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I3, d_arr_I4, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I2, d_arr_I3, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_arr_IsActive);
-				NonBurstingEventsKernel<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_arr_IsActive);
+				BurstingEvents<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_Occ, d_arr_GrowthModifier, d_arr_M, d_arr_p, alpha, beta, r, dT, d_Warn_r, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in BurstingEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-				if (!GPU_NEWINFECTIONS) { // Only ofload if next part is not on GPU
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I8, d_arr_I9, d_arr_p, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents1! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_M, d_arr_M, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_M to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I7, d_arr_I8, d_arr_p, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents2! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_P_new, d_arr_P_new, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_P_new to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I6, d_arr_I7, d_arr_p, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents3! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I0, d_arr_I0, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I0 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I5, d_arr_I6, d_arr_p, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents4! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I1, d_arr_I1, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I1 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I4, d_arr_I5, d_arr_p, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents5! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I2, d_arr_I2, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I2 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I3, d_arr_I4, d_arr_p, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents6! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I3, d_arr_I3, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I3 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I2, d_arr_I3, d_arr_p, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents7! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I4, d_arr_I4, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I4 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents8! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I5, d_arr_I5, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I5 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_rng_state, totalElements);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents9! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I6, d_arr_I6, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I6 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				// Copy data back from device
+				err = cudaMemcpy(arr_M, d_arr_M, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_M to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I7, d_arr_I7, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I7 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				err = cudaMemcpy(arr_P_new, d_arr_P_new, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_P_new to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I8, d_arr_I8, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I8 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				err = cudaMemcpy(arr_I0, d_arr_I0, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I0 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-					err = cudaMemcpy(arr_I9, d_arr_I9, totalMemSize, cudaMemcpyDeviceToHost);
-					if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I9 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				err = cudaMemcpy(arr_I1, d_arr_I1, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I1 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-				}
+				err = cudaMemcpy(arr_I2, d_arr_I2, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I2 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
 
+				err = cudaMemcpy(arr_I3, d_arr_I3, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I3 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				err = cudaMemcpy(arr_I4, d_arr_I4, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I4 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				err = cudaMemcpy(arr_I5, d_arr_I5, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I5 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				err = cudaMemcpy(arr_I6, d_arr_I6, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I6 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				err = cudaMemcpy(arr_I7, d_arr_I7, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I7 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				err = cudaMemcpy(arr_I8, d_arr_I8, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I8 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				err = cudaMemcpy(arr_I9, d_arr_I9, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I9 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 			} else {
 
@@ -1261,38 +1333,20 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 							}
 
 							if (r > 0.0){
-								if (GPU_UPDATECOUNT){
-									UpdateCountKernel<<<gridSize, blockSize>>>(d_arr_GrowthModifier, d_arr_I9,
-																															d_arr_Occ, d_arr_P_new, d_arr_M,
-																															d_arr_p, d_arr_IsActive,
-																															alpha, beta, r, dT, d_Warn_r,
-																															reducedBeta);
 
-									if(!Warn_r){
-										cudaThreadSynchronize();
-										cudaMemcpy(&Warn_r, d_Warn_r, sizeof(bool), cudaMemcpyDeviceToHost);
-										if (Warn_r) {
-											cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-											f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-										}
-									}
-								} else {
-
-
-									p = r*growthModifier*dT;
-									if ((p > 0.25) and (!Warn_r)) {
-										cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-										f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-										Warn_r = true;
-									}
-									N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
-
-									// Update count
-									arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-									arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-									arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-									arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
+								p = r*growthModifier*dT;
+								if ((p > 0.25) and (!Warn_r)) {
+									cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+									f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+									Warn_r = true;
 								}
+								N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
+
+								// Update count
+								arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+								arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
 								// Non-bursting events
 								N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);

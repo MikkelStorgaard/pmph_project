@@ -80,13 +80,13 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
 
   // Compute the growth modifier
   double growthModifier = arr_nutrient[i] / (arr_nutrient[i] + K);
+  if (arr_nutrient[i] < 1) {
+    growthModifier = 0;
+  }
   arr_GrowthModifier[i] = growthModifier;
 
   // Compute birth probability
   double p = g * growthModifier*dT;
-  if (arr_nutrient[i] < 1) {
-    p = 0;
-  }
 
   // Produce warning
   if ((p > 0.1) and (!Warn_g)) *Warn_g = true;
@@ -107,6 +107,61 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
 
 }
+
+
+__global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Occ, double* arr_GrowthModifier, double* arr_M, double* arr_p, double alpha, double beta, double r, double dT, bool* Warn_r, curandState *rng_state, int totalElements){
+
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Out of bounds check
+  if (i >= totalElements){
+    return;
+  }
+  // if (!arr_IsActive[i]){
+  //   return;
+  // }
+
+  // Fetch growthModifier
+  double growthModifier = arr_GrowthModifier[i];
+  double Beta = beta*growthModifier;
+
+  // Compute infection increse probability
+  double p = r * growthModifier *dT;
+
+  // Produce warning
+  if ((p > 0.25) and (!Warn_r)) *Warn_r = true;
+
+  // Compute the number of bursts
+  double N = ComputeEvents(arr_I9[i], p, rng_state[i]);
+
+  // Update count
+  arr_I9[i]    = max(0.0, arr_I9[i] - N);
+  arr_Occ[i]   = max(0.0, arr_Occ[i] - N);
+  arr_P_new[i] += round( (1 - alpha) * Beta * N);
+  arr_M[i]     = round(alpha * Beta * N);
+  arr_p[i]     = p;
+}
+
+__global__ void NonBurstingEvents(double* arr_I, double* arr_In, double* arr_p, curandState *rng_state, int totalElements){
+
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Out of bounds check
+  if (i >= totalElements){
+    return;
+  }
+  // if (!arr_IsActive[i]){
+  //   return;
+  // }
+
+  // Compute the number of bursts
+  double N = ComputeEvents(arr_I[i], arr_p[i], rng_state[i]);
+
+  // Update count
+  arr_I[i]     = max(0.0, arr_I[i] - N);
+  arr_In[i]    += N;
+}
+
 
 //Kernel 3.2 Birth 2
 
@@ -184,42 +239,6 @@ __global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double*
     // Update count
     arr_B_new[i] += N;
     arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
-}
-
-__global__ void BurstingEventsKernel(double* arr_I9, double* P_new, double* arr_M, double* arr_p, bool* arr_IsActive){
-  // int i = blockIdx.x*blockDim.x + threadIdx.x;
-
-  // if (!(arr_IsActive[i])){
-  //   return;
-  // }
-
-
-  //                           p = r*growthModifier*dT;
-  //                           if ((p > 0.25) and (!Warn_r)) {
-  //                               cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-  //                               f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-  //                               Warn_r = true;
-  //                           }
-  //                           N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
-
-  //                           // Update count
-  //                           arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-  //                           arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-  //                           arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-  //                           M = round(alpha * Beta * N);
-
-
-
-
-  // double tmp;
-  // double A = arr_A[i];
-  // double p = arr_p[i];
-
-  // // TODO: FIX ComputeEvents
-  // // tmp = ComputeEvents(A, p, 2, i);
-  // tmp = 1.0;
-  // arr_A[i] = max(0.0, A - tmp);
-  // arr_B[i] += tmp;
 }
 
 __global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* arr_p, bool* arr_IsActive){
