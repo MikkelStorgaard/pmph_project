@@ -993,11 +993,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			if (GPU_NC){
 
 				// Copy to the device
-				err = cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_Occ to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_nC to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+				CopyAllToDevice();
 
 				// Run first Kernel
 				FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
@@ -1005,12 +1001,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in FirstKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
-				err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_Occ to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_nC to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
+				if (!GPU_MAXOCCUPANCY) 	CopyAllToHost();
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
@@ -1034,11 +1025,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			if (GPU_MAXOCCUPANCY) {
 
 				// Copy to the device
-				err = cudaMemcpy(d_arr_Occ, arr_Occ, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_Occ to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_nC, arr_nC, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_nC to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+				if (!GPU_NC) CopyAllToDevice();
 
 				// set active flags
 				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_IsActive, totalElements);
@@ -1051,16 +1038,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
-				err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
-					errC--; }
-
-				err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_Occ to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-
-				err = cudaMemcpy(arr_nC, d_arr_nC, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to copy arr_nC to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+				if (!GPU_BIRTH) CopyAllToHost();
 
 				// excuse this for-loop
 				for (int i = 0; i < gridSize; i++){
@@ -1092,47 +1070,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			if (GPU_BIRTH){
 
 				// Copy to the device
-				err = cudaMemcpy(d_arr_B, arr_B, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_B to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_B_new, arr_B_new, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_B_new to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_nutrient, arr_nutrient, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_nutrient to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_GrowthModifier, arr_GrowthModifier, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_GrowthModifier to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_Warn_g, &this->Warn_g, sizeof(bool), cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_g to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_Warn_fastGrowth, &this->Warn_fastGrowth, sizeof(bool), cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_fastGrowth to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+				if (!GPU_MAXOCCUPANCY) CopyAllToDevice();
 
 				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_rng_state, d_arr_IsActive);
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in ComputeBirthEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
-				err = cudaMemcpy(arr_B, d_arr_B, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_B to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(arr_B_new, d_arr_B_new, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_B_new to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(arr_nutrient, d_arr_nutrient, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_nutrient to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(arr_GrowthModifier, d_arr_GrowthModifier, totalMemSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_GrowthModifier to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(&this->Warn_g, d_Warn_g, sizeof(bool), cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_g to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(&this->Warn_fastGrowth, d_Warn_fastGrowth, sizeof(bool), cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_fastGrowth to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
+			    if (!GPU_INFECTIONS) CopyAllToHost();
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
@@ -1187,11 +1132,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				}
 			}
 
-
 			if (GPU_INFECTIONS){
 
 				// Copy to the device
-				CopyAllToDevice();
+				if (!GPU_BIRTH) CopyAllToDevice();
 
 				// Infections kernels
 				BurstingEvents<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_Occ, d_arr_GrowthModifier, d_arr_M, d_arr_p, alpha, beta, r, dT, d_Warn_r, d_rng_state, d_arr_IsActive);
@@ -1208,7 +1152,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in BurstingEvents or NonBurstingEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
-				CopyAllToHost();
+				if(!GPU_NEWINFECTIONS) CopyAllToHost();
 
 			} else {
 
@@ -1299,11 +1243,19 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			}
 
 			if (GPU_NEWINFECTIONS) {
+
+				// Copy to the device
+				if (!GPU_INFECTIONS) CopyAllToDevice();
+
 				NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
 																										 d_arr_GrowthModifier, d_arr_B, d_arr_B_new,
 																										 d_arr_M, d_arr_I0_new, d_arr_IsActive,
 																										 reducedBeta, clustering, shielding,
 																										 K, alpha, beta, eta, zeta, dT, r);
+
+				// Copy data back from device
+				if (!GPU_PHAGEDECAY) CopyAllToHost();
+
 			} else {
 				// Kernel 5: New infections ///////////////////////////////////////////////////////////////////
 				for (int i = 0; i < nGridXY; i++) {
@@ -1959,7 +1911,6 @@ void Colonies3D::CopyAllToDevice(){
 	CopyToDevice(arr_p, 				d_arr_p, 				20, nGridXY*nGridXY*nGridZ );
 	CopyToDevice(arr_nutrient, 			d_arr_nutrient, 		21, nGridXY*nGridXY*nGridZ );
 	CopyToDevice(arr_GrowthModifier, 	d_arr_GrowthModifier, 	22, nGridXY*nGridXY*nGridZ );
-
 
 };
 

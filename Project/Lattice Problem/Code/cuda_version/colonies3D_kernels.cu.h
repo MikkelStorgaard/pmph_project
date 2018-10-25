@@ -89,7 +89,9 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   double p = g * growthModifier*dT;
 
   // Produce warning
-  if ((p > 0.1) and (!Warn_g)) *Warn_g = true;
+  if ((p > 0.1) and (!(*Warn_g))){
+    *Warn_g = true;
+  }
 
   // Compute the number of births
   double N = ComputeEvents(arr_B[i], p, rng_state[i]);
@@ -97,7 +99,9 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   // Ensure there is enough nutrient
 	if ( N > arr_nutrient[i] ) {
 
-    if (!Warn_fastGrowth) *Warn_fastGrowth = true;
+    if (!(*Warn_fastGrowth)){
+      *Warn_fastGrowth = true;
+    }
 
     N = round( arr_nutrient[i] );
   }
@@ -125,7 +129,9 @@ __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Oc
   double p = r * growthModifier *dT;
 
   // Produce warning
-  if ((p > 0.25) and (!Warn_r)) *Warn_r = true;
+  if ((p > 0.25) and (!(*Warn_r))){
+    *Warn_r = true;
+  }
 
   // Compute the number of bursts
   double N = ComputeEvents(arr_I9[i], p, rng_state[i]);
@@ -234,23 +240,6 @@ __global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double*
     arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
 }
 
-__global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* arr_p, bool* arr_IsActive){
-  // int i = blockIdx.x*blockDim.x + threadIdx.x;
-
-  // if (!(arr_IsActive[i])){
-  //   return;
-  // }
-
-  // double tmp;
-  // double A = arr_A[i];
-  // double p = arr_p[i];
-
-  // // TODO: FIX ComputeEvents
-  // // tmp = ComputeEvents(A, p, 2, i);
-  // tmp = 1.0;
-  // arr_A[i] = max(0.0, A - tmp);
-  // arr_B[i] += tmp;
-}
 
 __global__ void NewInfectionsKernel(double* arr_Occ,
                                     double* arr_nC,
@@ -356,32 +345,23 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
     }
   }
 }
+__global__ void PhageDecay(double* arr_P, double delta, double dT,
+                           bool *warn_delta, curandState* rng_state,
+                           bool* arr_IsActive){
 
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  if (!(arr_IsActive[i])){
+    return;
+  }
 
-//Kernel 6 - phage decay.
-__global__ void SixthKernel(double* arr_P, double p, bool *warn_delta, curandState *d_state, int numberOfElements){
-    int i = blockIdx.x*blockDim.x + threadIdx.x;
-		if (!arr_IsActive[i]){
-		return;
-	}
+ double p = delta*dT;
+ double N = ComputeEvents(arr_P[i], p, rng_state[i]);
 
-    double N = 0;
-    if ((p > 0.1) and (!(*warn_delta))) (*warn_delta) = true;
+ if ((p > 0.1) && (!(*warn_delta))){
+   *warn_delta = true;
+ }
 
-    N = ComputeEvents(arr_P[i], p, d_state[i]);
-
-    arr_P[i]    = max(0.0, arr_P[i] - N);
-
-
-__global__ void SeventhKernel(){
-
-// Phage decay
-
-// Compute p
-// Compute n
-
-// Update P
-
+ arr_P[i] = max(0.0, arr_P[i] - N);
 }
 
 #endif
