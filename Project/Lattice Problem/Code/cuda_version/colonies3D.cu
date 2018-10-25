@@ -6,8 +6,6 @@
 #define GPU_MAXOCCUPANCY true
 #define GPU_BIRTH true
 #define GPU_INFECTIONS true
-#define GPU_UPDATECOUNT false
-#define GPU_NONBURSTINGEVENTS false
 #define GPU_NEWINFECTIONS false
 #define GPU_PHAGEDECAY false
 #define GPU_MOVEMENT false
@@ -955,6 +953,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	err = cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
+
 	initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
 
 
@@ -1040,6 +1039,11 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				// Copy data back from device
 				if (!GPU_BIRTH) CopyAllToHost();
 
+				err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
+					errC--; }
+
+
 				// excuse this for-loop
 				for (int i = 0; i < gridSize; i++){
 					maxOccupancy = max(maxOccupancy, arr_maxOccupancy[i]);
@@ -1077,7 +1081,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in ComputeBirthEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
-			    if (!GPU_INFECTIONS) CopyAllToHost();
+				if (!GPU_INFECTIONS) CopyAllToHost();
+
+				err = cudaMemcpy(&this->Warn_g, d_Warn_g, sizeof(bool), cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_g to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				err = cudaMemcpy(&this->Warn_fastGrowth, d_Warn_fastGrowth, sizeof(bool), cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_fastGrowth to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
@@ -1153,6 +1164,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 				// Copy data back from device
 				if(!GPU_NEWINFECTIONS) CopyAllToHost();
+
+				err = cudaMemcpy(&this->Warn_r, d_Warn_r, sizeof(bool), cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_r to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
 
 			} else {
 
