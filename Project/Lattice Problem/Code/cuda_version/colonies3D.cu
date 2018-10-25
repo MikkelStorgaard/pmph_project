@@ -883,7 +883,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	}
 
 	if (GPU_BIRTH || GPU_INFECTIONS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT) {
-		err = cudaMalloc(&d_rng_state, totalElements*sizeof(curandState));
+		err = cudaMalloc((void**)&d_rng_state, sizeof(curandState)*totalElements);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_rng_state on the device! error = %s\n", cudaGetErrorString(err));
 
 		err = cudaMemcpy(d_rng_state, rng_state, sizeof(curandState)*totalElements, cudaMemcpyHostToDevice);
