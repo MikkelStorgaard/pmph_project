@@ -863,6 +863,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	double *d_arr_maxOccupancy;
 
 	if (GPU_NC || GPU_MAXOCCUPANCY || GPU_BIRTH || GPU_INFECTIONS || GPU_UPDATECOUNT || GPU_NONBURSTINGEVENTS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT ) {
+
 		err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
 		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -1070,6 +1071,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_fastGrowth to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_rng_state, d_arr_IsActive);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in ComputeBirthEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
+
 
 				if (!GPU_INFECTIONS) { // Only ofload if next part is not on GPU
 
