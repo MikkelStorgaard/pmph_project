@@ -13,7 +13,6 @@
 #define GPU_MOVEMENT false
 
 
-
 using namespace std;
 
 // Constructers /////////////////////////////////////////////////////////////////////////
@@ -860,18 +859,16 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	cudaError_t err = cudaSuccess;
 
 	// Allocate on GPU
-	if (GPU_NC || GPU_MAXOCCUPANCY) {
+	double *arr_maxOccupancy = new double[gridSize]();
+	double *d_arr_maxOccupancy;
+
+	if (GPU_NC || GPU_MAXOCCUPANCY || GPU_BIRTH || GPU_INFECTIONS || GPU_UPDATECOUNT || GPU_NONBURSTINGEVENTS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT ) {
 		err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err));
 
 		err = cudaMalloc((void**)&d_arr_Occ, totalMemSize);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_Occ on the device! error = %s\n", cudaGetErrorString(err));
-	}
 
-	double *arr_maxOccupancy = new double[gridSize]();
-	double *d_arr_maxOccupancy;
-
-	if (GPU_MAXOCCUPANCY) {
 		err = cudaMalloc((void**)&d_arr_IsActive, gridSize*sizeof(bool));
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_IsActive on the device! error = %s\n", cudaGetErrorString(err));
 
@@ -880,20 +877,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 		err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyHostToDevice);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy arr_maxOccupancy to the device! error = %s\n", cudaGetErrorString(err));
-	}
 
-	if (GPU_BIRTH || GPU_INFECTIONS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT) {
 		err = cudaMalloc((void**)&d_rng_state, sizeof(curandState)*totalElements);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_rng_state on the device! error = %s\n", cudaGetErrorString(err));
 
 		err = cudaMemcpy(d_rng_state, rng_state, sizeof(curandState)*totalElements, cudaMemcpyHostToDevice);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy rng_state to the device! error = %s\n", cudaGetErrorString(err));
-
-		initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
-	}
-
-
-	if (GPU_BIRTH) {
 
 		err = cudaMalloc((void**)&d_arr_B, totalMemSize);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate arr_B on the device! error = %s\n", cudaGetErrorString(err));
@@ -916,14 +905,15 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		err = cudaMalloc((void**)&d_arr_rng, sizeof(std::mt19937)*totalElements);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_arr_rng on the device! error = %s\n", cudaGetErrorString(err));
 
+		err = cudaMalloc((void**)&d_Warn_r, sizeof(bool));
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err));
+
+		err = cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy Warn_r to the device! error = %s\n", cudaGetErrorString(err));
+
+		initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
+
 	}
-
-	err = cudaMalloc((void**)&d_Warn_r, sizeof(bool));
-	if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err));
-
-	err = cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
-	if (err != cudaSuccess)	fprintf(stderr, "Failed to copy Warn_r to the device! error = %s\n", cudaGetErrorString(err));
-
 
 	// Loop over samplings
 	for (int n = 0; n < nSamplings; n++) {
