@@ -109,17 +109,13 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
 }
 
 
-__global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Occ, double* arr_GrowthModifier, double* arr_M, double* arr_p, double alpha, double beta, double r, double dT, bool* Warn_r, curandState *rng_state, int totalElements){
+__global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Occ, double* arr_GrowthModifier, double* arr_M, double* arr_p, double alpha, double beta, double r, double dT, bool* Warn_r, curandState *rng_state, bool* arr_IsActive){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  // Out of bounds check
-  if (i >= totalElements){
+  if (!arr_IsActive[i]){
     return;
   }
-  // if (!arr_IsActive[i]){
-  //   return;
-  // }
 
   // Fetch growthModifier
   double growthModifier = arr_GrowthModifier[i];
@@ -142,17 +138,14 @@ __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Oc
   arr_p[i]     = p;
 }
 
-__global__ void NonBurstingEvents(double* arr_I, double* arr_In, double* arr_p, curandState *rng_state, int totalElements){
+__global__ void NonBurstingEvents(double* arr_I, double* arr_In, double* arr_p, curandState *rng_state, bool* arr_IsActive){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
   // Out of bounds check
-  if (i >= totalElements){
+  if (!arr_IsActive[i]){
     return;
   }
-  // if (!arr_IsActive[i]){
-  //   return;
-  // }
 
   // Compute the number of bursts
   double N = ComputeEvents(arr_I[i], arr_p[i], rng_state[i]);
