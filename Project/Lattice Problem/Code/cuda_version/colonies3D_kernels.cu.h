@@ -2,6 +2,23 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
+__global__ void ComputeEvents_seq(double *N, double n, double p, curandState* curandstate, int index){
+    // Trivial cases
+    int i = blockDim.x*blockIdx.x + threadIdx.x;
+
+    if (i == index) {
+
+      *N = 0.0;
+
+      if (p == 1) return;
+      if (p == 0) return;
+      if (n < 1)  return;
+
+      *N = round((double)curand_poisson(&curandstate[i], n*p));
+
+    }
+}
+
 __device__ double ComputeEvents(double n, double p, curandState curandstate){
     // Trivial cases
 
@@ -177,7 +194,8 @@ __global__ void UpdateCountKernel(double* arr_GrowthModifier,
                                   double r,
                                   double dT,
                                   bool* Warn_r,
-                                  bool reducedBeta
+                                  bool reducedBeta,
+                                  curandState* rng_state
                                   ){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -205,8 +223,8 @@ __global__ void UpdateCountKernel(double* arr_GrowthModifier,
   }
   arr_p[i] = p;
 
-  //tmp = ComputeEvents(arr_I9[i], p, 2, i);  // Bursting events
-  tmp = 1.0;
+  tmp = ComputeEvents(arr_I9[i], p, rng_state[i]);  // Bursting events
+
   // Update count
   arr_I9[i]    = max(0.0, arr_I9[i] - tmp);
   arr_Occ[i]   = max(0.0, arr_Occ[i] - tmp);
@@ -260,7 +278,9 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
                                     double eta,
                                     double zeta,
                                     double dT,
-                                    double r){
+                                    double r,
+                                    curandState* rng_state
+                                    ){
 
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   bool isInactive = (!(arr_IsActive[tid]));
@@ -304,11 +324,7 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
       tmp = P;
     } else {
       p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-      //tmp = ComputeEvents(P, p, 4, tid);           // Number of targets hit //
-      tmp = 1;
-      // TODO: replace ComputeEvents with something that works
-      /* ComputeEvents used to be (..., i, j, k), but in this flat kernel,
-         tid is equal to i * j * k */
+      tmp = ComputeEvents(P, p, rng_state[tid]);           // Number of targets hit //
     }
 
     if (tmp + M >= 1) {
@@ -329,10 +345,8 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
       }
 
       p = max(0.0, min(B / Occ, S)); // Probability of hitting succebtible target
-      // TODO:
-      //tmp = ComputeEvents(tmp + M, p, 4, tid); // Number of targets hit
-      tmp = 1;
 
+      tmp = ComputeEvents(tmp + M, p, rng_state[tid]); // Number of targets hit
       tmp = min(tmp, B); // If more bacteria than present are set to be infeced, round down
 
       // Update the counts
