@@ -14,12 +14,12 @@ __global__ void setup_kernel(curandState *state){
 
 __global__ void generate_kernel(curandState *my_curandstate, float *result, int *resultp){
     int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    result[idx] = curand_uniform(&my_curandstate[idx] + 1);
-    resultp[idx] = curand_poisson(&my_curandstate[idx], 10);
+    result[idx] = curand_uniform(&my_curandstate[idx])+1;
+    resultp[idx] = curand_poisson(&my_curandstate[idx], 0);
 }
 
 int main(){
-  int ITER = 10000;
+  int ITER = 10;
 
   curandState *d_state;
   cudaMalloc(&d_state, ITER*sizeof(curandState));
