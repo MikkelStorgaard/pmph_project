@@ -4,8 +4,8 @@
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH false
-#define GPU_INFECTIONS false
+#define GPU_BIRTH true
+#define GPU_INFECTIONS true
 #define GPU_UPDATECOUNT false
 #define GPU_NONBURSTINGEVENTS false
 #define GPU_NEWINFECTIONS false
@@ -934,6 +934,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	err = cudaMalloc((void**)&d_arr_M, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_M on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
+	err = cudaMalloc((void**)&d_arr_p, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_p to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
 	err = cudaMalloc((void**)&d_arr_nutrient, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nutrient on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -1191,6 +1194,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				// Copy to the device
 				err = cudaMemcpy(d_arr_M, arr_M, totalMemSize, cudaMemcpyHostToDevice);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_M to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				err = cudaMemcpy(d_arr_p, arr_p, totalMemSize, cudaMemcpyHostToDevice);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_p to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				err = cudaMemcpy(d_arr_P_new, arr_P_new, totalMemSize, cudaMemcpyHostToDevice);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_P_new to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -2047,6 +2053,7 @@ void Colonies3D::Initialize() {
 
 		arr_M = new double[nGridXY*nGridXY*nGridZ]();
 		arr_GrowthModifier = new double[nGridXY*nGridXY*nGridZ]();
+		arr_p = new double[nGridXY*nGridXY*nGridZ]();
 
 		// Initialize arrays
 		for (int i = 0; i < nGridXY; i++) {
