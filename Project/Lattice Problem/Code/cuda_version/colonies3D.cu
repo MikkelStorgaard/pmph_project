@@ -1303,7 +1303,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 																										 d_arr_GrowthModifier, d_arr_B, d_arr_B_new,
 																										 d_arr_M, d_arr_I0_new, d_arr_IsActive,
 																										 reducedBeta, clustering, shielding,
-																										 K, alpha, beta, eta, zeta, dT, r);
+																										 K, alpha, beta, eta, zeta, dT, r, d_rng_state);
 			} else {
 				// Kernel 5: New infections ///////////////////////////////////////////////////////////////////
 				for (int i = 0; i < nGridXY; i++) {
