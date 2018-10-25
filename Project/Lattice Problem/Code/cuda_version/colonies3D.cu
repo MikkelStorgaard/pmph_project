@@ -3,8 +3,8 @@
 // #include "colonies3D_helpers.cu"
 
 #define GPU_NC true
-#define GPU_MAXOCCUPANCY false
-#define GPU_BIRTH true
+#define GPU_MAXOCCUPANCY true
+#define GPU_BIRTH false
 #define GPU_INFECTIONS false
 #define GPU_UPDATECOUNT false
 #define GPU_NONBURSTINGEVENTS false
@@ -998,7 +998,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Run second Kernel
-				SecondKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, blockSize);
+				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(double)>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, blockSize);
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 
