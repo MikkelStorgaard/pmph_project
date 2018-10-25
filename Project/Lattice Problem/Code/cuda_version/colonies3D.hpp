@@ -209,6 +209,10 @@ class Colonies3D {
     int         Run_LoopDistributed_GPU(double T_end);                          // Controls the evaluation of the simulation
 
  private:
+	void 		CopyToHost(double* hostArray, double* deviceArray, int failCode, int gridsz);
+	void		CopyToDevice(double* deviceArray, double* hostArray, int failCode, int gridsz);
+	void 		CopyAllToHost();
+	void		CopyAllToDevice();
     void        Initialize();                                                   // Initialize the simulation
     void        spawnBacteria();                                                // Spawns the bacteria
     void        spawnPhages();                                                  // Spawns the phages

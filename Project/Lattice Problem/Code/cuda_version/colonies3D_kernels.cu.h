@@ -345,7 +345,6 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
     }
   }
 }
-
 __global__ void PhageDecay(double* arr_P, double delta, double dT,
                            bool *warn_delta, curandState* rng_state,
                            bool* arr_IsActive){

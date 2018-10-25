@@ -1275,6 +1275,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents9! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
+				// Copy data back from device
 				err = cudaMemcpy(arr_M, d_arr_M, totalMemSize, cudaMemcpyDeviceToHost);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_M to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -1310,6 +1311,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 				err = cudaMemcpy(arr_I9, d_arr_I9, totalMemSize, cudaMemcpyDeviceToHost);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I9 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				err = cudaMemcpy(arr_Occ, d_arr_Occ, totalMemSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_Occ to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 			} else {
 
@@ -1496,7 +1500,25 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			// Phage decay ///////////////////////////////////////////////////////////////////
 			if (GPU_PHAGEDECAY) {
+			/*
+				// If previous kernel is not used, copy arrays to device
+				if(!GPU_NEWINFECTIONS){
+					cudaMemcpy(d_arr_P, arr_P, totalMemSize, cudaMemcpyHostToDevice);
+				}
+
+				// Så vidt jeg kan se, er p på dette tidspunkt udregnet fra konstanter, og behøver derfor ikke være i kernel.
+				double p;
+				p = delta*dT;
+
+				SixthKernel<<<gridSize, blockSize>>>(d_arr_P, p, &Warn_delta, totalElements, d_rng_state);
+				cudaMemcpy(arr_P, d_arr_P, totalMemSize, cudaMemcpyDeviceToHost);
+
+				// logging of warning (cout <<... and f_log << ... moved outside
+				// loop to ensure it is only triggered once
+
+
 				// Do Stuff
+				*/
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
@@ -1538,23 +1560,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			}
 
 
-			// Så vidt jeg kan se, er p på dette tidspunkt udregnet fra konstanter, og behøver derfor ikke være i kernel.
 
-			/*
-										double p;
-										p = delta*dT;
 
-										double *d_arr_P;
-										cudaMalloc((void**)&d_arr_P , totalMemSize);
-										cudaMemcpy(d_arr_P, arr_P, totalMemSize, cudaMemcpyHostToDevice);
-
-										// Kernel call to replace the above:
-										SixthKernel<<<gridSize, blockSize>>>(d_arr_P, p, &Warn_delta, totalElements);
-										cudaMemcpy(arr_P, d_arr_P, totalMemSize, cudaMemcpyDeviceToHost);
-										cudaFree(d_arr_P);
-										// logging of warning (cout <<... and f_log << ... moved outside
-										// loop to ensure it is only triggered once
-										*/
 
 			// Movement ///////////////////////////////////////////////////////////////////
 			if (GPU_MOVEMENT) {
@@ -1973,6 +1980,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	}
 	if (GPU_BIRTH || GPU_INFECTIONS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT) {
 		cudaFree(d_rng_state);
+		cudaFree(d_arr_P);
 	}
 
 
@@ -1987,7 +1995,43 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 // GPU loop end
 /////////////////////////////////////////////////////////////////////
 
+// GPU copy helper functions
+void Colonies3D::CopyToHost(double* hostArray, double* deviceArray, int failCode, int gridsz){
+	cudaError_t err = cudaSuccess;
+	err = cudaMemcpy(hostArray, deviceArray, sizeof(double)*gridsz, cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy to the host! Code %d error = %s\n", failCode, cudaGetErrorString(err));
+}
 
+///////
+void Colonies3D::CopyAllToHost(){
+
+	CopyToHost(arr_M, d_arr_M, 1, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_P_new, d_arr_P_new, 2, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I0, d_arr_I0, 3, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I1, d_arr_I1, 4, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I2, d_arr_I2, 5, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I3, d_arr_I3, 6, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I4, d_arr_I4, 7, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I5, d_arr_I5, 8, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I6, d_arr_I6, 9, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I7, d_arr_I7, 10, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I8, d_arr_I8, 11, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I9, d_arr_I9, 12, nGridXY*nGridXY*nGridZ);
+
+}
+
+
+
+////
+void		CopyToDevice(double* hostArray, double* deviceArray, int failCode, int gridsz){
+	cudaError_t err = cudaSuccess;
+	err = cudaMemcpy(deviceArray, hostArray, sizeof(double)*gridsz, cudaMemcpyHostToDevice);
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy to the device! Code %d error = %s\n", failCode, cudaGetErrorString(err));
+}
+
+////
+void Colonies3D::CopyAllToDevice(){
+};
 
 // Initialize the simulation
 void Colonies3D::Initialize() {
