@@ -92,7 +92,9 @@ class Colonies3D {
   std::mt19937 rng;               // Mersenne twister, random number generator
   std::mt19937* arr_rng;          // Mersenne twister, random number generator
   std::mt19937* d_arr_rng;        // Mersenne twister, random number generator
-	curandState *d_state;
+
+	curandState *rng_state;
+  curandState *d_rng_state;
 
   std::uniform_real_distribution  <double> rand;
   std::normal_distribution        <double> randn;

@@ -1,6 +1,4 @@
 // #include "colonies3D_helpers.cu"
-
-
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
@@ -70,7 +68,9 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
 
 
 __global__ void initRNG(curandState *state, int N){
-  int i = threadIdx.x+blockDim.x*blockIdx.x;
+
+  int i = blockDim.x*blockIdx.x + threadIdx.x;
+
   if (i < N) {
     curand_init(i, 0, 0, &state[i]);
   }

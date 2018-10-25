@@ -883,10 +883,13 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	}
 
 	if (GPU_BIRTH || GPU_INFECTIONS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT) {
-		err = cudaMalloc(&d_state, totalElements*sizeof(curandState));
-		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_state on the device! error = %s\n", cudaGetErrorString(err));
+		err = cudaMalloc(&d_rng_state, totalElements*sizeof(curandState));
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_rng_state on the device! error = %s\n", cudaGetErrorString(err));
 
-		initRNG<<<gridSize,blockSize>>>(d_state, totalElements);
+		err = cudaMemcpy(d_rng_state, rng_state, sizeof(curandState)*totalElements)
+		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy rng_state to the device! error = %s\n", cudaGetErrorString(err));
+
+		initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
 	}
 
 
@@ -1089,7 +1092,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess)	fprintf(stderr, "Failed to copy d_arr_rng to the device! error = %s\n", cudaGetErrorString(err));
 
 
-				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_state, totalElements);
+				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_rng_state, totalElements);
 
 				if (!GPU_INFECTIONS) { // Only ofload if next part is not on GPU
 
@@ -1879,7 +1882,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		cudaFree(d_arr_maxOccupancy);
 	}
 	if (GPU_BIRTH || GPU_INFECTIONS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT) {
-		cudaFree(d_state);
+		cudaFree(d_rng_state);
 	}
 
 
@@ -1954,6 +1957,8 @@ void Colonies3D::Initialize() {
 		arr_nutrient_new = new double[nGridXY*nGridXY*nGridZ]();
 
 		arr_rng = new std::mt19937[nGridXY*nGridXY*nGridZ];
+
+		rng_state = new curandState[nGridXY*nGridXY*nGridZ];
 
 		arr_M = new double[nGridXY*nGridXY*nGridZ]();
 		arr_GrowthModifier = new double[nGridXY*nGridXY*nGridZ]();
