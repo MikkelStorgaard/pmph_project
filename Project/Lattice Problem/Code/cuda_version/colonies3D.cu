@@ -1465,7 +1465,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			/*
 				// If previous kernel is not used, copy arrays to device
 				if(!GPU_NEWINFECTIONS){
-					cudaMemcpy(d_arr_P, arr_P, totalMemSize, cudaMemcpyHostToDevice);
+					CopyAllToDevice;
 				}
 
 				// Så vidt jeg kan se, er p på dette tidspunkt udregnet fra konstanter, og behøver derfor ikke være i kernel.
@@ -1997,6 +1997,7 @@ void		CopyToDevice(double* hostArray, double* deviceArray, int failCode, int gri
 
 ////
 void Colonies3D::CopyAllToDevice(){
+	CopyToDevice(arr_P, d_arr_P, 13, nGridXY*nGridXY*nGridZ);
 };
 
 // Initialize the simulation

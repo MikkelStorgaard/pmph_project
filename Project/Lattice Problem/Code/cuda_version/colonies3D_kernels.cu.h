@@ -356,23 +356,22 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
     }
   }
 }
-/*
+
+
 //Kernel 6 - phage decay.
 __global__ void SixthKernel(double* arr_P, double p, bool *warn_delta, curandState *d_state, int numberOfElements){
     int i = blockIdx.x*blockDim.x + threadIdx.x;
-    if(i >= numberOfElements) return;
+		if (!arr_IsActive[i]){
+		return;
+	}
 
-    // TODO: skip empty sites or not?? (Not included here)
     double N = 0;
- // TODO: figure out a shared variable warn
-    if ((p > 0.1) and (!warn_delta)) &warn_delta = true;
+    if ((p > 0.1) and (!(*warn_delta))) (*warn_delta) = true;
 
-
-    // TODO: do proper Compute events:
-    N = ComputeEvents(arr_P[i], p, 5, i, d_state);
+    N = ComputeEvents(arr_P[i], p, d_state[i]);
 
     arr_P[i]    = max(0.0, arr_P[i] - N);
-*/
+
 
 __global__ void SeventhKernel(){
 
