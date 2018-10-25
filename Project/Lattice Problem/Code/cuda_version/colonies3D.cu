@@ -953,7 +953,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						}
 
 						/* BEGIN anden Map-kernel */
-						ComputeEvents_seq<<<1,1>>>(d_N, arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+						ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 						cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 						// Ensure there is enough nutrient
 						if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
@@ -1008,7 +1008,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								f_log  << "Warning: Infection Increase Probability Large!" << "\n";
 								Warn_r = true;
 							}
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 
 							// Update count
@@ -1018,47 +1018,47 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
 							// Non-bursting events
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							ComputeEvents_seq<<<1,1>>>(d_N, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
@@ -1116,7 +1116,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
 							} else {
 								p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-								ComputeEvents_seq<<<1,1>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							}
 
@@ -1138,7 +1138,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 								p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
 																	S)); // Probability of hitting succebtible target
-								ComputeEvents_seq<<<1,1>>>(d_N, N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 
 								if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
@@ -1181,7 +1181,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								f_log  << "Warning: Decay Probability Large!" << "\n";
 								Warn_delta = true;
 						}
-						ComputeEvents_seq<<<1,1>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state[i*nGridXY*nGridZ + j*nGridZ + k]);
+						ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 						cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 
 						// Update count
