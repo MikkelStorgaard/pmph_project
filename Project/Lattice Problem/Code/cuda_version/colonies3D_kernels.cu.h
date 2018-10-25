@@ -2,14 +2,14 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
-__device__ double ComputeEvents(double n, double p, int flag, int i, curandState *my_curandstate){
+__device__ double ComputeEvents(double n, double p, curandState curandstate){
     // Trivial cases
 
     if (p == 1) return n;
     if (p == 0) return 0.0;
     if (n < 1)  return 0.0;
 
-    double N = (double)curand_poisson(&my_curandstate[i], n*p);
+    double N = (double)curand_poisson(&curandstate, n*p);
 
     return round(N);
 }
@@ -74,12 +74,13 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   }
 }
 
-__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *d_state, bool* arr_IsActive){
+// __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *d_state, bool* arr_IsActive){
+__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, int totalElements){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
   // Out of bounds check
-  if (!arr_IsActive[i]){
+  if (i >= totalElements){
     return;
   }
 
@@ -98,15 +99,7 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
 
 
   // Compute the number of births
-  double N = 0.0;
-
-   // Trivial cases
-  if (p == 1) {
-    N = round(arr_B[i]);
-  } else {
-
-    N = curand_poisson(&d_state[i], arr_B[i]*p);
-  }
+  double N = ComputeEvents(arr_B[i], p, rng_state[i]);
 
   // Ensure there is enough nutrient
 	if ( N > arr_nutrient[i] ) {
