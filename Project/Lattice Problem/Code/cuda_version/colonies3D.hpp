@@ -194,9 +194,9 @@ class Colonies3D {
   bool* d_arr_IsActive;
 
   // Active-array
-  bool* d_Warn_r;
   bool* d_Warn_g;
   bool* d_Warn_fastGrowth;
+  bool* d_Warn_r;
 
 
 

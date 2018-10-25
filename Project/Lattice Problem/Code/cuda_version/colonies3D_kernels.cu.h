@@ -2,14 +2,14 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
-__device__ double ComputeEvents(double n, double p, int flag, int i, curandState *my_curandstate){
+__device__ double ComputeEvents(double n, double p, curandState curandstate){
     // Trivial cases
 
     if (p == 1) return n;
     if (p == 0) return 0.0;
     if (n < 1)  return 0.0;
 
-    double N = (double)curand_poisson(&my_curandstate[i], n*p);
+    double N = (double)curand_poisson(&curandstate, n*p);
 
     return round(N);
 }
@@ -70,14 +70,18 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   }
 }
 
-__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *d_state, bool* arr_IsActive){
+// __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, bool* arr_IsActive){
+__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, int totalElements){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  // Out of bounds check
-  if (!arr_IsActive[i]){
+  Out of bounds check
+  if (i >= totalElements){
     return;
   }
+  // if (!arr_IsActive[i]){
+  //   return;
+  // }
 
   // Compute the growth modifier
   double growthModifier = arr_nutrient[i] / (arr_nutrient[i] + K);
@@ -92,17 +96,8 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   // Produce warning
   if ((p > 0.1) and (!Warn_g)) *Warn_g = true;
 
-
   // Compute the number of births
-  double N = 0.0;
-
-   // Trivial cases
-  if (p == 1) {
-    N = round(arr_B[i]);
-  } else {
-
-    N = curand_poisson(&d_state[i], arr_B[i]*p);
-  }
+  double N = ComputeEvents(arr_B[i], p, rng_state[i]);
 
   // Ensure there is enough nutrient
 	if ( N > arr_nutrient[i] ) {
@@ -196,24 +191,58 @@ __global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double*
     arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
 }
 
+__global__ void BurstingEventsKernel(double* arr_I9, double* P_new, double* arr_M, double* arr_p, bool* arr_IsActive){
+  // int i = blockIdx.x*blockDim.x + threadIdx.x;
 
+  // if (!(arr_IsActive[i])){
+  //   return;
+  // }
+
+
+  //                           p = r*growthModifier*dT;
+  //                           if ((p > 0.25) and (!Warn_r)) {
+  //                               cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+  //                               f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+  //                               Warn_r = true;
+  //                           }
+  //                           N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
+
+  //                           // Update count
+  //                           arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+  //                           arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+  //                           arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+  //                           M = round(alpha * Beta * N);
+
+
+
+
+  // double tmp;
+  // double A = arr_A[i];
+  // double p = arr_p[i];
+
+  // // TODO: FIX ComputeEvents
+  // // tmp = ComputeEvents(A, p, 2, i);
+  // tmp = 1.0;
+  // arr_A[i] = max(0.0, A - tmp);
+  // arr_B[i] += tmp;
+}
 
 __global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* arr_p, bool* arr_IsActive){
-  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  // int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  if (!(arr_IsActive[i])){
-    return;
-  }
+  // if (!(arr_IsActive[i])){
+  //   return;
+  // }
 
-  double tmp;
-  double A = arr_A[i];
-  double p = arr_p[i];
+  // double tmp;
+  // double A = arr_A[i];
+  // double p = arr_p[i];
 
-  // TODO: FIX ComputeEvents
-  // tmp = ComputeEvents(A, p, 2, i);
-  tmp = 1.0;
-  arr_A[i] = max(0.0, A - tmp);
-  arr_B[i] += tmp;
+  // // TODO: FIX ComputeEvents
+  // // tmp = ComputeEvents(A, p, 2, i);
+  // tmp = 1.0;
+  // arr_A[i] = max(0.0, A - tmp);
+  // arr_B[i] += tmp;
 }
 
 __global__ void NewInfectionsKernel(double* arr_Occ,
