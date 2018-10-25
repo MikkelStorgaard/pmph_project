@@ -2004,45 +2004,19 @@ void Colonies3D::CopyToHost(double* hostArray, double* deviceArray, int failCode
 
 ///////
 void Colonies3D::CopyAllToHost(){
-	CopyToHost()
 
-
-	CopyToHost(arr_M, d_arr_M, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_M to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_P_new, d_arr_P_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_P_new to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I0, d_arr_I0, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I0 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I1, d_arr_I1, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I1 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I2, d_arr_I2, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I2 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I3, d_arr_I3, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I3 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I4, d_arr_I4, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I4 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I5, d_arr_I5, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I5 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I6, d_arr_I6, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I6 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I7, d_arr_I7, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I7 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I8, d_arr_I8, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I8 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	CopyToHost(arr_I9, d_arr_I9, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy d_arr_I9 to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
+	CopyToHost(arr_M, d_arr_M, 1, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_P_new, d_arr_P_new, 2, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I0, d_arr_I0, 3, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I1, d_arr_I1, 4, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I2, d_arr_I2, 5, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I3, d_arr_I3, 6, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I4, d_arr_I4, 7, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I5, d_arr_I5, 8, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I6, d_arr_I6, 9, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I7, d_arr_I7, 10, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I8, d_arr_I8, 11, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I9, d_arr_I9, 12, nGridXY*nGridXY*nGridZ);
 
 }
 
