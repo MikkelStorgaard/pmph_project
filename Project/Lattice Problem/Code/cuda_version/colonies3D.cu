@@ -2005,7 +2005,7 @@ void 		CopyAllToHost(){
 
 
 ////
-void		CopyToDevice(double* deviceArray, double* hostArray, int failCode, int gridsz){
+void		CopyToDevice(double* hostArray, double* deviceArray, int failCode, int gridsz){
 	cudaError_t err = cudaSuccess;
 	err = cudaMemcpy(deviceArray, hostArray, sizeof(double)*gridsz, cudaMemcpyHostToDevice);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy to the device! Code %d error = %s\n", failCode, cudaGetErrorString(err));
