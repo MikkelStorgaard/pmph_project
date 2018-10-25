@@ -240,23 +240,6 @@ __global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double*
     arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
 }
 
-__global__ void NonBurstingEventsKernel(double* arr_A, double* arr_B, double* arr_p, bool* arr_IsActive){
-  // int i = blockIdx.x*blockDim.x + threadIdx.x;
-
-  // if (!(arr_IsActive[i])){
-  //   return;
-  // }
-
-  // double tmp;
-  // double A = arr_A[i];
-  // double p = arr_p[i];
-
-  // // TODO: FIX ComputeEvents
-  // // tmp = ComputeEvents(A, p, 2, i);
-  // tmp = 1.0;
-  // arr_A[i] = max(0.0, A - tmp);
-  // arr_B[i] += tmp;
-}
 
 __global__ void NewInfectionsKernel(double* arr_Occ,
                                     double* arr_nC,
