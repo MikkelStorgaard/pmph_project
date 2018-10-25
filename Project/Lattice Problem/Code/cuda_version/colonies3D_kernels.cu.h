@@ -70,9 +70,9 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
 
 
 __global__ void initRNG(curandState *state, int N){
-  int idx = threadIdx.x+blockDim.x*blockIdx.x;
-  if (idx < N) {
-    curand_init(0, idx, 0, state);
+  int i = threadIdx.x+blockDim.x*blockIdx.x;
+  if (i < N) {
+    curand_init(i, 0, 0, &state[i]);
   }
 }
 
