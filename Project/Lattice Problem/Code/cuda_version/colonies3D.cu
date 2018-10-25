@@ -886,7 +886,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		err = cudaMalloc(&d_rng_state, totalElements*sizeof(curandState));
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to allocate d_rng_state on the device! error = %s\n", cudaGetErrorString(err));
 
-		err = cudaMemcpy(d_rng_state, rng_state, sizeof(curandState)*totalElements)
+		err = cudaMemcpy(d_rng_state, rng_state, sizeof(curandState)*totalElements, cudaMemcpyHostToDevice);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy rng_state to the device! error = %s\n", cudaGetErrorString(err));
 
 		initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
