@@ -14,6 +14,15 @@ __device__ double ComputeEvents(double n, double p, int flag, int i, curandState
     return round(N);
 }
 
+__global__ void initRNG(curandState *state, int N){
+
+  int i = blockDim.x*blockIdx.x + threadIdx.x;
+
+  if (i < N) {
+    curand_init(i, 0, 0, &state[i]);
+  }
+}
+
 __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -28,15 +37,14 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
   }
 }
 
-__global__ void SetIsActive(double* arr_Occ, double* arr_nC, bool* arr_IsActive, int N){
+__global__ void SetIsActive(double* arr_Occ, bool* arr_IsActive, int N){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
   bool insideBounds = (i < N);
 
-  double nC =  insideBounds ? arr_nC[i] : 0.0;
   double Occ = insideBounds ? arr_Occ[i] : 0.0;
-  arr_IsActive[i] = insideBounds && (nC >= 1.0 || Occ >= 1.0);
+  arr_IsActive[i] = insideBounds && (Occ >= 1.0);
 
 }
 
@@ -66,22 +74,12 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   }
 }
 
-
-__global__ void initRNG(curandState *state, int N){
-
-  int i = blockDim.x*blockIdx.x + threadIdx.x;
-
-  if (i < N) {
-    curand_init(i, 0, 0, &state[i]);
-  }
-}
-
-__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *d_state, int totalElements){
+__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *d_state, bool* arr_IsActive){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
   // Out of bounds check
-  if (i>= totalElements){
+  if (!arr_IsActive[i]){
     return;
   }
 
@@ -123,6 +121,7 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
 
 }
+
 //Kernel 3.2 Birth 2
 
 
