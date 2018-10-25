@@ -49,6 +49,8 @@ int main(int argc, char** argv){
         s.Run_LoopDistributed_GPU(T);
     } else if (k == 1) {
         s.Run_LoopDistributed_CPU(T);
+    } else if (k == 2) {
+        s.Run_LoopDistributed_CPU_cuRand(T);
     }
 
     return 0;
