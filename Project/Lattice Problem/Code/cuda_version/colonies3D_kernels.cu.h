@@ -52,9 +52,11 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
 }
 
 
-__global__ void initRNG(curandState *state){
+__global__ void initRNG(curandState *state, int N){
   int idx = threadIdx.x+blockDim.x*blockIdx.x;
-  curand_init(0, idx, 0, &state[idx]);
+  if (i < N) {
+    curand_init(0, idx, 0, &state);
+  }
 }
 
 __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *d_state, int totalElements){
