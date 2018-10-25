@@ -1191,88 +1191,21 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			if (GPU_INFECTIONS){
 
 				// Copy to the device
-				err = cudaMemcpy(d_arr_M, arr_M, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_M to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_p, arr_p, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_p to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_P_new, arr_P_new, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_P_new to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I0, arr_I0, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I0 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I1, arr_I1, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I1 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I2, arr_I2, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I2 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I3, arr_I3, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I3 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I4, arr_I4, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I4 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I5, arr_I5, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I5 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I6, arr_I6, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I6 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I7, arr_I7, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I7 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I8, arr_I8, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I8 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_arr_I9, arr_I9, totalMemSize, cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_I9 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+				CopyAllToDevice();
 
 				// Infections kernels
 				BurstingEvents<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_Occ, d_arr_GrowthModifier, d_arr_M, d_arr_p, alpha, beta, r, dT, d_Warn_r, d_rng_state, d_arr_IsActive);
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in BurstingEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I8, d_arr_I9, d_arr_p, d_rng_state, d_arr_IsActive);
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents1! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I7, d_arr_I8, d_arr_p, d_rng_state, d_arr_IsActive);
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents2! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I6, d_arr_I7, d_arr_p, d_rng_state, d_arr_IsActive);
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents3! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I5, d_arr_I6, d_arr_p, d_rng_state, d_arr_IsActive);
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents4! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I4, d_arr_I5, d_arr_p, d_rng_state, d_arr_IsActive);
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents5! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I3, d_arr_I4, d_arr_p, d_rng_state, d_arr_IsActive);
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents6! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I2, d_arr_I3, d_arr_p, d_rng_state, d_arr_IsActive);
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents7! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_rng_state, d_arr_IsActive);
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents8! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_rng_state, d_arr_IsActive);
 				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in NonBurstingEvents9! error = %s\n", cudaGetErrorString(err)); errC--;}
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in BurstingEvents or NonBurstingEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
 				CopyAllToHost();
@@ -1967,29 +1900,35 @@ void Colonies3D::CopyToHost(double* hostArray, double* deviceArray, int failCode
 ///////
 void Colonies3D::CopyAllToHost(){
 
-	CopyToHost(arr_M, d_arr_M, 1, nGridXY*nGridXY*nGridZ);
-
-	CopyToHost(arr_P_new, d_arr_P_new, 2, nGridXY*nGridXY*nGridZ);
-
-	CopyToHost(arr_I0, d_arr_I0, 3, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I1, d_arr_I1, 4, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I2, d_arr_I2, 5, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I3, d_arr_I3, 6, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I4, d_arr_I4, 7, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I5, d_arr_I5, 8, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I6, d_arr_I6, 9, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I7, d_arr_I7, 10, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I8, d_arr_I8, 11, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I9, d_arr_I9, 12, nGridXY*nGridXY*nGridZ);
-
-	CopyToHost(arr_Occ, d_arr_Occ, 12, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_nC, 				d_arr_nC, 				1, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_Occ, 			d_arr_Occ, 				2, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_B, 				d_arr_B, 				3, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_B_new, 			d_arr_B_new, 			4, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_P, 				d_arr_P, 				5, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_P_new, 			d_arr_P_new, 			6, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_P, 				d_arr_P,				7, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_P_new,			d_arr_P_new, 			8, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I0, 				d_arr_I0,				9, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I1, 				d_arr_I1, 				10, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I2, 				d_arr_I2, 				11, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I3, 				d_arr_I3, 				12, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I4, 				d_arr_I4, 				13, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I5, 				d_arr_I5, 				14, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I6, 				d_arr_I6, 				15, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I7, 				d_arr_I7, 				16, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I8, 				d_arr_I8, 				17, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_I9, 				d_arr_I9, 				18, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_M, 				d_arr_M, 				19, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_p, 				d_arr_p, 				20, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_nutrient, 		d_arr_nutrient, 		21, nGridXY*nGridXY*nGridZ );
+	CopyToHost(arr_GrowthModifier, 	d_arr_GrowthModifier, 	22, nGridXY*nGridXY*nGridZ );
 
 }
 
 
 
 ////
-void		CopyToDevice(double* hostArray, double* deviceArray, int failCode, int gridsz){
+void Colonies3D::CopyToDevice(double* hostArray, double* deviceArray, int failCode, int gridsz){
 	cudaError_t err = cudaSuccess;
 	err = cudaMemcpy(deviceArray, hostArray, sizeof(double)*gridsz, cudaMemcpyHostToDevice);
 		if (err != cudaSuccess)	fprintf(stderr, "Failed to copy to the device! Code %d error = %s\n", failCode, cudaGetErrorString(err));
@@ -1997,7 +1936,31 @@ void		CopyToDevice(double* hostArray, double* deviceArray, int failCode, int gri
 
 ////
 void Colonies3D::CopyAllToDevice(){
-	CopyToDevice(arr_P, d_arr_P, 13, nGridXY*nGridXY*nGridZ);
+
+	CopyToDevice(arr_nC, 				d_arr_nC, 				1, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_Occ, 				d_arr_Occ, 				2, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_B, 				d_arr_B, 				3, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_B_new, 			d_arr_B_new, 			4, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_P, 				d_arr_P, 				5, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_P_new, 			d_arr_P_new, 			6, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_P, 				d_arr_P,				7, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_P_new,				d_arr_P_new, 			8, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I0, 				d_arr_I0,				9, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I1, 				d_arr_I1, 				10, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I2, 				d_arr_I2, 				11, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I3, 				d_arr_I3, 				12, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I4, 				d_arr_I4, 				13, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I5, 				d_arr_I5, 				14, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I6, 				d_arr_I6, 				15, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I7, 				d_arr_I7, 				16, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I8, 				d_arr_I8, 				17, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_I9, 				d_arr_I9, 				18, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_M, 				d_arr_M, 				19, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_p, 				d_arr_p, 				20, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_nutrient, 			d_arr_nutrient, 		21, nGridXY*nGridXY*nGridZ );
+	CopyToDevice(arr_GrowthModifier, 	d_arr_GrowthModifier, 	22, nGridXY*nGridXY*nGridZ );
+
+
 };
 
 // Initialize the simulation
