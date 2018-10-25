@@ -35,6 +35,7 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
   if (arr_Occ[i] < arr_nC[i]){
       arr_nC[i] = arr_Occ[i];
   }
+  arr_nC[i] = min(arr_nC[i],arr_Occ[i]);
 }
 
 __global__ void SetIsActive(double* arr_Occ, bool* arr_IsActive, int N){
@@ -54,11 +55,6 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   extern __shared__ double shared[];
   int i = blockIdx.x*blockDim.x + threadIdx.x;
   int tid = threadIdx.x;
-
-  //outOfBounds check
-  if (i >= N){
-    return;
-  }
 
   shared[tid] = arr_IsActive[i] ? arr_Occ[i] : 0.0;
 

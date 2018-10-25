@@ -2,7 +2,7 @@
 #include "colonies3D_kernels.cu.h"
 // #include "colonies3D_helpers.cu"
 
-#define GPU_NC false
+#define GPU_NC true
 #define GPU_MAXOCCUPANCY true
 #define GPU_BIRTH false
 #define GPU_INFECTIONS false
