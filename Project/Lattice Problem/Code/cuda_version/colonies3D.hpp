@@ -201,103 +201,105 @@ class Colonies3D {
 
 
  public:
-    // Constructers
-    explicit    Colonies3D(double B_0, double P_0);                           // Direct constructer
+  // Constructers
+  explicit    Colonies3D(double B_0, double P_0);                           // Direct constructer
 
-    // Driver
-    int         Run_LoopDistributed_CPU(double T_end);                          // Controls the evaluation of the simulation
-    int         Run_LoopDistributed_GPU(double T_end);                          // Controls the evaluation of the simulation
+  // Driver
+  int         Run_LoopDistributed_CPU(double T_end);                          // Controls the evaluation of the simulation
+  int         Run_LoopDistributed_GPU(double T_end);                          // Controls the evaluation of the simulation
+  int         Run_LoopDistributed_CPU_cuRand(double T_end);                          // Controls the evaluation of the simulation
 
  private:
-	void 		CopyToHost(double* hostArray, double* deviceArray, int failCode, int gridsz);
-	void		CopyToDevice(double* deviceArray, double* hostArray, int failCode, int gridsz);
-	void 		CopyAllToHost();
-	void		CopyAllToDevice();
-    void        Initialize();                                                   // Initialize the simulation
-    void        spawnBacteria();                                                // Spawns the bacteria
-    void        spawnPhages();                                                  // Spawns the phages
-    void        ComputeTimeStep();                                              // Computes the size of the time-step needed
-    double      ComputeEvents(double n, double p, int flag, int i, int j, int k);                    // Returns the number of events ocurring for given n and p
-    double      ComputeEvents(double n, double p, int flag, int i);                    // Returns the number of events ocurring for given n and p, flat array
-    void        ComputeDiffusion(double n, double lambda,                       // Computes how many particles has moved to neighbouing points
+	void 		    CopyToHost(double* hostArray, double* deviceArray, int failCode, int gridsz);
+	void		    CopyToDevice(double* deviceArray, double* hostArray, int failCode, int gridsz);
+	void 		    CopyAllToHost();
+	void		    CopyAllToDevice();
+  void        Initialize();                                                   // Initialize the simulation
+  void        spawnBacteria();                                                // Spawns the bacteria
+  void        spawnPhages();                                                  // Spawns the phages
+  void        ComputeTimeStep();                                              // Computes the size of the time-step needed
+  double      ComputeEvents(double n, double p, int flag, int i, int j, int k);                    // Returns the number of events ocurring for given n and p
+  double      ComputeEvents(double n, double p, int flag, int i);                    // Returns the number of events ocurring for given n and p, flat array
+  double      ComputeEvents_cuRand(double n, double p, int flag, int i, int j, int k);                    // Returns the number of events ocurring for given n and p
+  void        ComputeDiffusion(double n, double lambda,                       // Computes how many particles has moved to neighbouing points
                     double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k);
  public:
-    void        SetLength(double L);                                            // Set the side-length of the simulation
-    void        SetHeight(double H);                                            // Set the height of the simulation
-    void        SetGridSize(double nGrid);                                      // Set the number of gridpoints
-    void        SetTimeStep(double dT);                                         // Set the time step size
-    void        SetSamples(int nSamp);                                          // Set the number of output samples
+  void        SetLength(double L);                                            // Set the side-length of the simulation
+  void        SetHeight(double H);                                            // Set the height of the simulation
+  void        SetGridSize(double nGrid);                                      // Set the number of gridpoints
+  void        SetTimeStep(double dT);                                         // Set the time step size
+  void        SetSamples(int nSamp);                                          // Set the number of output samples
 
-    void        PhageInvasionStartTime(double T_i);                             // Sets the time when the phages should start infecting
+  void        PhageInvasionStartTime(double T_i);                             // Sets the time when the phages should start infecting
 
-    void        CellGrowthRate(double g);                                       // Sets the maximum growthrate
-    void        CellCarryingCapacity(double K);                                 // Sets the carrying capacity
-    void        CellDiffusionConstant(double D_B);                              // Sets the diffusion constant of the phages
+  void        CellGrowthRate(double g);                                       // Sets the maximum growthrate
+  void        CellCarryingCapacity(double K);                                 // Sets the carrying capacity
+  void        CellDiffusionConstant(double D_B);                              // Sets the diffusion constant of the phages
 
-    void        PhageBurstSize(int beta);                                       // Sets the size of the bursts
-    void        PhageAdsorptionRate(double eta);                                // sets the adsorption parameter gamma
-    void        PhageDecayRate(double delta);                                   // Sets the decay rate of the phages
-    void        PhageInfectionRate(double r);                                   // Sets rate of the infection increaasing in stage
-    void        PhageDiffusionConstant(double D_P);                             // Sets the diffusion constant of the phages
-    void        PhageLatencyTime(double tau);                                   // Sets latency time of the phage (r and tau are related by r = 10 / tau)
+  void        PhageBurstSize(int beta);                                       // Sets the size of the bursts
+  void        PhageAdsorptionRate(double eta);                                // sets the adsorption parameter gamma
+  void        PhageDecayRate(double delta);                                   // Sets the decay rate of the phages
+  void        PhageInfectionRate(double r);                                   // Sets rate of the infection increaasing in stage
+  void        PhageDiffusionConstant(double D_P);                             // Sets the diffusion constant of the phages
+  void        PhageLatencyTime(double tau);                                   // Sets latency time of the phage (r and tau are related by r = 10 / tau)
 
-    void        SurfacePermeability(double zeta);                               // Sets the permeability of the surface
+  void        SurfacePermeability(double zeta);                               // Sets the permeability of the surface
 
-    void        InitialNutrient(double n_0);                                    // Sets the amount of initial nutrient
-    void        NutrientDiffusionConstant(double D_n);                          // Sets the nutrient diffusion rate
+  void        InitialNutrient(double n_0);                                    // Sets the amount of initial nutrient
+  void        NutrientDiffusionConstant(double D_n);                          // Sets the nutrient diffusion rate
 
-    void        SimulateExperimentalConditions();                               // Sets the simulation to spawn phages at top layer and only have x-y periodic boundaries
+  void        SimulateExperimentalConditions();                               // Sets the simulation to spawn phages at top layer and only have x-y periodic boundaries
 
-    void        DisableShielding();                                             // Sets shielding bool to false
-    void        DisablesClustering();                                           // Sets clustering bool to false
-    void        ReducedBurstSize();                                             // Sets the simulation to limit beta as n -> 0
+  void        DisableShielding();                                             // Sets shielding bool to false
+  void        DisablesClustering();                                           // Sets clustering bool to false
+  void        ReducedBurstSize();                                             // Sets the simulation to limit beta as n -> 0
 
-    void        ReducedBoundary(int s);                                         // Sets the reduced boundary bool to true and the value of s
+  void        ReducedBoundary(int s);                                         // Sets the reduced boundary bool to true and the value of s
 
-    void        SetAlpha(double alpha);                                         // Sets the value of alpha
+  void        SetAlpha(double alpha);                                         // Sets the value of alpha
 
  private:
-    // Helping functions
-    int         RandI(int n);                                                   // Returns random integer less than n
-    double      Rand(std::mt19937);                                             // Returns random double less than n
-    double      RandN(double m, double s);                                      // Returns random normal dist. number with mean m and variance s^2
-    double      RandP(double l, int i, int j, int k);                           // Returns poisson dist. number with mean l
-    double      RandP(double l, int i);                           // Returns poisson dist. number with mean l, flat array
-    double      RandP(double l);                                                // Returns poisson dist. number with mean l
-    double      RandP_fast(double l);                                           // Returns poisson dist. number with mean l
+  // Helping functions
+  int         RandI(int n);                                                   // Returns random integer less than n
+  double      Rand(std::mt19937);                                             // Returns random double less than n
+  double      RandN(double m, double s);                                      // Returns random normal dist. number with mean m and variance s^2
+  double      RandP(double l, int i, int j, int k);                           // Returns poisson dist. number with mean l
+  double      RandP(double l, int i);                           // Returns poisson dist. number with mean l, flat array
+  double      RandP(double l);                                                // Returns poisson dist. number with mean l
+  double      RandP_fast(double l);                                           // Returns poisson dist. number with mean l
 
  public:
-    void        SetRngSeed(int n);                                              // Sets the seed of the random number generator
+  void        SetRngSeed(int n);                                              // Sets the seed of the random number generator
 
  private:
-    void        WriteLog();                                                     // Write a log.txt file
+  void        WriteLog();                                                     // Write a log.txt file
 
  public:
-    void        FastExit();                                                     // Stop simulation when all cells are dead
-    void        ExportAll();                                                    // Sets the simulation to export everything
+  void        FastExit();                                                     // Stop simulation when all cells are dead
+  void        ExportAll();                                                    // Sets the simulation to export everything
 
  private:
-    void        ExportData_arr(double t, std::string filename_suffix);              // Master function to export the data
+  void        ExportData_arr(double t, std::string filename_suffix);              // Master function to export the data
 
-    // Data handling
-    void        OpenFileStream(std::ofstream& stream,                           // Open filstream if not allready opened
-                    std::string& fileName);
-    std::string GeneratePath();                                                 // Generates a save path for datafiles
+  // Data handling
+  void        OpenFileStream(std::ofstream& stream,                           // Open filstream if not allready opened
+                  std::string& fileName);
+  std::string GeneratePath();                                                 // Generates a save path for datafiles
 
  public:
-    void        SetFolderNumber(int number);                                    // Sets the folder number (useful when running parralel code)
-    void        SetPath(std::string& path);                                     // Sets the folder path (useful when running parralel code)
+  void        SetFolderNumber(int number);                                    // Sets the folder number (useful when running parralel code)
+  void        SetPath(std::string& path);                                     // Sets the folder path (useful when running parralel code)
 
-    // Get properties
-    std::string GetPath();                                                      // Returns the save path
-    int         GetTime();                                                      // Returns the time
-    int         GetDeltaT();                                                    // Returns the time-step dT
+  // Get properties
+  std::string GetPath();                                                      // Returns the save path
+  int         GetTime();                                                      // Returns the time
+  int         GetDeltaT();                                                    // Returns the time-step dT
 
 
-    // Clean up
-    void        DeleteFolder();                                                 // Delete the data folder
+  // Clean up
+  void        DeleteFolder();                                                 // Delete the data folder
  private:
-    void        DeleteFolderTree(const char* directory_name);                   // Delete folders recursively
+  void        DeleteFolderTree(const char* directory_name);                   // Delete folders recursively
 
  public:
     ~Colonies3D();                                                            // Destructor

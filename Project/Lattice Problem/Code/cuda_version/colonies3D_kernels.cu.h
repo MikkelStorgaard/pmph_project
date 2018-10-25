@@ -2,6 +2,18 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
+__global__ void ComputeEvents_seq(double *N, double n, double p, curandState curandstate){
+    // Trivial cases
+
+    *N = 0.0;
+
+    if (p == 1) return;
+    if (p == 0) return;
+    if (n < 1)  return;
+
+    *N = (double)curand_poisson(&curandstate, n*p);
+}
+
 __device__ double ComputeEvents(double n, double p, curandState curandstate){
     // Trivial cases
 
