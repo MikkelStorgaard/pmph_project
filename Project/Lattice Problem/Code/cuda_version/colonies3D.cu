@@ -1018,16 +1018,16 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								Warn_r = true;
 							}
 
-							if (GPU_INFECTIONS) {
-								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
-								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-								err = cudaGetLastError();
-								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-								assert(N != -1);
-							} else {
+							// if (GPU_INFECTIONS) {
+							// 	cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+							// 	ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+							// 	err = cudaGetLastError();
+							// 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+							// 	cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							// 	assert(N != -1);
+							// } else {
 								N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-							}
+							// }
 
 							// Update count
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -1218,7 +1218,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 								if (GPU_NEWINFECTIONS) {
 									N = -1;
-										cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+									cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
 									ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 									err = cudaGetLastError();
 									if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1242,7 +1242,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								if (shielding) {
 									// Absorbing medium model
 									double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
-										pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+									pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
 									S = exp(-zeta * d); // Probability of hitting succebtible target
 
 								} else {
@@ -1255,7 +1255,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								double tmp = N;
 								if (GPU_NEWINFECTIONS) {
 									N = -1;
-										cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+									cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
 									ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, tmp + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 									err = cudaGetLastError();
 									if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1749,8 +1749,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	// Determine the number of samples to take
 	int nSamplings = nSamp*T_end;
-
-
 
 	/* Allocate arrays on the device */
 	int totalElements = nGridXY * nGridXY * nGridZ;
