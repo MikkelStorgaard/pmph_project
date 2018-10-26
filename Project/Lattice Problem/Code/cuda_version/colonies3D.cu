@@ -2896,12 +2896,12 @@ void Colonies3D::Initialize() {
 
 		// Initialize arrays
 		for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++) {
-					 for (int k = 0; k < nGridZ; k++) {
-								arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = n_0 / 1e12 * dV;
-								arr_rng[i*nGridXY*nGridZ + j*nGridZ + k].seed(i*nGridXY*nGridZ + j*nGridZ + k);
-						}
+			for (int j = 0; j < nGridXY; j++) {
+				for (int k = 0; k < nGridZ; k++) {
+					arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = n_0 / 1e12 * dV;
+					arr_rng[i*nGridXY*nGridZ + j*nGridZ + k].seed(i*nGridXY*nGridZ + j*nGridZ + k);
 				}
+			}
 		}
 
 		// Compute the size of the time step
