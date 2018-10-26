@@ -7,7 +7,7 @@
 #include <assert.h>
 // #define ITER 10
 
-__device__ int RandP(curandState rng_state ,double lambda) {
+__device__ int RandP(curandState rng_state ,double n,double p) {
 
   // double lambdaLeft = lambda;
   // int k = 0;
@@ -34,15 +34,23 @@ __device__ int RandP(curandState rng_state ,double lambda) {
   // return k - 1;
 
 
-  double L = exp(-lambda);
-  double p = 1;
-  double k = 0;
-  do {
-    k++;
-    double u = curand_uniform(&rng_state);
-    p *= u;
-  } while (p > L);
-  return k - 1;
+  // double L = exp(-lambda);
+  // double p = 1.0;
+  // double k = 0;
+  // do {
+  //   k++;
+  //   double u = curand_uniform_double(&rng_state);
+  //   p *= u;
+  // } while (p > L);
+  // return k - 1;
+
+  int k = 0;
+  for (int i = 0; i < n; i++) {
+    if (curand_uniform_double(&rng_state) < p) {
+      k++;
+    }
+  }
+  return k;
 
 }
 
@@ -55,7 +63,7 @@ __global__ void setup_kernel(curandState *state){
 
 __global__ void generate_kernel(curandState *my_curandstate, int *result, int *resultp){
     int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    result[idx] = RandP(my_curandstate[idx],0.01);
+    result[idx] = RandP(my_curandstate[idx],1e2,1e-4);
     resultp[idx] = curand_poisson(&my_curandstate[idx], 0.01);
 }
 
