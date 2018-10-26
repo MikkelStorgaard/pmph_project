@@ -41,9 +41,8 @@ __device__ double ComputeEvents(double n, double p, curandState rng_state){
     if (n < 1)  return 0.0;
 
     // double N = (double)curand_poisson(&rng_state, n*p);
-    double N = round(RandP(rng_state, n*p));
+    return round(RandP(rng_state, n*p));
 
-    return round(N);
 }
 
 __global__ void initRNG(curandState *state, int N){

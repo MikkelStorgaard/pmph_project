@@ -999,6 +999,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 						// Compute the growth modifier
 						double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
+							growthModifier = 0;
+						  }
 
 						// Compute beta
 						double Beta = beta;
