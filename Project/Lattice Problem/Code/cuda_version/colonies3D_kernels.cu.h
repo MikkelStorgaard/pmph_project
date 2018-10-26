@@ -102,6 +102,26 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   }
 }
 
+__global__ void SequentialReduce(double* A, int A_len){
+
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  if (i > 0){
+    return;
+  }
+  double tmp = 0.0;
+  double current_max = 0.0;
+
+  // the little thread that could
+  for (unsigned int ind=0; s<A_len; s++) {
+    tmp = arr_maxOcc[ind];
+    if(tmp > current_max){
+      current_max = tmp;
+    }
+  }
+  A[0] = current_max
+}
+
+
 __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, bool* arr_IsActive){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;

@@ -1851,11 +1851,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
 					errC--; }
 
+        // This places the maximum occupancy in d_arr_maxOccupancy[0]
+				SequentialReduce<<<1,1>>>(d_arr_maxOccupancy, gridSize);
 
-				// excuse this for-loop
-				for (int i = 0; i < gridSize; i++){
-					maxOccupancy = max(maxOccupancy, arr_maxOccupancy[i]);
-				}
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
