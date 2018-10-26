@@ -28,10 +28,12 @@ __global__ void setup_kernel(curandState *state){
   curand_init(1234, idx, 0, &state[idx]);
 }
 
-__global__ void generate_kernel(curandState *my_curandstate, int *result, int *resultp){
-    int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    result[idx] = RandP(my_curandstate[idx],0.1);
-    resultp[idx] = curand_poisson(&my_curandstate[idx], 0.1);
+__global__ void generate_kernel(curandState *my_curandstate, int *result, int *resultp, int N){
+
+  int idx = threadIdx.x + blockDim.x*blockIdx.x;
+  result[idx] = RandP(my_curandstate[idx],0.1);
+  resultp[idx] = curand_poisson(&my_curandstate[idx], 0.1);
+
 }
 
 int main(){
@@ -56,6 +58,14 @@ int main(){
   std::mt19937 rng;
   std::poisson_distribution <long long> distr(0.1);
 
+
+  printf("\n\nCuda:\n");
+  for(int i = 0; i < ITER; i++){
+    if (h_resultp[i] > 0) {
+     printf("%d, ",h_resultp[i]);
+    }
+  }
+  printf("\n\nstd library:\n");
 
   printf("\n\nRandP:\n");
   for(int i = 0; i < ITER; i++){
