@@ -1755,13 +1755,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	err = cudaMalloc((void**)&d_Warn_delta, sizeof(bool));
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-	err = cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMemcpy(d_Warn_delta, &this->Warn_delta, sizeof(bool), cudaMemcpyHostToDevice);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_delta to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-
 	initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
 
 
@@ -1891,12 +1884,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				// Copy data back from device
 				if (!GPU_INFECTIONS) CopyAllToHost();
 
-				err = cudaMemcpy(&this->Warn_g, d_Warn_g, sizeof(bool), cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_g to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				err = cudaMemcpy(&this->Warn_fastGrowth, d_Warn_fastGrowth, sizeof(bool), cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_fastGrowth to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
@@ -1972,10 +1959,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 				// Copy data back from device
 				if(!GPU_NEWINFECTIONS) CopyAllToHost();
-
-				err = cudaMemcpy(&this->Warn_r, d_Warn_r, sizeof(bool), cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_r to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
-
 
 			} else {
 
@@ -2569,10 +2552,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		assert(accuNutrient >= 0);
 		assert(accuNutrient <= n_0 * L * L * H);
 	}
-	// TODO: Husk at kommenter nedenstående tilbage ind.
-	/*
-	// logging of warning moved outside loop to ensure.
+	
+	// logging of warning moved outside loop to ensure,
 	// it is only triggered once.
+
 	if(Warn_delta) {
 	cout << "\tWarning: Decay Probability Large!" << "\n";
 	f_log  << "Warning: Decay Probability Large!" << "\n";
@@ -2585,8 +2568,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		cout << "\tWarning: Colonies growing too fast!" << "\n";
 		f_log  << "Warning: Colonies growing too fast!" << "\n";
 	}
+	
+	if(Warn_r){
+		cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+		f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+	}
 
-	*/
 	// Get stop time
 	time_t  toc;
 	time(&toc);
@@ -2660,7 +2647,16 @@ void Colonies3D::CopyToHost(double* hostArray, double* deviceArray, int failCode
 			errC--;
 		}
 }
-
+/*
+void Colonies3D::CopyToHost(bool *hostElement, bool *deviceElement, int failCode){
+	cudaError_t err = cudaSuccess;
+	err = cudaMemcpy(hostElement, deviceElement, sizeof(bool), cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess && errC > 0)	{
+			fprintf(stderr, "Failed to copy to the host! Code %d error = %s\n", failCode, cudaGetErrorString(err));
+			errC--;
+		}
+}
+*/
 ///////
 void Colonies3D::CopyAllToHost(){
 
@@ -2687,6 +2683,21 @@ void Colonies3D::CopyAllToHost(){
 	CopyToHost(arr_p, 				d_arr_p, 				20, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_nutrient, 		d_arr_nutrient, 		21, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_GrowthModifier, 	d_arr_GrowthModifier, 	22, nGridXY*nGridXY*nGridZ);
+	
+//	CopyToHost(&this->Warn_r, 		d_Warn_r, 				100);
+//	CopyToHost(&this->Warn_delta, 	d_Warn_delta,			101);
+	cudaError_t err = cudaSuccess;
+	err = cudaMemcpy(&this->Warn_r, d_Warn_r, sizeof(bool), cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_r to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+		
+	err = cudaMemcpy(&this->Warn_delta, d_Warn_delta, sizeof(bool), cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_delta to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+		
+	err = cudaMemcpy(&this->Warn_g, d_Warn_g, sizeof(bool), cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_g to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMemcpy(&this->Warn_fastGrowth, d_Warn_fastGrowth, sizeof(bool), cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_fastGrowth to the host! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 }
 
@@ -2701,7 +2712,16 @@ void Colonies3D::CopyToDevice(double* hostArray, double* deviceArray, int failCo
 			errC--;
 		}
 }
-
+/*
+void Colonies3D::CopyToDevice(bool hostElement, bool deviceElement, int failCode){
+	cudaError_t err = cudaSuccess;
+	err = cudaMemcpy(deviceElement, hostElement, sizeof(bool), cudaMemcpyHostToDevice);
+		if (err != cudaSuccess && errC > 0) {
+			fprintf(stderr, "Failed to copy to the device! Code %d error = %s\n", failCode, cudaGetErrorString(err));
+			errC--;
+		}
+}
+*/
 ////
 void Colonies3D::CopyAllToDevice(){
 
@@ -2728,6 +2748,21 @@ void Colonies3D::CopyAllToDevice(){
 	CopyToDevice(arr_p, 				d_arr_p, 				20, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_nutrient, 			d_arr_nutrient, 		21, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_GrowthModifier, 	d_arr_GrowthModifier, 	22, nGridXY*nGridXY*nGridZ);
+	
+//	CopyToDevice(&this->Warn_r, 		d_Warn_r, 				100);
+//	CopyToDevice(&this->Warn_delta, 	d_Warn_delta,			101);
+	cudaError_t err = cudaSuccess;
+	err = cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMemcpy(d_Warn_delta, &this->Warn_delta, sizeof(bool), cudaMemcpyHostToDevice);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_delta to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+		
+	err = cudaMemcpy(d_Warn_g, &this->Warn_g, sizeof(bool), cudaMemcpyHostToDevice);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_g to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMemcpy(d_Warn_fastGrowth, &this->Warn_fastGrowth, sizeof(bool), cudaMemcpyHostToDevice);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_fastGrowth to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 	
 
 };

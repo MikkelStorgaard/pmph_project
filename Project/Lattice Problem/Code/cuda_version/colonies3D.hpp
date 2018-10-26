@@ -212,7 +212,9 @@ class Colonies3D {
 
  private:
 	void 		    CopyToHost(double* hostArray, double* deviceArray, int failCode, int gridsz);
-	void		    CopyToDevice(double* deviceArray, double* hostArray, int failCode, int gridsz);
+//	void 		    CopyToHost(bool hostElement, bool deviceElement, int failCode);
+	void		    CopyToDevice(double* hostArray, double* deviceArray, int failCode, int gridsz);
+//	void		    CopyToDevice(bool hostElement, bool deviceElement, int failCode);
 	void 		    CopyAllToHost();
 	void		    CopyAllToDevice();
   void        Initialize();                                                   // Initialize the simulation
