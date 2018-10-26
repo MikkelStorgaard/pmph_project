@@ -199,7 +199,7 @@ class Colonies3D {
   bool* d_Warn_r;
   bool* d_Warn_delta;
 
-
+  int errC;
 
  public:
   // Constructers
