@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <random>
 #include <curand.h>
 #include <curand_kernel.h>
 #include <math.h>
@@ -14,12 +15,12 @@ __global__ void setup_kernel(curandState *state){
 
 __global__ void generate_kernel(curandState *my_curandstate, float *result, int *resultp){
     int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    result[idx] = curand_uniform(&my_curandstate[idx])+1;
-    resultp[idx] = curand_poisson(&my_curandstate[idx], 0);
+    // result[idx] = curand_uniform(&my_curandstate[idx])+1;
+    resultp[idx] = curand_poisson(&my_curandstate[idx], 30);
 }
 
 int main(){
-  int ITER = 10;
+  int ITER = 1000;
 
   curandState *d_state;
   cudaMalloc(&d_state, ITER*sizeof(curandState));
@@ -35,10 +36,18 @@ int main(){
   generate_kernel<<<1,ITER>>>(d_state, d_result, d_resultp);
   cudaMemcpy(h_result, d_result, ITER*sizeof(float), cudaMemcpyDeviceToHost);
   cudaMemcpy(h_resultp, d_resultp, ITER*sizeof(int), cudaMemcpyDeviceToHost);
+
+  // Set limit on distribution
+  std::mt19937 rng;
+  std::poisson_distribution <long long> distr(30);
+
   for(int i = 0; i < ITER; i++){
-    printf("result : %f \n" , h_result[i]);
-    printf("resultp: %d \n" , h_resultp[i]);
+    // printf("result : %f \n" , h_result[i]);
+    // printf("resultp: %d \n" , h_resultp[i]);
+    printf("Cuda: %d \t, std: %d\n",h_resultp[i], (int)distr(rng));
   }
+
+
 
   return 0;
 }
