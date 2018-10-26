@@ -28,7 +28,7 @@ __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rn
       if (p == 0) return;
       if (n < 1)  return;
 
-      *N = round(RandP(&rng_state[i], n*p));
+      *N = round(RandP(rng_state[i], n*p));
 
     }
 }
