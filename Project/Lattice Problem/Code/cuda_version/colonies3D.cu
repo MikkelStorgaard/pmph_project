@@ -1145,6 +1145,8 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 								cout << "mean: " << arr_P[i*nGridXY*nGridZ + j*nGridZ + k] * p << endl;
 								cout << "value: "<< N << endl;
+								double tmp = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
+								cout << "value: "<< tmp << endl;
 							}
 
 							if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
