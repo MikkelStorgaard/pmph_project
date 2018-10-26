@@ -50,7 +50,7 @@ __global__ void initRNG(curandState *state, int N){
   int i = blockDim.x*blockIdx.x + threadIdx.x;
 
   if (i < N) {
-    curand_init(i, 0, 0, &state[i]);
+    curand_init(0, i, 0, &state[i]);
   }
 }
 
