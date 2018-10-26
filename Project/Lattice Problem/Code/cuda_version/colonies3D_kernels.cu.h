@@ -22,9 +22,10 @@ __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rn
 
     if (i == index) {
 
-      *N = 0.0;
-
+      *N = n;
       if (p == 1) return;
+
+      *N = 0.0;
       if (p == 0) return;
       if (n < 1)  return;
 
