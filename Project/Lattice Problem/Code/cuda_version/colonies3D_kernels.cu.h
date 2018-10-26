@@ -2,7 +2,7 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
-__device__ double RandP(curandState rng_state ,double lambda) {
+__device__ double RandP(curandState rng_state, double lambda) {
 
   double L = exp(-lambda);
   double p = 1.0;
