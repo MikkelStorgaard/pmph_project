@@ -2,7 +2,34 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
-__global__ void ComputeEvents_seq(double *N, double n, double p, curandState* curandstate, int index){
+__device__ double RandP(curandState rng_state ,double lambda) {
+
+  double lambdaLeft = lambda;
+  double k = 0;
+  double p = 0;
+  double STEP = 500;
+
+  do {
+    k++;
+    double u = curand_uniform(&rng_state);
+
+    p *= u;
+
+    while ((p < 1) && (lambdaLeft > 0)){
+      if (lambdaLeft > STEP) {
+        p *= exp(STEP);
+        lambdaLeft -= STEP;
+      } else {
+        p = exp(lambdaLeft);
+        lambdaLeft = 0;
+      }
+    }
+  } while (p > 1);
+
+  return k - 1;
+}
+
+__global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rng_state, int index){
     // Trivial cases
     int i = blockDim.x*blockIdx.x + threadIdx.x;
 
@@ -14,19 +41,19 @@ __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* cu
       if (p == 0) return;
       if (n < 1)  return;
 
-      *N = round((double)curand_poisson(&curandstate[i], n*p));
+      *N = round((double)curand_poisson(&rng_state[i], n*p));
 
     }
 }
 
-__device__ double ComputeEvents(double n, double p, curandState curandstate){
+__device__ double ComputeEvents(double n, double p, curandState rng_state){
     // Trivial cases
 
     if (p == 1) return n;
     if (p == 0) return 0.0;
     if (n < 1)  return 0.0;
 
-    double N = (double)curand_poisson(&curandstate, n*p);
+    double N = (double)curand_poisson(&rng_state, n*p);
 
     return round(N);
 }
