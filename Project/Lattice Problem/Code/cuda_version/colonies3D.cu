@@ -4,9 +4,9 @@
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH false
-#define GPU_INFECTIONS false
-#define GPU_NEWINFECTIONS false
+#define GPU_BIRTH true
+#define GPU_INFECTIONS true
+#define GPU_NEWINFECTIONS true
 #define GPU_PHAGEDECAY false
 #define GPU_MOVEMENT false
 
@@ -560,10 +560,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 			}
 		}
 
-		/////////////////////////////////////////////////////
-		// Main loop end ////////////////////////////////////
-		/////////////////////////////////////////////////////
-
 			// Swap pointers
 			std::swap(arr_B, arr_B_new);
 			std::swap(arr_I0, arr_I0_new);
@@ -770,6 +766,11 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 		assert(accuNutrient <= n_0 * L * L * H);
 	}
 
+	/////////////////////////////////////////////////////
+	// Main loop end ////////////////////////////////////
+	/////////////////////////////////////////////////////
+
+	
 	// Get stop time
 	time_t  toc;
 	time(&toc);
@@ -1477,10 +1478,6 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 			}
 		}
 
-		/////////////////////////////////////////////////////
-		// Main loop end ////////////////////////////////////
-		/////////////////////////////////////////////////////
-
 			// Swap pointers
 			std::swap(arr_B, arr_B_new);
 			std::swap(arr_I0, arr_I0_new);
@@ -1687,6 +1684,10 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 		assert(accuNutrient <= n_0 * L * L * H);
 	}
 
+	/////////////////////////////////////////////////////
+	// Main loop end ////////////////////////////////////
+	/////////////////////////////////////////////////////
+	
 	// Get stop time
 	time_t  toc;
 	time(&toc);
@@ -2292,8 +2293,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 							// KERNEL BEGIN
 							p = delta*dT;
 
-							// TODO: Check below is in the kernel.
-							// TODO: But put the cout outside kernel (check if warn_delta is true)
 							if ((p > 0.1) and (!Warn_delta)) {
 								cout << "\tWarning: Decay Probability Large!" << "\n";
 								f_log  << "Warning: Decay Probability Large!" << "\n";
@@ -2454,9 +2453,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				}
 			}
 
-			/////////////////////////////////////////////////////
-			// Main loop end ////////////////////////////////////
-			/////////////////////////////////////////////////////
+
 
 			// Swap pointers
 			std::swap(arr_B, arr_B_new);
@@ -2667,8 +2664,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		assert(accuNutrient <= n_0 * L * L * H);
 	}
 
-	// logging of warning moved outside loop to ensure,
-	// it is only triggered once.
+	/////////////////////////////////////////////////////
+	// Main loop end ////////////////////////////////////
+	/////////////////////////////////////////////////////
 
 	if(Warn_delta) {
 	cout << "\tWarning: Decay Probability Large!" << "\n";
