@@ -28,22 +28,21 @@ __global__ void generateSingle(double* N, curandState *state, int i){
 }
 
 int main(){
-  int BlockSize = 4;
+  int BlockSize = 10;
 
-  curandState *d_state, *d_state2;
-  cudaMalloc((void**)&d_state, BlockSize*sizeof(curandState));
+  curandState *d_state1, *d_state2;
+  cudaMalloc((void**)&d_state1, BlockSize*sizeof(curandState));
   cudaMalloc((void**)&d_state2, BlockSize*sizeof(curandState));
 
-  setup_kernel<<<1,BlockSize>>>(d_state);
+  setup_kernel<<<1,BlockSize>>>(d_state1);
   setup_kernel<<<1,BlockSize>>>(d_state2);
 
   double *d_result;
-  double *h_result;
-  malloc((void**)&h_result,  BlockSize*sizeof(double));
+  double *h_result = new double[BlockSize];
   cudaMalloc((void**)&d_result,  BlockSize*sizeof(double));
 
 
-  generateAll<<<1,BlockSize>>>(d_result, d_state);
+  generateAll<<<1,BlockSize>>>(d_state1, d_result);
   cudaMemcpy(h_result,  d_result,  BlockSize*sizeof(double), cudaMemcpyDeviceToHost);
 
 
@@ -56,13 +55,13 @@ int main(){
 
   std::cout << "Generating one at a time:" << std::endl;
   double* d_N;
+  double* N = new double;
   cudaMalloc((void**)&d_N,sizeof(double));
 
 
   for(int i = 0; i < BlockSize; i++){
-    double *N;
     generateSingle<<<1,BlockSize>>>(d_N, d_state2,i);
-    cudaMemcpy(d_N, N, sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(N, d_N, sizeof(double), cudaMemcpyDeviceToHost);
 
     // std::cout << *N << ", ";
   }
