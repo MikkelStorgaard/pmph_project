@@ -394,7 +394,7 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
     }
   }
 }
-__global__ void PhageDecay(double* arr_P, double delta, double dT,
+__global__ void PhageDecay(double* arr_P, double p,
                            bool *warn_delta, curandState* rng_state,
                            bool* arr_IsActive){
 
@@ -403,7 +403,6 @@ __global__ void PhageDecay(double* arr_P, double delta, double dT,
     return;
   }
 
- double p = delta*dT;
  double N = ComputeEvents(arr_P[i], p, rng_state[i]);
 
  if ((p > 0.1) && (!(*warn_delta))){
