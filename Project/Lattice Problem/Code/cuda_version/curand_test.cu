@@ -42,7 +42,7 @@ int main(){
   cudaMalloc((void**)&d_result,  BlockSize*sizeof(double));
 
 
-  generateAll<<<1,BlockSize>>>(d_state1, d_result);
+  generateAll<<<1,BlockSize>>>(d_result, d_state1);
   cudaMemcpy(h_result,  d_result,  BlockSize*sizeof(double), cudaMemcpyDeviceToHost);
 
 

@@ -22,9 +22,10 @@ __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rn
 
     if (i == index) {
 
-      *N = 0.0;
-
+      *N = n;
       if (p == 1) return;
+
+      *N = 0.0;
       if (p == 0) return;
       if (n < 1)  return;
 
@@ -50,7 +51,7 @@ __global__ void initRNG(curandState *state, int N){
   int i = blockDim.x*blockIdx.x + threadIdx.x;
 
   if (i < N) {
-    curand_init(0, i, 0, &state[i]);
+    curand_init(i, 0, 0, &state[i]);
   }
 }
 
