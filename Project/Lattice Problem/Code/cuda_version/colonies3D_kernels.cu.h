@@ -4,29 +4,16 @@
 
 __device__ double RandP(curandState rng_state ,double lambda) {
 
-  double lambdaLeft = lambda;
+  double L = exp(-lambda);
+  double p = 1.0;
   double k = 0;
-  double p = 0;
-  double STEP = 500;
-
-  do {
+  while (p > L) {
     k++;
-    double u = curand_uniform(&rng_state);
-
+    double u = curand_uniform_double(&rng_state);
     p *= u;
-
-    while ((p < 1) && (lambdaLeft > 0)){
-      if (lambdaLeft > STEP) {
-        p *= exp(STEP);
-        lambdaLeft -= STEP;
-      } else {
-        p = exp(lambdaLeft);
-        lambdaLeft = 0;
-      }
-    }
-  } while (p > 1);
-
+  }
   return k - 1;
+
 }
 
 __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rng_state, int index){
@@ -41,7 +28,7 @@ __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rn
       if (p == 0) return;
       if (n < 1)  return;
 
-      *N = round((double)curand_poisson(&rng_state[i], n*p));
+      *N = round(RandP(&rng_state[i], n*p));
 
     }
 }

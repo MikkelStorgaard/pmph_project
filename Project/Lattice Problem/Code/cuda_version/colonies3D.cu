@@ -1727,7 +1727,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	err = cudaMalloc((void**)&d_arr_I9, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I9 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-	
+
 	err = cudaMalloc((void**)&d_arr_I0_new, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I0_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -2728,7 +2728,7 @@ void Colonies3D::CopyAllToDevice(){
 	CopyToDevice(arr_p, 				d_arr_p, 				20, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_nutrient, 			d_arr_nutrient, 		21, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_GrowthModifier, 	d_arr_GrowthModifier, 	22, nGridXY*nGridXY*nGridZ);
-	
+
 
 };
 
