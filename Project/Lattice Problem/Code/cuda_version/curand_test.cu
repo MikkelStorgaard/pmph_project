@@ -31,15 +31,15 @@ int main(){
   int BlockSize = 4;
 
   curandState *d_state, *d_state2;
-  cudaMalloc(&d_state, BlockSize*sizeof(curandState));
-  cudaMalloc(&d_state2, BlockSize*sizeof(curandState));
+  cudaMalloc((void**)&d_state, BlockSize*sizeof(curandState));
+  cudaMalloc((void**)&d_state2, BlockSize*sizeof(curandState));
 
   setup_kernel<<<1,BlockSize>>>(d_state);
   setup_kernel<<<1,BlockSize>>>(d_state2);
 
   double *d_result;
   double *h_result[BlockSize];
-  cudaMalloc(&d_result,  BlockSize*sizeof(double));
+  cudaMalloc((void**)&d_result,  BlockSize*sizeof(double));
 
 
   generateAll<<<1,BlockSize>>>(d_state, d_result);
@@ -55,15 +55,15 @@ int main(){
 
   std::cout << "Generating one at a time:" << std::endl;
   double* d_N;
-  cudaMalloc(&d_N,sizeof(double));
+  cudaMalloc((void**)&d_N,sizeof(double));
 
 
   for(int i = 0; i < BlockSize; i++){
-    double N;
+    double *N;
     generateSingle<<<1,BlockSize>>>(d_N, d_state2,i);
-    cudaMemcpy(d_N, &N, sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(d_N, N, sizeof(double), cudaMemcpyDeviceToHost);
 
-    std::cout << N << ", ";
+    std::cout << *N << ", ";
   }
   std::cout << std::endl;
 
