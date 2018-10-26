@@ -2,31 +2,18 @@
 #ifndef TRANSPOSE_KERS
 #define TRANSPOSE_KERS
 
-__device__ double RandP(curandState rng_state ,double lambda) {
+__device__ double RandP(curandState rng_state, double lambda) {
 
-  double lambdaLeft = lambda;
+  double L = exp(-lambda);
+  double p = 1.0;
   double k = 0;
-  double p = 0;
-  double STEP = 500;
-
-  do {
+  while (p > L) {
     k++;
-    double u = curand_uniform(&rng_state);
-
+    double u = curand_uniform_double(&rng_state);
     p *= u;
-
-    while ((p < 1) && (lambdaLeft > 0)){
-      if (lambdaLeft > STEP) {
-        p *= exp(STEP);
-        lambdaLeft -= STEP;
-      } else {
-        p = exp(lambdaLeft);
-        lambdaLeft = 0;
-      }
-    }
-  } while (p > 1);
-
+  }
   return k - 1;
+
 }
 
 __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rng_state, int index){
@@ -41,7 +28,7 @@ __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rn
       if (p == 0) return;
       if (n < 1)  return;
 
-      *N = round((double)curand_poisson(&rng_state[i], n*p));
+      *N = round(RandP(rng_state[i], n*p));
 
     }
 }
@@ -53,9 +40,9 @@ __device__ double ComputeEvents(double n, double p, curandState rng_state){
     if (p == 0) return 0.0;
     if (n < 1)  return 0.0;
 
-    double N = (double)curand_poisson(&rng_state, n*p);
+    // double N = (double)curand_poisson(&rng_state, n*p);
+    return round(RandP(rng_state, n*p));
 
-    return round(N);
 }
 
 __global__ void initRNG(curandState *state, int N){
@@ -82,14 +69,15 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
   arr_nC[i] = min(arr_nC[i],arr_Occ[i]);
 }
 
-__global__ void SetIsActive(double* arr_Occ, bool* arr_IsActive, int N){
+__global__ void SetIsActive(double* arr_Occ, double* arr_P, bool* arr_IsActive, int N){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
   bool insideBounds = (i < N);
 
   double Occ = insideBounds ? arr_Occ[i] : 0.0;
-  arr_IsActive[i] = insideBounds && (Occ >= 1.0);
+  double P   = insideBounds ? arr_P[i]   : 0.0;
+  arr_IsActive[i] = insideBounds && ((P >= 1.0) && (Occ >= 1.0));
 
 }
 
@@ -114,6 +102,26 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   }
 }
 
+__global__ void SequentialReduce(double* A, int A_len){
+
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  if (i > 0){
+    return;
+  }
+  double tmp = 0.0;
+  double current_max = 0.0;
+
+  // the little thread that could
+  for (unsigned int ind=0; ind<A_len; ind++) {
+    tmp = A[ind];
+    if(tmp > current_max){
+      current_max = tmp;
+    }
+  }
+  A[0] = current_max;
+}
+
+
 __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, bool* arr_IsActive){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -130,7 +138,7 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   arr_GrowthModifier[i] = growthModifier;
 
   // Compute birth probability
-  double p = g * growthModifier*dT;
+  double p = g * growthModifier * dT;
 
   // Produce warning
   if ((p > 0.1) and (!(*Warn_g))){

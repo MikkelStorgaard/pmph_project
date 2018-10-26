@@ -4,8 +4,8 @@
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH true
-#define GPU_INFECTIONS true
+#define GPU_BIRTH false
+#define GPU_INFECTIONS false
 #define GPU_NEWINFECTIONS false
 #define GPU_PHAGEDECAY false
 #define GPU_MOVEMENT false
@@ -938,12 +938,13 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
+							growthModifier = 0;
+						}
 						arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
 						p = g * growthModifier*dT;
-						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
-							p = 0;
-						}
+
 
 						if ((p > 0.1) and (!Warn_g)) {
 							cout << "\tWarning: Birth Probability Large!" << "\n";
@@ -952,9 +953,16 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						}
 
 						/* BEGIN anden Map-kernel */
-						ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-						cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-						assert(N != -1);
+						if (GPU_BIRTH) {
+							cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+							err = cudaGetLastError();
+							if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
+						} else {
+							N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+						}
 
 						// Ensure there is enough nutrient
 						if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
@@ -1010,10 +1018,16 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								Warn_r = true;
 							}
 
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
-
+							if (GPU_INFECTIONS) {
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 
 							// Update count
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -1022,66 +1036,129 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
 							// Non-bursting events
-							N = -1;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
+							if (GPU_INFECTIONS) {
+								N = -1;
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 							arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							N = -1;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
+							if (GPU_INFECTIONS) {
+								N = -1;
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 							arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							N = -1;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
+							if (GPU_INFECTIONS) {
+								N = -1;
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 							arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							N = -1;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
+							if (GPU_INFECTIONS) {
+								N = -1;
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 							arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							N = -1;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
+							if (GPU_INFECTIONS) {
+								N = -1;
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 							arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							N = -1;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
+							if (GPU_INFECTIONS) {
+								N = -1;
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 							arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							N = -1;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
+							if (GPU_INFECTIONS) {
+								N = -1;
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 							arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							N = -1;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
+							if (GPU_INFECTIONS) {
+								N = -1;
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 							arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-							N = -1;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-							assert(N != -1);
+							if (GPU_INFECTIONS) {
+								N = -1;
+								cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								err = cudaGetLastError();
+								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
+							} else {
+								N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							}
 							arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
@@ -1138,14 +1215,23 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
 							} else {
 								p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-								assert(N != -1);
 
-								cout << "mean: " << arr_P[i*nGridXY*nGridZ + j*nGridZ + k] * p << endl;
-								cout << "value: "<< N << endl;
-								double tmp = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
-								cout << "value: "<< tmp << endl;
+								if (GPU_NEWINFECTIONS) {
+									N = -1;
+									cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+									ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+									err = cudaGetLastError();
+									if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+									cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+									assert(N != -1);
+								} else {
+									N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								}
+
+								// cout << "mean: " << arr_P[i*nGridXY*nGridZ + j*nGridZ + k] * p << endl;
+								// cout << "value: "<< N << endl;
+								// double tmp = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
+								// cout << "value: "<< tmp << endl;
 							}
 
 							if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
@@ -1156,7 +1242,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								if (shielding) {
 									// Absorbing medium model
 									double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
-										pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+									pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
 									S = exp(-zeta * d); // Probability of hitting succebtible target
 
 								} else {
@@ -1167,10 +1253,18 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],S)); // Probability of hitting succebtible target
 
 								double tmp = N;
-								N = -1;
-								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, tmp + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-								assert(N != -1);
+								if (GPU_NEWINFECTIONS) {
+									N = -1;
+									cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+									ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, tmp + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+									err = cudaGetLastError();
+									if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+									cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+									assert(N != -1);
+								} else {
+									N = ComputeEvents(tmp + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								}
+
 								// cout << "mean: " << (tmp + arr_M[i*nGridXY*nGridZ + j*nGridZ + k]) * p << endl;
 								// cout << "value: "<< N << endl;
 
@@ -1214,9 +1308,20 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								f_log  << "Warning: Decay Probability Large!" << "\n";
 								Warn_delta = true;
 						}
-						ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
-						cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
-						assert(N != -1);
+
+						if (GPU_PHAGEDECAY) {
+							N = -1;
+							cudaMemcpy(d_N, &N, sizeof(double),cudaMemcpyHostToDevice);
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+							err = cudaGetLastError();
+							if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
+						} else {
+							N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+						}
+
+
 
 						// Update count
 						arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -1645,8 +1750,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	// Determine the number of samples to take
 	int nSamplings = nSamp*T_end;
 
-
-
 	/* Allocate arrays on the device */
 	int totalElements = nGridXY * nGridXY * nGridZ;
 	int totalMemSize = totalElements * sizeof(double);
@@ -1727,7 +1830,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	err = cudaMalloc((void**)&d_arr_I9, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I9 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-	
+
 	err = cudaMalloc((void**)&d_arr_I0_new, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I0_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -1828,7 +1931,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (!GPU_NC) CopyAllToDevice();
 
 				// set active flags
-				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_IsActive, totalElements);
+				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_P, d_arr_IsActive, totalElements);
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -1844,11 +1947,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
 					errC--; }
 
+      			// This places the maximum occupancy in d_arr_maxOccupancy[0]
+				SequentialReduce<<<1,1>>>(d_arr_maxOccupancy, gridSize);
 
-				// excuse this for-loop
-				for (int i = 0; i < gridSize; i++){
-					maxOccupancy = max(maxOccupancy, arr_maxOccupancy[i]);
-				}
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
@@ -2666,8 +2767,6 @@ void Colonies3D::CopyAllToHost(){
 	CopyToHost(arr_B_new, 			d_arr_B_new, 			4, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_P, 				d_arr_P, 				5, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_P_new, 			d_arr_P_new, 			6, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_P, 				d_arr_P,				7, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_P_new,			d_arr_P_new, 			8, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_I0, 				d_arr_I0,				9, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_I1, 				d_arr_I1, 				10, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_I2, 				d_arr_I2, 				11, nGridXY*nGridXY*nGridZ);
@@ -2731,8 +2830,6 @@ void Colonies3D::CopyAllToDevice(){
 	CopyToDevice(arr_B_new, 			d_arr_B_new, 			4, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_P, 				d_arr_P, 				5, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_P_new, 			d_arr_P_new, 			6, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_P, 				d_arr_P,				7, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_P_new,				d_arr_P_new, 			8, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_I0, 				d_arr_I0,				9, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_I1, 				d_arr_I1, 				10, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_I2, 				d_arr_I2, 				11, nGridXY*nGridXY*nGridZ);
