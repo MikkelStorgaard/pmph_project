@@ -7,50 +7,17 @@
 #include <assert.h>
 // #define ITER 10
 
-__device__ int RandP(curandState rng_state ,double n,double p) {
+__device__ int RandP(curandState rng_state, double lambda) {
 
-  // double lambdaLeft = lambda;
-  // int k = 0;
-  // double p = 0;
-  // double STEP = 500;
-
-  // do {
-  //   k++;
-  //   double u = curand_uniform(&rng_state);
-
-  //   p *= u;
-
-  //   while ((p < 1) && (lambdaLeft > 0)){
-  //     if (lambdaLeft > STEP) {
-  //       p *= exp(STEP);
-  //       lambdaLeft -= STEP;
-  //     } else {
-  //       p = exp(lambdaLeft);
-  //       lambdaLeft = 0;
-  //     }
-  //   }
-  // } while (p > 1);
-
-  // return k - 1;
-
-
-  // double L = exp(-lambda);
-  // double p = 1.0;
-  // double k = 0;
-  // do {
-  //   k++;
-  //   double u = curand_uniform_double(&rng_state);
-  //   p *= u;
-  // } while (p > L);
-  // return k - 1;
-
+  double L = exp(-lambda);
+  double p = 1.0;
   int k = 0;
-  for (int i = 0; i < n; i++) {
-    if (curand_uniform_double(&rng_state) < p) {
-      k++;
-    }
+  while (p > L) {
+    k++;
+    double u = curand_uniform_double(&rng_state);
+    p *= u;
   }
-  return k;
+  return k - 1;
 
 }
 
@@ -63,12 +30,12 @@ __global__ void setup_kernel(curandState *state){
 
 __global__ void generate_kernel(curandState *my_curandstate, int *result, int *resultp){
     int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    result[idx] = RandP(my_curandstate[idx],1e2,1e-4);
-    resultp[idx] = curand_poisson(&my_curandstate[idx], 0.01);
+    result[idx] = RandP(my_curandstate[idx],0.1);
+    resultp[idx] = curand_poisson(&my_curandstate[idx], 0.1);
 }
 
 int main(){
-  int ITER = 10000;
+  int ITER = 1000;
 
   curandState *d_state;
   cudaMalloc(&d_state, ITER*sizeof(curandState));
@@ -87,20 +54,11 @@ int main(){
 
   // Set limit on distribution
   std::mt19937 rng;
-  std::poisson_distribution <long long> distr(0.01);
+  std::poisson_distribution <long long> distr(0.1);
 
-  printf("cuRand:\n");
-  for(int i = 0; i < ITER; i++){
-    // printf("result : %f \n" , h_result[i]);
-    // printf("resultp: %d \n" , h_resultp[i]);
-    if (h_resultp[i] > 0) {
-     printf("%d, ",h_resultp[i]);
-    }
-  }
+
   printf("\n\nRandP:\n");
   for(int i = 0; i < ITER; i++){
-    // printf("result : %f \n" , h_result[i]);
-    // printf("resultp: %d \n" , h_resultp[i]);
     if (h_result[i] > 0) {
      printf("%d, ",h_result[i]);
     }
@@ -114,6 +72,7 @@ int main(){
      printf("%d, ",k);
     }
   }
+  printf("\n");
 
 
 
