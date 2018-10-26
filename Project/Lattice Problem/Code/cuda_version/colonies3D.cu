@@ -956,6 +956,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 						cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 						assert(N != -1);
+
 						// Ensure there is enough nutrient
 						if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
 							if (!Warn_fastGrowth) {
@@ -1158,10 +1159,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 									S = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
 								}
 
-								p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
-																	S)); // Probability of hitting succebtible target
+								p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],S)); // Probability of hitting succebtible target
+
+								double tmp = N;
 								N = -1;
-								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, tmp + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(N != -1);
 
