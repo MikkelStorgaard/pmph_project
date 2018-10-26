@@ -935,7 +935,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 						double p = 0; // privatize
-						double N = 0; // privatize
+						double N = -1; // privatize
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
@@ -955,6 +955,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						/* BEGIN anden Map-kernel */
 						ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 						cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+						assert(N != -1);
 						// Ensure there is enough nutrient
 						if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
 							if (!Warn_fastGrowth) {
@@ -988,7 +989,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 						double p = 0; // privatize
-						double N = 0; // privatize
+						double N = -1; // privatize
 
 						// Compute the growth modifier
 						double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
@@ -1008,8 +1009,10 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								f_log  << "Warning: Infection Increase Probability Large!" << "\n";
 								Warn_r = true;
 							}
+
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 
 							// Update count
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -1018,48 +1021,66 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
 
 							// Non-bursting events
+							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 							arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
+							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 							arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
+							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 							arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
+							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 							arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
+							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 							arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
+							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 							arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
+							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 							arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
+							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 							arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
+							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							assert(N != -1);
 							arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
@@ -1084,7 +1105,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 
 						double p = 0; // privatize
-						double N = 0; // privatize
+						double N = -1; // privatize
 												// double M = 0; // privatize
 
 						// Compute beta
@@ -1118,6 +1139,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
 							}
 
 							if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
@@ -1138,8 +1160,10 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 								p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
 																	S)); // Probability of hitting succebtible target
+								N = -1;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								assert(N != -1);
 
 								if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
 									N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
@@ -1172,7 +1196,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 
 						double p = 0; // privatize
-						double N = 0; // privatize
+						double N = -1; // privatize
 
 						// KERNEL BEGIN
 						p = delta*dT;
@@ -1183,6 +1207,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						}
 						ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 						cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+						assert(N != -1);
 
 						// Update count
 						arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
