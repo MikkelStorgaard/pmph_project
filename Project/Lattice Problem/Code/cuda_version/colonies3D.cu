@@ -770,7 +770,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 	// Main loop end ////////////////////////////////////
 	/////////////////////////////////////////////////////
 
-	
+
 	// Get stop time
 	time_t  toc;
 	time(&toc);
@@ -1687,7 +1687,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 	/////////////////////////////////////////////////////
 	// Main loop end ////////////////////////////////////
 	/////////////////////////////////////////////////////
-	
+
 	// Get stop time
 	time_t  toc;
 	time(&toc);
@@ -1801,12 +1801,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	err = cudaMalloc((void**)&d_arr_B_new, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_B_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_P, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_P_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	err = cudaMalloc((void**)&d_arr_P, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -2726,18 +2720,45 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	f_timing.close();
 
 	// cudaFree here!!
-	if (GPU_NC) {
-		cudaFree(d_arr_nC);
-		cudaFree(d_arr_Occ);
-	}
-	if (GPU_MAXOCCUPANCY) {
-		cudaFree(d_arr_maxOccupancy);
-	}
-	if (GPU_BIRTH || GPU_INFECTIONS || GPU_NEWINFECTIONS || GPU_PHAGEDECAY || GPU_MOVEMENT) {
-		cudaFree(d_rng_state);
-		cudaFree(d_arr_P);
-	}
+	cudaFree(d_arr_nC );
+	cudaFree(d_arr_Occ);
+	cudaFree(d_arr_IsActive);
+	cudaFree(d_arr_maxOccupancy);
+	cudaFree(d_rng_state);
+	cudaFree(d_arr_B);
+	cudaFree(d_arr_B_new);
+	cudaFree(d_arr_P);
+	cudaFree(d_arr_P_new);
+	cudaFree(d_arr_I0);
+	cudaFree(d_arr_I0_new);
+	cudaFree(d_arr_I1);
+	cudaFree(d_arr_I1_new);
+	cudaFree(d_arr_I2);
+	cudaFree(d_arr_I2_new);
+	cudaFree(d_arr_I3);
+	cudaFree(d_arr_I3_new);
+	cudaFree(d_arr_I4);
+	cudaFree(d_arr_I4_new);
+	cudaFree(d_arr_I5);
+	cudaFree(d_arr_I5_new);
+	cudaFree(d_arr_I6);
+	cudaFree(d_arr_I6_new);
+	cudaFree(d_arr_I7);
+	cudaFree(d_arr_I7_new);
+	cudaFree(d_arr_I8);
+	cudaFree(d_arr_I8_new);
+	cudaFree(d_arr_I9);
+	cudaFree(d_arr_I9_new);
 
+	cudaFree(d_arr_M);
+	cudaFree(d_arr_p);
+	cudaFree(d_arr_nutrient);
+	cudaFree(d_arr_nutrient_new);
+	cudaFree(d_arr_GrowthModifier);
+	cudaFree(d_Warn_g);
+	cudaFree(d_Warn_fastGrowth);
+	cudaFree(d_Warn_r);
+	cudaFree(d_Warn_delta);
 
 	if (exit) {
 		return 1;
@@ -2772,27 +2793,38 @@ void Colonies3D::CopyToHost(bool *hostElement, bool *deviceElement, int failCode
 ///////
 void Colonies3D::CopyAllToHost(){
 
-	CopyToHost(arr_nC, 				d_arr_nC, 				1, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_Occ, 			d_arr_Occ, 				2, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_B, 				d_arr_B, 				3, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_B_new, 			d_arr_B_new, 			4, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_P, 				d_arr_P, 				5, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_P_new, 			d_arr_P_new, 			6, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I0, 				d_arr_I0,				9, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I1, 				d_arr_I1, 				10, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_nC, 				d_arr_nC, 				1,  nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_Occ, 			d_arr_Occ, 				2,  nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_B, 				d_arr_B, 				3,  nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_B_new, 			d_arr_B_new, 			4,  nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_P, 				d_arr_P, 				5,  nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_P_new, 			d_arr_P_new, 			6,  nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I0, 				d_arr_I0,				7,  nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I0_new, 			d_arr_I0_new,			8,  nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I1, 				d_arr_I1, 				9,  nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I1_new, 			d_arr_I1_new,			10, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_I2, 				d_arr_I2, 				11, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I3, 				d_arr_I3, 				12, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I4, 				d_arr_I4, 				13, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I5, 				d_arr_I5, 				14, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I6, 				d_arr_I6, 				15, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I7, 				d_arr_I7, 				16, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I8, 				d_arr_I8, 				17, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I9, 				d_arr_I9, 				18, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_I0_new, 			d_arr_I0_new,			23, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_M, 				d_arr_M, 				19, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_p, 				d_arr_p, 				20, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_nutrient, 		d_arr_nutrient, 		21, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_GrowthModifier, 	d_arr_GrowthModifier, 	22, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I2_new, 			d_arr_I2_new,			12, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I3, 				d_arr_I3, 				13, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I3_new, 			d_arr_I3_new,			14, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I4, 				d_arr_I4, 				15, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I4_new, 			d_arr_I4_new,			16, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I5, 				d_arr_I5, 				17, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I5_new, 			d_arr_I5_new,			18, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I6, 				d_arr_I6, 				19, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I6_new, 			d_arr_I6_new,			20, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I7, 				d_arr_I7, 				21, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I7_new, 			d_arr_I7_new,			22, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I8, 				d_arr_I8, 				23, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I8_new, 			d_arr_I8_new,			24, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I9, 				d_arr_I9, 				25, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_I9_new, 			d_arr_I9_new,			26, nGridXY*nGridXY*nGridZ);
+
+	CopyToHost(arr_M, 				d_arr_M, 				27, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_p, 				d_arr_p, 				28, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_nutrient, 		d_arr_nutrient, 		29, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_nutrient_new,  	d_arr_nutrient_new,		30, nGridXY*nGridXY*nGridZ);
+	CopyToHost(arr_GrowthModifier, 	d_arr_GrowthModifier, 	31, nGridXY*nGridXY*nGridZ);
 
 //	CopyToHost(&this->Warn_r, 		d_Warn_r, 				100);
 //	CopyToHost(&this->Warn_delta, 	d_Warn_delta,			101);
@@ -2835,27 +2867,38 @@ void Colonies3D::CopyToDevice(bool hostElement, bool deviceElement, int failCode
 ////
 void Colonies3D::CopyAllToDevice(){
 
-	CopyToDevice(arr_nC, 				d_arr_nC, 				1, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_Occ, 				d_arr_Occ, 				2, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_B, 				d_arr_B, 				3, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_B_new, 			d_arr_B_new, 			4, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_P, 				d_arr_P, 				5, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_P_new, 			d_arr_P_new, 			6, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I0, 				d_arr_I0,				9, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I1, 				d_arr_I1, 				10, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_nC, 				d_arr_nC, 				1,  nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_Occ, 				d_arr_Occ, 				2,  nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_B, 				d_arr_B, 				3,  nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_B_new, 			d_arr_B_new, 			4,  nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_P, 				d_arr_P, 				5,  nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_P_new, 			d_arr_P_new, 			6,  nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I0, 				d_arr_I0,				7,  nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I0_new, 			d_arr_I0_new,			8,  nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I1, 				d_arr_I1, 				9,  nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I1_new, 			d_arr_I1_new,			10, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_I2, 				d_arr_I2, 				11, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I3, 				d_arr_I3, 				12, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I4, 				d_arr_I4, 				13, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I5, 				d_arr_I5, 				14, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I6, 				d_arr_I6, 				15, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I7, 				d_arr_I7, 				16, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I8, 				d_arr_I8, 				17, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I9, 				d_arr_I9, 				18, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_I0_new,			d_arr_I0_new,	    	23, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_M, 				d_arr_M, 				19, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_p, 				d_arr_p, 				20, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_nutrient, 			d_arr_nutrient, 		21, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_GrowthModifier, 	d_arr_GrowthModifier, 	22, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I2_new, 			d_arr_I2_new,			12, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I3, 				d_arr_I3, 				13, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I3_new, 			d_arr_I3_new,			14, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I4, 				d_arr_I4, 				15, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I4_new, 			d_arr_I4_new,			16, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I5, 				d_arr_I5, 				17, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I5_new, 			d_arr_I5_new,			18, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I6, 				d_arr_I6, 				19, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I6_new, 			d_arr_I6_new,			20, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I7, 				d_arr_I7, 				21, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I7_new, 			d_arr_I7_new,			22, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I8, 				d_arr_I8, 				23, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I8_new, 			d_arr_I8_new,			24, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I9, 				d_arr_I9, 				25, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_I9_new, 			d_arr_I9_new,			26, nGridXY*nGridXY*nGridZ);
+
+	CopyToDevice(arr_M, 				d_arr_M, 				27, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_p, 				d_arr_p, 				28, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_nutrient, 			d_arr_nutrient, 		29, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_nutrient_new,  	d_arr_nutrient_new,		30, nGridXY*nGridXY*nGridZ);
+	CopyToDevice(arr_GrowthModifier, 	d_arr_GrowthModifier, 	31, nGridXY*nGridXY*nGridZ);
 
 //	CopyToDevice(&this->Warn_r, 		d_Warn_r, 				100);
 //	CopyToDevice(&this->Warn_delta, 	d_Warn_delta,			101);
@@ -2880,18 +2923,18 @@ void Colonies3D::Initialize() {
 
 		// Set the random number generator seed
 		if (rngSeed >= 0.0) {
-				rng.seed( rngSeed );
+			rng.seed( rngSeed );
 		} else {
-				static std::random_device rd;
-				rng.seed(rd());
+			static std::random_device rd;
+			rng.seed(rd());
 		}
 
 		// Compute nGridZ
 		if (L != H) {
-				nGridZ = round(H / L * nGridXY);
-				H = nGridZ * L / nGridXY;
+			nGridZ = round(H / L * nGridXY);
+			H = nGridZ * L / nGridXY;
 		} else {
-				nGridZ = nGridXY;
+			nGridZ = nGridXY;
 		}
 
 		// Allocate the arrays
