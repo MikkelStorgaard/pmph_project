@@ -197,6 +197,7 @@ class Colonies3D {
   bool* d_Warn_g;
   bool* d_Warn_fastGrowth;
   bool* d_Warn_r;
+  bool* d_Warn_delta;
 
 
 
