@@ -1752,8 +1752,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	err = cudaMalloc((void**)&d_Warn_r, sizeof(bool));
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
+	err = cudaMalloc((void**)&d_Warn_delta, sizeof(bool));
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
 	err = cudaMemcpy(d_Warn_r, &this->Warn_r, sizeof(bool), cudaMemcpyHostToDevice);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMemcpy(d_Warn_delta, &this->Warn_delta, sizeof(bool), cudaMemcpyHostToDevice);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_delta to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 
 	initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
@@ -2162,25 +2168,13 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			// Phage decay ///////////////////////////////////////////////////////////////////
 			if (GPU_PHAGEDECAY) {
-			/*
-				// If previous kernel is not used, copy arrays to device
-				if(!GPU_NEWINFECTIONS){
-					CopyAllToDevice;
-				}
+				CopyAllToDevice();
 
-				// Så vidt jeg kan se, er p på dette tidspunkt udregnet fra konstanter, og behøver derfor ikke være i kernel.
-				double p;
-				p = delta*dT;
+				PhageDecay<<<gridSize, blockSize>>>(d_arr_P, delta, dT,
+                                            d_Warn_delta, d_rng_state,
+                                            d_arr_IsActive);
 
-				SixthKernel<<<gridSize, blockSize>>>(d_arr_P, p, &Warn_delta, totalElements, d_rng_state);
-				cudaMemcpy(arr_P, d_arr_P, totalMemSize, cudaMemcpyDeviceToHost);
-
-				// logging of warning (cout <<... and f_log << ... moved outside
-				// loop to ensure it is only triggered once
-
-
-				// Do Stuff
-				*/
+				CopyAllToHost();
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
