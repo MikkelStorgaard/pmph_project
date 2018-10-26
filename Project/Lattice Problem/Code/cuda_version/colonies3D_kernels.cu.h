@@ -233,7 +233,7 @@ __global__ void UpdateCountKernel(double* arr_GrowthModifier,
 }
 
 
-
+/*
 __global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double* arr_B_new, bool* warn_fastGrowth){
     int i = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -258,7 +258,7 @@ __global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double*
     arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
 }
 
-
+*/
 __global__ void NewInfectionsKernel(double* arr_Occ,
                                     double* arr_nC,
                                     double* arr_P,
