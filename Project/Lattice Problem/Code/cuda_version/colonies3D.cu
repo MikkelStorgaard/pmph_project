@@ -1166,6 +1166,8 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, tmp + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(N != -1);
+								cout << "mean: " << (tmp + arr_M[i*nGridXY*nGridZ + j*nGridZ + k]) * p << endl;
+								cout << "value: "<< N << endl;
 
 								if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
 									N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
