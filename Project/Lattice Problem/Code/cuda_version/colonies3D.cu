@@ -4,8 +4,8 @@
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH true
-#define GPU_INFECTIONS true
+#define GPU_BIRTH false
+#define GPU_INFECTIONS false
 #define GPU_NEWINFECTIONS false
 #define GPU_PHAGEDECAY false
 #define GPU_MOVEMENT false
@@ -1295,7 +1295,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								Warn_delta = true;
 						}
 
-						if (GPU_NEWINFECTIONS) {
+						if (GPU_PHAGEDECAY) {
 							N = -1;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							err = cudaGetLastError();
@@ -1303,7 +1303,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							cudaMemcpy(&N, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							assert(N != -1);
 						} else {
-							N = ComputeEvents(tmp + arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+							N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 						}
 
 
