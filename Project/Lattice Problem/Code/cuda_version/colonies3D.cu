@@ -1938,7 +1938,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (!GPU_NC) CopyAllToDevice();
 
 				// set active flags
-				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_IsActive, totalElements);
+				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_P, d_arr_IsActive, totalElements);
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err)); errC--;}
 

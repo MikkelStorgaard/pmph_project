@@ -69,14 +69,15 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
   arr_nC[i] = min(arr_nC[i],arr_Occ[i]);
 }
 
-__global__ void SetIsActive(double* arr_Occ, bool* arr_IsActive, int N){
+__global__ void SetIsActive(double* arr_Occ, double* arr_P, bool* arr_IsActive, int N){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
   bool insideBounds = (i < N);
 
   double Occ = insideBounds ? arr_Occ[i] : 0.0;
-  arr_IsActive[i] = insideBounds && (Occ >= 1.0);
+  double P   = insideBounds ? arr_P[i]   : 0.0;
+  arr_IsActive[i] = insideBounds && ((P >= 1.0) && (Occ >= 1.0));
 
 }
 
