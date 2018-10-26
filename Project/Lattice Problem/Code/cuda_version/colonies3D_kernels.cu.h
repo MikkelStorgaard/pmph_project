@@ -112,13 +112,13 @@ __global__ void SequentialReduce(double* A, int A_len){
   double current_max = 0.0;
 
   // the little thread that could
-  for (unsigned int ind=0; s<A_len; s++) {
-    tmp = arr_maxOcc[ind];
+  for (unsigned int ind=0; ind<A_len; s++) {
+    tmp = A[ind];
     if(tmp > current_max){
       current_max = tmp;
     }
   }
-  A[0] = current_max
+  A[0] = current_max;
 }
 
 
