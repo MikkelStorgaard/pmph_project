@@ -9,29 +9,41 @@
 
 __device__ int RandP(curandState rng_state ,double lambda) {
 
-  double lambdaLeft = lambda;
-  int k = 0;
-  double p = 0;
-  double STEP = 500;
+  // double lambdaLeft = lambda;
+  // int k = 0;
+  // double p = 0;
+  // double STEP = 500;
 
+  // do {
+  //   k++;
+  //   double u = curand_uniform(&rng_state);
+
+  //   p *= u;
+
+  //   while ((p < 1) && (lambdaLeft > 0)){
+  //     if (lambdaLeft > STEP) {
+  //       p *= exp(STEP);
+  //       lambdaLeft -= STEP;
+  //     } else {
+  //       p = exp(lambdaLeft);
+  //       lambdaLeft = 0;
+  //     }
+  //   }
+  // } while (p > 1);
+
+  // return k - 1;
+
+
+  double L = exp(-lambda);
+  double p = 1;
+  double k = 0;
   do {
     k++;
     double u = curand_uniform(&rng_state);
-
     p *= u;
-
-    while ((p < 1) && (lambdaLeft > 0)){
-      if (lambdaLeft > STEP) {
-        p *= exp(STEP);
-        lambdaLeft -= STEP;
-      } else {
-        p = exp(lambdaLeft);
-        lambdaLeft = 0;
-      }
-    }
-  } while (p > 1);
-
+  } while (p > L);
   return k - 1;
+
 }
 
 
