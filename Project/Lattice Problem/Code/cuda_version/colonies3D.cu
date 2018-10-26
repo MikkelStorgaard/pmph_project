@@ -938,12 +938,13 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 						// Compute the growth modifier
 						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
+							growthModifier = 0;
+						}
 						arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
 						p = g * growthModifier*dT;
-						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
-							p = 0;
-						}
+
 
 						if ((p > 0.1) and (!Warn_g)) {
 							cout << "\tWarning: Birth Probability Large!" << "\n";
@@ -1000,9 +1001,6 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 						// Compute the growth modifier
 						double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
-						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
-							growthModifier = 0;
-						}
 
 						// Compute beta
 						double Beta = beta;
@@ -1958,7 +1956,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
 					errC--; }
 
-        // This places the maximum occupancy in d_arr_maxOccupancy[0]
+      			// This places the maximum occupancy in d_arr_maxOccupancy[0]
 				SequentialReduce<<<1,1>>>(d_arr_maxOccupancy, gridSize);
 
 			} else {
@@ -2775,8 +2773,6 @@ void Colonies3D::CopyAllToHost(){
 	CopyToHost(arr_B_new, 			d_arr_B_new, 			4, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_P, 				d_arr_P, 				5, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_P_new, 			d_arr_P_new, 			6, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_P, 				d_arr_P,				7, nGridXY*nGridXY*nGridZ);
-	CopyToHost(arr_P_new,			d_arr_P_new, 			8, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_I0, 				d_arr_I0,				9, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_I1, 				d_arr_I1, 				10, nGridXY*nGridXY*nGridZ);
 	CopyToHost(arr_I2, 				d_arr_I2, 				11, nGridXY*nGridXY*nGridZ);
@@ -2816,8 +2812,6 @@ void Colonies3D::CopyAllToDevice(){
 	CopyToDevice(arr_B_new, 			d_arr_B_new, 			4, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_P, 				d_arr_P, 				5, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_P_new, 			d_arr_P_new, 			6, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_P, 				d_arr_P,				7, nGridXY*nGridXY*nGridZ);
-	CopyToDevice(arr_P_new,				d_arr_P_new, 			8, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_I0, 				d_arr_I0,				9, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_I1, 				d_arr_I1, 				10, nGridXY*nGridXY*nGridZ);
 	CopyToDevice(arr_I2, 				d_arr_I2, 				11, nGridXY*nGridXY*nGridZ);

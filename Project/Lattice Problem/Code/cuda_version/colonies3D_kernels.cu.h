@@ -137,7 +137,7 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   arr_GrowthModifier[i] = growthModifier;
 
   // Compute birth probability
-  double p = g * growthModifier*dT;
+  double p = g * growthModifier * dT;
 
   // Produce warning
   if ((p > 0.1) and (!(*Warn_g))){
