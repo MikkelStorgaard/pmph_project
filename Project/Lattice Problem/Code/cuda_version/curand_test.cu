@@ -13,7 +13,7 @@ __global__ void setup_kernel(curandState *state){
   curand_init(0, idx, 0, &state[idx]);
 }
 
-__global__ void generateAll(curandState *state, double *result){
+__global__ void generateAll(double *result, curandState *state){
 
   int idx = threadIdx.x + blockDim.x*blockIdx.x;
   result[idx] = curand_uniform_double(&state[idx]);
@@ -38,11 +38,12 @@ int main(){
   setup_kernel<<<1,BlockSize>>>(d_state2);
 
   double *d_result;
-  double *h_result[BlockSize];
+  double *h_result;
+  malloc((void**)&h_result,  BlockSize*sizeof(double));
   cudaMalloc((void**)&d_result,  BlockSize*sizeof(double));
 
 
-  generateAll<<<1,BlockSize>>>(d_state, d_result);
+  generateAll<<<1,BlockSize>>>(d_result, d_state);
   cudaMemcpy(h_result,  d_result,  BlockSize*sizeof(double), cudaMemcpyDeviceToHost);
 
 
@@ -63,7 +64,7 @@ int main(){
     generateSingle<<<1,BlockSize>>>(d_N, d_state2,i);
     cudaMemcpy(d_N, N, sizeof(double), cudaMemcpyDeviceToHost);
 
-    std::cout << *N << ", ";
+    // std::cout << *N << ", ";
   }
   std::cout << std::endl;
 
