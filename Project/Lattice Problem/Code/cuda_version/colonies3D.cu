@@ -4,13 +4,15 @@
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH true
-#define GPU_INFECTIONS true
-#define GPU_NEWINFECTIONS true
-#define GPU_PHAGEDECAY true
-#define GPU_MOVEMENT true
+#define GPU_BIRTH false
+#define GPU_INFECTIONS false
+#define GPU_NEWINFECTIONS false
+#define GPU_PHAGEDECAY false
+#define GPU_MOVEMENT false
 #define GPU_SWAPZERO true
 #define GPU_UPDATEOCCUPANCY true
+#define GPU_NUTRIENTDIFFUSION false
+#define GPU_SWAPZERO2 true
 
 
 using namespace std;
@@ -1916,6 +1918,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 		// Determine the number of timesteps between sampings
 		int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
+        
+        //CopyAllToDevice();
 
 		for (int t = 0; t < nStepsPerSample; t++) {
 			if (exit) break;
@@ -1951,7 +1955,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in FirstKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
-				CopyAllToHost();
+				if(!GPU_MAXOCCUPANCY) CopyAllToHost();
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
@@ -1973,9 +1977,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			}
 
 			if (GPU_MAXOCCUPANCY) {
+                
 
 				// Copy to the device
-				CopyAllToDevice();
+				if(!GPU_NC) CopyAllToDevice();
 
 				// set active flags
 				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_P, d_arr_IsActive, totalElements);
@@ -1991,7 +1996,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				SequentialReduce<<<1,1>>>(d_arr_maxOccupancy, gridSize);
 
 				// Copy data back from device
-				CopyAllToHost();
+				if(!GPU_BIRTH) CopyAllToHost();
 
 				err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
@@ -2024,14 +2029,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			if (GPU_BIRTH){
 
 				// Copy to the device
-				CopyAllToDevice();
+				if(!GPU_MAXOCCUPANCY) CopyAllToDevice();
 
 				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_rng_state, d_arr_IsActive);
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in ComputeBirthEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
-				CopyAllToHost();
+				if(!GPU_INFECTIONS) CopyAllToHost();
 
 
 			} else {
@@ -2092,7 +2097,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			if (GPU_INFECTIONS){
 
 				// Copy to the device
-				CopyAllToDevice();
+				if(!GPU_BIRTH) CopyAllToDevice();
 
 				// Infections kernels
 				BurstingEvents<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_Occ, d_arr_GrowthModifier, d_arr_M, d_arr_p, alpha, beta, r, dT, d_Warn_r, d_rng_state, d_arr_IsActive);
@@ -2109,7 +2114,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in BurstingEvents or NonBurstingEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				// Copy data back from device
-				CopyAllToHost();
+				if(!GPU_NEWINFECTIONS) CopyAllToHost();
 
 			} else {
 
@@ -2633,10 +2638,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 if(!GPU_SWAPZERO) CopyAllToDevice();
 
                 UpdateOccupancy<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_B, d_arr_I0, d_arr_I1, d_arr_I2, d_arr_I3, d_arr_I4, d_arr_I5, d_arr_I6, d_arr_I7, d_arr_I8, d_arr_I9, volume);
-
-                // if(!nextstep)
-                CopyAllToHost();
-
+                
+                if(!GPU_NUTRIENTDIFFUSION) 
+                    CopyAllToHost();
+                
             }else{
 			// Update occupancy
                 for (int i = 0; i < nGridXY; i++) {
@@ -2652,66 +2657,87 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			// NUTRIENT DIFFUSION
 			double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
 			double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
+            
+            if(GPU_NUTRIENTDIFFUSION){
+                if(!GPU_UPDATEOCCUPANCY) 
+                    CopyAllToDevice();
+                NutrientDiffusion<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, alphaXY, alphaZ, nGridXY, nGridZ, experimentalConditions, volume);
+                if(!GPU_SWAPZERO2) 
+                    CopyAllToHost();
+                
+            }else{
+                for (int i = 0; i < nGridXY; i++) {
+                    for (int j = 0; j < nGridXY; j++ ) {
+                        for (int k = 0; k < nGridZ; k++ ) {
 
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
+                            // Update positions
+                            int ip, jp, kp, im, jm, km;
 
-						// Update positions
-						int ip, jp, kp, im, jm, km;
+                            if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+                            else ip = i + 1;
 
-						if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-						else ip = i + 1;
+                            if (i == 0) im = nGridXY - 1;
+                            else im = i - 1;
 
-						if (i == 0) im = nGridXY - 1;
-						else im = i - 1;
+                            if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+                            else jp = j + 1;
 
-						if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-						else jp = j + 1;
+                            if (j == 0) jm = nGridXY - 1;
+                            else jm = j - 1;
 
-						if (j == 0) jm = nGridXY - 1;
-						else jm = j - 1;
+                            if (not experimentalConditions) {   // Periodic boundaries in Z direction
 
-						if (not experimentalConditions) {   // Periodic boundaries in Z direction
+                                if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+                                else kp = k + 1;
 
-							if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-							else kp = k + 1;
+                                if (k == 0) km = nGridZ - 1;
+                                else km = k - 1;
 
-							if (k == 0) km = nGridZ - 1;
-							else km = k - 1;
+                            } else {    // Reflective boundaries in Z direction
 
-						} else {    // Reflective boundaries in Z direction
+                                if (k + 1 >= nGridZ) kp = k - 1;
+                                else kp = k + 1;
 
-							if (k + 1 >= nGridZ) kp = k - 1;
-							else kp = k + 1;
+                                if (k == 0) km = k + 1;
+                                else km = k - 1;
 
-							if (k == 0) km = k + 1;
-							else km = k - 1;
+                            }
 
-						}
+                            double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
+                            arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+                            arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+                            arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
+                            arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
+                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
+                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
+                        }
+                    }
+                }
+            }
+            if(GPU_SWAPZERO2){
+                if(!GPU_NUTRIENTDIFFUSION)
+                    CopyAllToDevice();
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, volume);
+                
+                //if(!GPU_NC) 
+                    CopyAllToHost();
+                              
+            }else {
+                std::swap(arr_nutrient, arr_nutrient_new);
 
-						double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-						arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
-						arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-						arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-						arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
-						arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
-						arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
-						arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
-					}
-				}
-			}
-
-			std::swap(arr_nutrient, arr_nutrient_new);
-
-			// Zero the _new arrays
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-					}
-				}
-			}
+                // Zero the _new arrays
+                for (int i = 0; i < nGridXY; i++) {
+                    for (int j = 0; j < nGridXY; j++ ) {
+                        for (int k = 0; k < nGridZ; k++ ) {
+                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+                        }
+                    }
+                }
+            }
+            
+			
 
 			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
 				cout << "\tWarning: Maximum Density Large!" << "\n";
@@ -2719,7 +2745,13 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				Warn_density = true;
 			}
 		}
-
+        
+        /////////////////////////////
+        //Sample loop ends...
+        ////////////////////////////
+        
+//CopyAllToHost();
+        
 		// Fast exit conditions
 		// 1) There are no more sucebtible cells
 		// -> Convert all infected cells to phages and stop simulation
