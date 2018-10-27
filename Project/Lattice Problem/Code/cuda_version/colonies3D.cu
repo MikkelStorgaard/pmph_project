@@ -2219,6 +2219,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 																										 K, alpha, beta, eta, zeta, dT, r, d_rng_state);
 				// Copy data back from device
 				if (!GPU_PHAGEDECAY) CopyAllToHost();
+
 			} else {
 				// Kernel 5: New infections ///////////////////////////////////////////////////////////////////
 				for (int i = 0; i < nGridXY; i++) {
@@ -2361,9 +2362,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					}
 				}
 			}
-
-
-
 
 
 			// Movement ///////////////////////////////////////////////////////////////////

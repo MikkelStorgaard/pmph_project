@@ -115,16 +115,16 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 		*n_f = round(*n_f);
 		*n_b = round(*n_b);
 		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-/*
-		assert(*n_0 >= 0);
-		assert(*n_u >= 0);
-		assert(*n_d >= 0);
-		assert(*n_l >= 0);
-		assert(*n_r >= 0);
-		assert(*n_f >= 0);
-		assert(*n_b >= 0);
-		assert(fabs(n - (*n_0 + *n_u + *n_d + *n_l + *n_r + *n_f + *n_b)) < 1);
-*/
+
+		// assert(*n_0 >= 0);
+		// assert(*n_u >= 0);
+		// assert(*n_d >= 0);
+		// assert(*n_l >= 0);
+		// assert(*n_r >= 0);
+		// assert(*n_f >= 0);
+		// assert(*n_b >= 0);
+		// assert(fabs(n - (*n_0 + *n_u + *n_d + *n_l + *n_r + *n_f + *n_b)) < 1);
+
 }
 
 __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
@@ -194,7 +194,6 @@ __global__ void SequentialReduce(double* A, int A_len){
   A[0] = current_max;
 }
 
-
 __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, bool* arr_IsActive){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -238,7 +237,6 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
 
 }
-
 
 __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Occ, double* arr_GrowthModifier, double* arr_M, double* arr_p, double alpha, double beta, double r, double dT, bool reducedBeta, bool* Warn_r, curandState *rng_state, bool* arr_IsActive){
 
@@ -292,61 +290,6 @@ __global__ void NonBurstingEvents(double* arr_I, double* arr_In, double* arr_p, 
   arr_I[i]     = max(0.0, arr_I[i] - N);
   arr_In[i]    += N;
 }
-
-
-//Kernel 3.2 Birth 2
-
-
-__global__ void UpdateCountKernel(double* arr_GrowthModifier,
-                                  double* arr_I9,
-                                  double* arr_Occ,
-                                  double* arr_P_new,
-                                  double* arr_M,
-                                  double* arr_p,
-                                  bool* arr_IsActive,
-                                  double alpha,
-                                  double beta,
-                                  double r,
-                                  double dT,
-                                  bool* Warn_r,
-                                  bool reducedBeta,
-                                  curandState* rng_state
-                                  ){
-
-  int i = blockIdx.x*blockDim.x + threadIdx.x;
-  if (!(arr_IsActive[i])){
-    return;
-  }
-
-  double p;
-  double tmp;
-
-  // Compute the growth modifier
-  double growthModifier = arr_GrowthModifier[i];
-
-  // Compute beta
-  double Beta = beta;
-  if (reducedBeta) {
-    Beta *= growthModifier;
-  }
-
-  /* BEGIN tredje Map-kernel */
-
-  p = r*growthModifier*dT;
-  if ((p > 0.25) and (!(*Warn_r))) {
-    *Warn_r = true;
-  }
-  arr_p[i] = p;
-
-  tmp = ComputeEvents(arr_I9[i], p, rng_state[i]);  // Bursting events
-
-  // Update count
-  arr_I9[i]    = max(0.0, arr_I9[i] - tmp);
-  arr_Occ[i]   = max(0.0, arr_Occ[i] - tmp);
-  arr_P_new[i] += round( (1 - alpha) * Beta * tmp);  // Phages which escape the colony
-  arr_M[i] = round(alpha * Beta * tmp); // Phages which reinfect the colony
-}
-
 
 __global__ void NewInfectionsKernel(double* arr_Occ,
                                     double* arr_nC,
@@ -490,47 +433,46 @@ __global__ void Movement1(curandState *rng_state,
     int j = ((tid - k)/nGridZ)%nGridXY;
     int i = ((tid -k) /nGridZ)/nGridXY;
 
-	int ip, jp, kp, im, jm, km;
+    int ip, jp, kp, im, jm, km;
 
-	if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-	else ip = i + 1;
+    if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+    else ip = i + 1;
 
-	if (i == 0) im = nGridXY - 1;
-	else im = i - 1;
+    if (i == 0) im = nGridXY - 1;
+    else im = i - 1;
 
-	if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-	else jp = j + 1;
+    if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+    else jp = j + 1;
 
-	if (j == 0) jm = nGridXY - 1;
-	else jm = j - 1;
+    if (j == 0) jm = nGridXY - 1;
+    else jm = j - 1;
 
-	if (not experimentalConditions) {   // Periodic boundaries in Z direction
+    if (not experimentalConditions) {   // Periodic boundaries in Z direction
 
-        if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-        else kp = k + 1;
+      if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+      else kp = k + 1;
 
-        if (k == 0) km = nGridZ - 1;
-        else km = k - 1;
+      if (k == 0) km = nGridZ - 1;
+      else km = k - 1;
 
-	} else {    // Reflective boundaries in Z direction
-		if (k + 1 >= nGridZ) kp = k - 1;
-		else kp = k + 1;
+    } else {    // Reflective boundaries in Z direction
+      if (k + 1 >= nGridZ) kp = k - 1;
+      else kp = k + 1;
 
-		if (k == 0) km = k + 1;
-		else km = k - 1;
+      if (k == 0) km = k + 1;
+      else km = k - 1;
 
     }
 
     // Update counts
-	double n_0; // No movement
-	double n_u; // Up
-	double n_d; // Down
-	double n_l; // Left
-	double n_r; // Right
-	double n_f; // Front
-	double n_b; // Back
+    double n_0; // No movement
+    double n_u; // Up
+    double n_d; // Down
+    double n_l; // Left
+    double n_r; // Right
+    double n_f; // Front
+    double n_b; // Back
 
-								// CELLS
     ComputeDiffusion(rng_state[tid], arr[i*nGridXY*nGridZ + j*nGridZ + k], lambda, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k, nGridXY);
         arr_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
         arr_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u;
@@ -539,7 +481,6 @@ __global__ void Movement1(curandState *rng_state,
         arr_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l;
         arr_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f;
         arr_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
 
 }
 
