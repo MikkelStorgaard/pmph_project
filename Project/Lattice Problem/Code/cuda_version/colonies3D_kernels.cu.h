@@ -12,8 +12,8 @@ __device__ double RandP(curandState rng_state, double lambda) {
     double u = curand_uniform_double(&rng_state);
     p *= u;
   }
-//  return k - 1;
-return lambda;
+  return k - 1;
+
 }
 
 __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rng_state, int index){
@@ -39,10 +39,12 @@ __device__ double ComputeEvents(double n, double p, curandState rng_state){
 
     if (p == 1) return n;
     if (p == 0) return 0.0;
-    if (n < 1)  return 0.0;
 
-    // double N = (double)curand_poisson(&rng_state, n*p);
-    return round(RandP(rng_state, n*p));
+		// DETERMINITIC CHANGE
+		// if (n < 1)  return 0.0;
+
+		// return round(RandP(rng_state, n*p));
+		return n*min(1.0,p);
 
 }
 
@@ -458,22 +460,22 @@ __global__ void PhageDecay(double* arr_P, double p,
 }
 
 // first movement kernel (if nGridXY > 1)
-__global__ void Movement1(curandState *rng_state, 
+__global__ void Movement1(curandState *rng_state,
                           double* arr,
                           double* arr_new,
                           bool* arr_IsActive,
-                          int nGridZ, 
-                          int nGridXY, 
+                          int nGridZ,
+                          int nGridXY,
                           bool experimentalConditions,
                           double lambda){
-                              
+
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    
+
     // Skip empty sites
     if (!arr_IsActive[tid]){
         return;
     }
-    
+
     int k = tid%nGridZ;
     int j = ((tid - k)/nGridZ)%nGridXY;
     int i = ((tid -k) /nGridZ)/nGridXY;
@@ -508,7 +510,7 @@ __global__ void Movement1(curandState *rng_state,
 		else km = k - 1;
 
     }
-    
+
     // Update counts
 	double n_0; // No movement
 	double n_u; // Up
@@ -520,51 +522,51 @@ __global__ void Movement1(curandState *rng_state,
 
 								// CELLS
     ComputeDiffusion(rng_state[tid], arr[i*nGridXY*nGridZ + j*nGridZ + k], lambda, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k, nGridXY);
-        arr_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; 
-        arr_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; 
-        arr_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; 
-        arr_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; 
-        arr_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; 
-        arr_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; 
+        arr_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+        arr_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u;
+        arr_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d;
+        arr_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r;
+        arr_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l;
+        arr_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f;
         arr_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
-    
+
 }
 
 __global__ void Movement2(double* arr,
                           double* arr_new,
                           bool* arr_IsActive){
-                              
+
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
     // CELLS
 	// Skip empty sites
     if (!arr_IsActive[tid]){
         return;
     }
-	
+
     arr_new[tid] += arr[tid];
 
-  
+
 }
 
 ///////////////////////////////
-// Simple end of loop kernels. 
+// Simple end of loop kernels.
 
 __global__ void SwapArrays(double* arr1, double* arr2, int size){
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    
+
     if(tid<size){
         double tmp;
         tmp = arr1[tid];
         arr1[tid] = arr2[tid];
         arr2[tid] = tmp;
     }
-    
+
 }
 
 __global__ void ZeroArray(double* arr, int size){
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    
+
     if(tid<size){
         arr[tid] = 0.0;
     }
@@ -583,7 +585,7 @@ __global__ void UpdateOccupancy(double* arr_Occ,
                                 double* arr_I9,
                                 int vol){
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    
+
     if(tid<vol){
         arr_Occ[tid] = arr_B[tid] + arr_I0[tid] + arr_I1[tid] + arr_I2[tid] + arr_I3[tid] + arr_I4[tid] + arr_I5[tid] + arr_I6[tid] + arr_I7[tid] + arr_I8[tid] + arr_I9[tid];
     }                                        
@@ -648,6 +650,8 @@ if(tid < vol) {
 	arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
     }
 }
+
+    }
 
 #endif
 
