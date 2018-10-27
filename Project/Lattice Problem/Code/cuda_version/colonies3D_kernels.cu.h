@@ -648,7 +648,7 @@ __global__ void NutrientDiffusion(double* arr_nutrient,
       if (k == 0) km = k + 1;
       else km = k - 1;
 
-    }
+ 
 
     double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
     arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
