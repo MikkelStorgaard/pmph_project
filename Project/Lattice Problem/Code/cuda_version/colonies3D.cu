@@ -1895,6 +1895,27 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	err = cudaMalloc((void**)&d_arr_GrowthModifier, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_GrowthModifier to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
+	err = cudaMalloc((void**)&d_arr_n_0, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_0 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_u, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_u to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_d, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_d to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_l, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_l to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_r, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_f, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_f to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_b, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_b to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
 	err = cudaMalloc((void**)&d_Warn_g, sizeof(bool));
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_g on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -2369,42 +2390,46 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 if(!GPU_PHAGEDECAY){
                     CopyAllToDevice();
                 }
-                if (nGridXY > 1) {
-                    Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, d_arr_B_new,d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                    if (r > 0.0){
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, d_arr_I0_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, d_arr_I1_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, d_arr_I2_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, d_arr_I3_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, d_arr_I4_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, d_arr_I5_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, d_arr_I6_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, d_arr_I7_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, d_arr_I8_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, d_arr_I9_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                    }
-                    Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, d_arr_P_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaP);
-                }
-                else {
-                    Movement2<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, d_arr_IsActive);
 
-                    if(r>0.0){
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, d_arr_IsActive);
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, d_arr_IsActive);
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, d_arr_IsActive);
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, d_arr_IsActive);
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, d_arr_IsActive);
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, d_arr_IsActive);
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, d_arr_IsActive);
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, d_arr_IsActive);
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, d_arr_IsActive);
-                        Movement2<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, d_arr_IsActive);
+				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, lambdaP, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+				ApplyMovement<<<gridSize,blockSize>>>(d_arr_P_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
-                    }
-                    Movement2<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, d_arr_IsActive);
+                // if (nGridXY > 1) {
+                //     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, d_arr_B_new,d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //     if (r > 0.0){
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, d_arr_I0_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, d_arr_I1_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, d_arr_I2_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, d_arr_I3_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, d_arr_I4_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, d_arr_I5_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, d_arr_I6_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, d_arr_I7_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, d_arr_I8_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, d_arr_I9_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //     }
+                //     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, d_arr_P_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaP);
+                // }
+                // else {
+                //     Movement2<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, d_arr_IsActive);
+
+                //     if(r>0.0){
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, d_arr_IsActive);
+
+                //     }
+                //     Movement2<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, d_arr_IsActive);
 
 
-                }
+                // }
                 if(!GPU_SWAPZERO){
                     CopyAllToHost();
                 }

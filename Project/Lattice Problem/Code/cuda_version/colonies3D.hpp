@@ -165,8 +165,6 @@ class Colonies3D {
   double* d_arr_I8_new;      // Infected bacteria
   double* d_arr_I9_new;      // Infected bacteria
 
-
-
 	// Privatized array.
 	double* arr_M;
   double* arr_GrowthModifier;
@@ -190,6 +188,14 @@ class Colonies3D {
 
   // Occupancy of grid
   double* d_arr_Occ;
+
+  double* d_arr_n_0;
+  double* d_arr_n_u;
+  double* d_arr_n_d;
+  double* d_arr_n_l;
+  double* d_arr_n_r;
+  double* d_arr_n_f;
+  double* d_arr_n_b;
 
   // Active-array
   bool* d_arr_IsActive;

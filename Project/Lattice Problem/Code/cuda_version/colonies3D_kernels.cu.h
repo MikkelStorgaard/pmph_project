@@ -58,7 +58,7 @@ __global__ void initRNG(curandState *state, int N){
   }
 }
 
-__device__ void ComputeDiffusion(curandState state, double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k, int nGridXY) {
+__device__ void ComputeDiffusion(curandState state, double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int i, int j, int k, int nGridXY) {
 
 		// Reset positions
 		*n_0 = 0.0;
@@ -134,6 +134,100 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 		// assert(*n_f >= 0);
 		// assert(*n_b >= 0);
 		// assert(fabs(n - (*n_0 + *n_u + *n_d + *n_l + *n_r + *n_f + *n_b)) < 1);
+
+}
+
+__global__ void ComputeDiffusionWeights(curandState* state, double* arr, double lambda, double* arr_n_0, double* arr_n_u, double* arr_n_d, double* arr_n_l, double* arr_n_r, double* arr_n_f, double* arr_n_b, int nGridXY, bool* arr_IsActive) {
+
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+  if (!(arr_IsActive[i])){
+    return;
+  }
+
+  double tmp = arr[i];
+  double n_0 = 0.0;
+  double n_u = 0.0;
+  double n_d = 0.0;
+  double n_l = 0.0;
+  double n_r = 0.0;
+  double n_f = 0.0;
+  double n_b = 0.0;
+
+  // DETERMINITIC CHANGE
+  // if (n < 1) return;
+
+  // Check if diffusion should occur
+  if ((lambda == 0) or (nGridXY == 1)) {
+      n_0 = tmp;
+  } else {
+
+  // DETERMINITIC CHANGE
+  // if (lambda*n < 5) {   // Compute all movement individually
+
+  // 		for (int l = 0; l < round(n); l++) {
+
+  // 				double r = curand_uniform(&state);
+
+  // 				if       (r <    lambda)                     (n_u)++;  // Up movement
+  // 				else if ((r >=   lambda) and (r < 2*lambda)) (n_d)++;  // Down movement
+  // 				else if ((r >= 2*lambda) and (r < 3*lambda)) (n_l)++;  // Left movement
+  // 				else if ((r >= 3*lambda) and (r < 4*lambda)) (n_r)++;  // Right movement
+  // 				else if ((r >= 4*lambda) and (r < 5*lambda)) (n_f)++;  // Forward movement
+  // 				else if ((r >= 5*lambda) and (r < 6*lambda)) (n_b)++;  // Backward movement
+  // 				else                                         (n_0)++;  // No movement
+
+  // 		}
+
+
+  // } else {
+
+      // // Compute the number of agents which move
+      // double N = RandP(state[i], 3*lambda*n); // Factor of 3 comes from 3D
+
+      // n_u = RandP(state[i], N/6);
+      // n_d = RandP(state[i], N/6);
+      // n_l = RandP(state[i], N/6);
+      // n_r = RandP(state[i], N/6);
+      // n_f = RandP(state[i], N/6);
+      // n_b = RandP(state[i], N/6);
+      // n_0 = n - (n_u + n_d + n_l + n_r + n_f + n_b);
+  // }
+
+  // n_u = round(n_u);
+  // n_d = round(n_d);
+  // n_l = round(n_l);
+  // n_r = round(n_r);
+  // n_f = round(n_f);
+  // n_b = round(n_b);
+  // n_0 = n - (n_u + n_d + n_l + n_r + n_f + n_b);
+
+  n_u = 0.5*lambda*tmp;
+  n_d = 0.5*lambda*tmp;
+  n_l = 0.5*lambda*tmp;
+  n_r = 0.5*lambda*tmp;
+  n_f = 0.5*lambda*tmp;
+  n_b = 0.5*lambda*tmp;
+  n_0 = tmp - (n_u + n_d + n_l + n_r + n_f + n_b);
+
+  // assert(n_0 >= 0);
+  // assert(n_u >= 0);
+  // assert(n_d >= 0);
+  // assert(n_l >= 0);
+  // assert(n_r >= 0);
+  // assert(n_f >= 0);
+  // assert(n_b >= 0);
+  // assert(fabs(n - (n_0 + n_u + n_d + n_l + n_r + n_f + n_b)) < 1);
+  }
+
+  // Write the weights
+  arr_n_0[i] = n_0;
+  arr_n_u[i] = n_u;
+  arr_n_d[i] = n_d;
+  arr_n_l[i] = n_l;
+  arr_n_r[i] = n_r;
+  arr_n_f[i] = n_f;
+  arr_n_b[i] = n_b;
 
 }
 
@@ -423,6 +517,73 @@ __global__ void PhageDecay(double* arr_P, double p,
  arr_P[i] = max(0.0, arr_P[i] - N);
 }
 
+__global__ void ApplyMovement(double* arr_new,
+                              double* arr_n_0,
+                              double* arr_n_u,
+                              double* arr_n_d,
+                              double* arr_n_l,
+                              double* arr_n_r,
+                              double* arr_n_f,
+                              double* arr_n_b,
+                              int nGridZ,
+                              int nGridXY,
+                              bool experimentalConditions,
+                              bool* arr_IsActive) {
+
+    int tid = blockIdx.x*blockDim.x + threadIdx.x;
+
+    // Skip empty sites
+    if (!arr_IsActive[tid]){
+        return;
+    }
+
+    int k = tid % nGridZ;
+    int j = ( (tid - k) / nGridZ ) % nGridXY;
+    int i = ( (tid - k) / nGridZ ) / nGridXY;
+
+    int ip, jp, kp, im, jm, km;
+
+    if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+    else ip = i + 1;
+
+    if (i == 0) im = nGridXY - 1;
+    else im = i - 1;
+
+    if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+    else jp = j + 1;
+
+    if (j == 0) jm = nGridXY - 1;
+    else jm = j - 1;
+
+    if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+      if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+      else kp = k + 1;
+
+      if (k == 0) km = nGridZ - 1;
+      else km = k - 1;
+
+    } else {    // Reflective boundaries in Z direction
+      if (k + 1 >= nGridZ) kp = k - 1;
+      else kp = k + 1;
+
+      if (k == 0) km = k + 1;
+      else km = k - 1;
+
+    }
+
+    // Update counts
+    arr_new[ i*nGridXY*nGridZ +  j*nGridZ + k]  += arr_n_0[tid];
+    arr_new[ip*nGridXY*nGridZ +  j*nGridZ + k]  += arr_n_u[tid];
+    arr_new[im*nGridXY*nGridZ +  j*nGridZ + k]  += arr_n_d[tid];
+    arr_new[ i*nGridXY*nGridZ + jp*nGridZ + k]  += arr_n_r[tid];
+    arr_new[ i*nGridXY*nGridZ + jm*nGridZ + k]  += arr_n_l[tid];
+    arr_new[ i*nGridXY*nGridZ +  j*nGridZ + kp] += arr_n_f[tid];
+    arr_new[ i*nGridXY*nGridZ +  j*nGridZ + km] += arr_n_b[tid];
+
+}
+
+
 // first movement kernel (if nGridXY > 1)
 __global__ void Movement1(curandState *rng_state,
                           double* arr,
@@ -484,7 +645,7 @@ __global__ void Movement1(curandState *rng_state,
     double n_f; // Front
     double n_b; // Back
 
-    ComputeDiffusion(rng_state[tid], arr[i*nGridXY*nGridZ + j*nGridZ + k], lambda, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k, nGridXY);
+    ComputeDiffusion(rng_state[tid], arr[i*nGridXY*nGridZ + j*nGridZ + k], lambda, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, i, j, k, nGridXY);
         arr_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
         arr_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u;
         arr_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d;
@@ -560,10 +721,10 @@ __global__ void NutrientDiffusion(double* arr_nutrient,
                                   int nGridXY,
                                   int nGridZ,
                                   bool experimentalConditions,
-                                  int vol){
-int tid = blockIdx.x*blockDim.x + threadIdx.x;
+                                  int vol) {
+  int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
-if(tid < vol) {
+  if(tid < vol) {
 
 
     int k = tid%nGridZ;
@@ -572,45 +733,45 @@ if(tid < vol) {
 
 
     // Update positions
-	int ip, jp, kp, im, jm, km;
+    int ip, jp, kp, im, jm, km;
 
-	if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-	else ip = i + 1;
+    if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+    else ip = i + 1;
 
-	if (i == 0) im = nGridXY - 1;
-	else im = i - 1;
+    if (i == 0) im = nGridXY - 1;
+    else im = i - 1;
 
-	if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-	else jp = j + 1;
+    if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+    else jp = j + 1;
 
-	if (j == 0) jm = nGridXY - 1;
-	else jm = j - 1;
+    if (j == 0) jm = nGridXY - 1;
+    else jm = j - 1;
 
-	if (not experimentalConditions) {   // Periodic boundaries in Z direction
+    if (not experimentalConditions) {   // Periodic boundaries in Z direction
 
-        if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-        else kp = k + 1;
+      if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+      else kp = k + 1;
 
-        if (k == 0) km = nGridZ - 1;
-		else km = k - 1;
+      if (k == 0) km = nGridZ - 1;
+      else km = k - 1;
 
-	} else {    // Reflective boundaries in Z direction
-        if (k + 1 >= nGridZ) kp = k - 1;
-		else kp = k + 1;
+    } else {    // Reflective boundaries in Z direction
+      if (k + 1 >= nGridZ) kp = k - 1;
+      else kp = k + 1;
 
-		if (k == 0) km = k + 1;
-		else km = k - 1;
-	}
+      if (k == 0) km = k + 1;
+      else km = k - 1;
+    }
 
     double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-	arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
-	arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-	arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-	arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
-	arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
-	arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
-	arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
-    }
+    arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
+    arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+    arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+    arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
+    arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
+    arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
+    arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
+  }
 }
 
 #endif
