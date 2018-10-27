@@ -1918,7 +1918,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 		// Determine the number of timesteps between sampings
 		int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
-        
+
         //CopyAllToDevice();
 
 		for (int t = 0; t < nStepsPerSample; t++) {
@@ -1977,7 +1977,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			}
 
 			if (GPU_MAXOCCUPANCY) {
-                
+
 
 				// Copy to the device
 				if(!GPU_NC) CopyAllToDevice();
@@ -2100,7 +2100,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				if(!GPU_BIRTH) CopyAllToDevice();
 
 				// Infections kernels
-				BurstingEvents<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_Occ, d_arr_GrowthModifier, d_arr_M, d_arr_p, alpha, beta, r, dT, d_Warn_r, d_rng_state, d_arr_IsActive);
+				BurstingEvents<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_Occ, d_arr_GrowthModifier, d_arr_M, d_arr_p, alpha, beta, r, dT, reducedBeta, d_Warn_r, d_rng_state, d_arr_IsActive);
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I8, d_arr_I9, d_arr_p, d_rng_state, d_arr_IsActive);
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I7, d_arr_I8, d_arr_p, d_rng_state, d_arr_IsActive);
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I6, d_arr_I7, d_arr_p, d_rng_state, d_arr_IsActive);
@@ -2638,10 +2638,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 if(!GPU_SWAPZERO) CopyAllToDevice();
 
                 UpdateOccupancy<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_B, d_arr_I0, d_arr_I1, d_arr_I2, d_arr_I3, d_arr_I4, d_arr_I5, d_arr_I6, d_arr_I7, d_arr_I8, d_arr_I9, volume);
-                
-                if(!GPU_NUTRIENTDIFFUSION) 
+
+                if(!GPU_NUTRIENTDIFFUSION)
                     CopyAllToHost();
-                
+
             }else{
 			// Update occupancy
                 for (int i = 0; i < nGridXY; i++) {
@@ -2657,14 +2657,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			// NUTRIENT DIFFUSION
 			double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
 			double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
-            
+
             if(GPU_NUTRIENTDIFFUSION){
-                if(!GPU_UPDATEOCCUPANCY) 
+                if(!GPU_UPDATEOCCUPANCY)
                     CopyAllToDevice();
                 NutrientDiffusion<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, alphaXY, alphaZ, nGridXY, nGridZ, experimentalConditions, volume);
-                if(!GPU_SWAPZERO2) 
+                if(!GPU_SWAPZERO2)
                     CopyAllToHost();
-                
+
             }else{
                 for (int i = 0; i < nGridXY; i++) {
                     for (int j = 0; j < nGridXY; j++ ) {
@@ -2720,10 +2720,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                     CopyAllToDevice();
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, volume);
-                
-                //if(!GPU_NC) 
+
+                //if(!GPU_NC)
                     CopyAllToHost();
-                              
+
             }else {
                 std::swap(arr_nutrient, arr_nutrient_new);
 
@@ -2736,8 +2736,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                     }
                 }
             }
-            
-			
+
+
 
 			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
 				cout << "\tWarning: Maximum Density Large!" << "\n";
@@ -2745,13 +2745,13 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				Warn_density = true;
 			}
 		}
-        
+
         /////////////////////////////
         //Sample loop ends...
         ////////////////////////////
-        
+
 //CopyAllToHost();
-        
+
 		// Fast exit conditions
 		// 1) There are no more sucebtible cells
 		// -> Convert all infected cells to phages and stop simulation
