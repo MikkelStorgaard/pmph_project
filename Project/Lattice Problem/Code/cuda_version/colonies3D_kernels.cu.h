@@ -127,7 +127,7 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  if (!arr_IsActive[i]){
+  if (!(arr_IsActive[i])){
     return;
   }
 
@@ -170,7 +170,7 @@ __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Oc
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  if (!arr_IsActive[i]){
+  if (!(arr_IsActive[i])){
     return;
   }
 
@@ -269,32 +269,6 @@ __global__ void UpdateCountKernel(double* arr_GrowthModifier,
 }
 
 
-/*
-__global__ void ThirdTwoKernel(bool* arr_IsActive, double* arr_nutrient, double* arr_B_new, bool* warn_fastGrowth){
-    int i = blockIdx.x*blockDim.x + threadIdx.x;
-
-    // Skip empty sites
-    if (!(arr_IsActive[i])) return;
-
-
-        double N = 0;
-
-    // TODO: Proper compute events
-    //N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
-    N = 1;
-
-    // Ensure there is enough nutrient
-    if ( N > arr_nutrient[i] ) {
-        if (!*warn_fastGrowth) { *warn_fastGrowth = true;    }
-        N = round( arr_nutrient[i] );
-    }
-
-    // Update count
-    arr_B_new[i] += N;
-    arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
-}
-
-*/
 __global__ void NewInfectionsKernel(double* arr_Occ,
                                     double* arr_nC,
                                     double* arr_P,
