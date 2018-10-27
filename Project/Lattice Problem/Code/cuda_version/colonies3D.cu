@@ -4,11 +4,11 @@
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH false
-#define GPU_INFECTIONS false
-#define GPU_NEWINFECTIONS false
-#define GPU_PHAGEDECAY false
-#define GPU_MOVEMENT false
+#define GPU_BIRTH true
+#define GPU_INFECTIONS true
+#define GPU_NEWINFECTIONS true
+#define GPU_PHAGEDECAY true
+#define GPU_MOVEMENT true
 #define GPU_SWAPZERO true
 #define GPU_UPDATEOCCUPANCY true
 
@@ -2352,65 +2352,39 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                     CopyAllToDevice();
                 }
                 if (nGridXY > 1) {
-                    Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B,
-                          d_arr_B_new,
-                          d_arr_I0,
-                          d_arr_I0_new,
-                          d_arr_I1,
-                          d_arr_I1_new,
-                          d_arr_I2,
-                          d_arr_I2_new,
-                          d_arr_I3,
-                          d_arr_I3_new,
-                          d_arr_I4,
-                          d_arr_I4_new,
-                          d_arr_I5,
-                          d_arr_I5_new,
-                          d_arr_I6,
-                          d_arr_I6_new,
-                          d_arr_I7,
-                          d_arr_I7_new,
-                          d_arr_I8,
-                          d_arr_I8_new,
-                          d_arr_I9,
-                          d_arr_I9_new,
-                          d_arr_P,
-                          d_arr_P_new,
-                          d_arr_IsActive,
-                          r,
-                          nGridZ, 
-                          nGridXY, 
-                          experimentalConditions,
-                          lambdaB,
-                          lambdaP);
+                    Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, d_arr_B_new,d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                    if (r > 0.0){
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, d_arr_I0_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, d_arr_I1_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, d_arr_I2_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, d_arr_I3_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, d_arr_I4_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, d_arr_I5_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, d_arr_I6_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, d_arr_I7_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, d_arr_I8_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, d_arr_I9_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                    }
+                    Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, d_arr_P_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaP);
                 }
                 else {
-                    Movement2<<<gridSize,blockSize>>>(d_arr_B,
-                          d_arr_B_new,
-                          d_arr_I0,
-                          d_arr_I0_new,
-                          d_arr_I1,
-                          d_arr_I1_new,
-                          d_arr_I2,
-                          d_arr_I2_new,
-                          d_arr_I3,
-                          d_arr_I3_new,
-                          d_arr_I4,
-                          d_arr_I4_new,
-                          d_arr_I5,
-                          d_arr_I5_new,
-                          d_arr_I6,
-                          d_arr_I6_new,
-                          d_arr_I7,
-                          d_arr_I7_new,
-                          d_arr_I8,
-                          d_arr_I8_new,
-                          d_arr_I9,
-                          d_arr_I9_new,
-                          d_arr_P,
-                          d_arr_P_new,
-                          d_arr_IsActive,
-                          r);
+                    Movement2<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, d_arr_IsActive);
+                    
+                    if(r>0.0){
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, d_arr_IsActive);
+                        
+                    }
+                    Movement2<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, d_arr_IsActive);
+                    
                     
                 }
                 if(!GPU_SWAPZERO){
