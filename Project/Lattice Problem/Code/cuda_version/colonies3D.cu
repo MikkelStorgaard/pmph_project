@@ -3570,18 +3570,18 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 
 		// } else {
 
-			// Compute the number of agents which move
-			double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
+			// // Compute the number of agents which move
+			// double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
 
-			*n_u = RandP(N/6, i, j, k);
-			*n_d = RandP(N/6, i, j, k);
-			*n_l = RandP(N/6, i, j, k);
-			*n_r = RandP(N/6, i, j, k);
-			*n_f = RandP(N/6, i, j, k);
-			*n_b = RandP(N/6, i, j, k);
-			*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+			// *n_u = RandP(N/6, i, j, k);
+			// *n_d = RandP(N/6, i, j, k);
+			// *n_l = RandP(N/6, i, j, k);
+			// *n_r = RandP(N/6, i, j, k);
+			// *n_f = RandP(N/6, i, j, k);
+			// *n_b = RandP(N/6, i, j, k);
+			// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 		// }
-  		// DETERMINITIC CHANGE
+
 		// *n_u = round(*n_u);
 		// *n_d = round(*n_d);
 		// *n_l = round(*n_l);
@@ -3589,6 +3589,14 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 		// *n_f = round(*n_f);
 		// *n_b = round(*n_b);
 		// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+
+		*n_u = 0.5*lambda*n;
+		*n_d = 0.5*lambda*n;
+		*n_l = 0.5*lambda*n;
+		*n_r = 0.5*lambda*n;
+		*n_f = 0.5*lambda*n;
+		*n_b = 0.5*lambda*n;
+		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
 		assert(*n_0 >= 0);
 		assert(*n_u >= 0);

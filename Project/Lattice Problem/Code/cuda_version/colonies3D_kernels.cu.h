@@ -4,15 +4,16 @@
 
 __device__ double RandP(curandState rng_state, double lambda) {
 
-  double L = exp(-lambda);
-  double p = 1.0;
-  double k = 0;
-  while (p > L) {
-    k++;
-    double u = curand_uniform_double(&rng_state);
-    p *= u;
-  }
-  return k - 1;
+  // double L = exp(-lambda);
+  // double p = 1.0;
+  // double k = 0;
+  // while (p > L) {
+  //   k++;
+  //   double u = curand_uniform_double(&rng_state);
+  //   p *= u;
+  // }
+  // return k - 1;
+  return lambda;
 
 }
 
@@ -97,16 +98,16 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 
 		// } else {
 
-				// Compute the number of agents which move
-				double N = RandP(state, 3*lambda*n); // Factor of 3 comes from 3D
+				// // Compute the number of agents which move
+				// double N = RandP(state, 3*lambda*n); // Factor of 3 comes from 3D
 
-				*n_u = RandP(state, N/6);
-				*n_d = RandP(state, N/6);
-				*n_l = RandP(state, N/6);
-				*n_r = RandP(state, N/6);
-				*n_f = RandP(state, N/6);
-				*n_b = RandP(state, N/6);
-				*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+				// *n_u = RandP(state, N/6);
+				// *n_d = RandP(state, N/6);
+				// *n_l = RandP(state, N/6);
+				// *n_r = RandP(state, N/6);
+				// *n_f = RandP(state, N/6);
+				// *n_b = RandP(state, N/6);
+				// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 		// }
 
 		// *n_u = round(*n_u);
@@ -116,6 +117,14 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 		// *n_f = round(*n_f);
 		// *n_b = round(*n_b);
 		// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+
+    *n_u = 0.5*lambda*n;
+    *n_d = 0.5*lambda*n;
+    *n_l = 0.5*lambda*n;
+    *n_r = 0.5*lambda*n;
+    *n_f = 0.5*lambda*n;
+    *n_b = 0.5*lambda*n;
+    *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
 		// assert(*n_0 >= 0);
 		// assert(*n_u >= 0);
