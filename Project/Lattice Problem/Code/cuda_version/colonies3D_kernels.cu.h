@@ -653,5 +653,49 @@ __global__ void Movement2(double* arr_B,
 	arr_P_new[tid] += arr_P[tid];
     
 }
+
+///////////////////////////////
+// Simple end of loop kernels. 
+
+__global__ void SwapArrays(double* arr1, double* arr2, int size){
+    int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    
+    if(tid<size){
+        double tmp;
+        tmp = arr1[tid];
+        arr1[tid] = arr2[tid];
+        arr2[tid] = tmp;
+    }
+    
+}
+
+__global__ void ZeroArray(double* arr, int size){
+    int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    
+    if(tid<size){
+        arr[tid] = 0.0;
+    }
+}
+__global__ void UpdateOccupancy(double* arr_Occ,
+                                double* arr_B,
+                                double* arr_I0,
+                                double* arr_I1,
+                                double* arr_I2,
+                                double* arr_I3,
+                                double* arr_I4,
+                                double* arr_I5,
+                                double* arr_I6,
+                                double* arr_I7,
+                                double* arr_I8,
+                                double* arr_I9,
+                                int vol){
+    int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    
+    if(tid<vol){
+        arr_Occ[tid] = arr_B[tid] + arr_I0[tid] + arr_I1[tid] + arr_I2[tid] + arr_I3[tid] + arr_I4[tid] + arr_I5[tid] + arr_I6[tid] + arr_I7[tid] + arr_I8[tid] + arr_I9[tid];
+    }                                        
+                                    
+    }
+
 #endif
 
