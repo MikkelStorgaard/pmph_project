@@ -250,7 +250,9 @@ __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Oc
 
   // Fetch growthModifier
   double growthModifier = arr_GrowthModifier[i];
-  beta *= growthModifier;
+  if (reducedBeta) {
+    beta *= growthModifier;
+  }
 
   // Compute infection increse probability
   double p = r * growthModifier *dT;
