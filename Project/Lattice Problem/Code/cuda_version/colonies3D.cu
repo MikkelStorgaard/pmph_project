@@ -6,9 +6,11 @@
 #define GPU_MAXOCCUPANCY true
 #define GPU_BIRTH true
 #define GPU_INFECTIONS true
-#define GPU_NEWINFECTIONS false
-#define GPU_PHAGEDECAY false
+#define GPU_NEWINFECTIONS true
+#define GPU_PHAGEDECAY true
 #define GPU_MOVEMENT true
+#define GPU_SWAPZERO true
+#define GPU_UPDATEOCCUPANCY true
 
 
 using namespace std;
@@ -29,6 +31,7 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 	H                       = L;        // [µm]     Height of the simulation array
 	nGridXY                 = 50;       //          Number of gridpoints
 	nGridZ                  = nGridXY;  //          Number of gridpoints
+    volume                  = nGridXY*nGridXY*nGridZ;
 
 	nSamp                   = 10;       //          Number of samples to save per simulation hour
 
@@ -2364,6 +2367,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                     CopyAllToDevice();
                 }
                 if (nGridXY > 1) {
+<<<<<<< HEAD
                     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B,
                           d_arr_B_new,
                           d_arr_I0,
@@ -2427,6 +2431,47 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 }
                 CopyAllToHost();
 
+=======
+                    Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, d_arr_B_new,d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                    if (r > 0.0){
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, d_arr_I0_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, d_arr_I1_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, d_arr_I2_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, d_arr_I3_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, d_arr_I4_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, d_arr_I5_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, d_arr_I6_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, d_arr_I7_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, d_arr_I8_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                        Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, d_arr_I9_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                    }
+                    Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, d_arr_P_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaP);
+                }
+                else {
+                    Movement2<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, d_arr_IsActive);
+                    
+                    if(r>0.0){
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, d_arr_IsActive);
+                        Movement2<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, d_arr_IsActive);
+                        
+                    }
+                    Movement2<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, d_arr_IsActive);
+                    
+                    
+                }
+                if(!GPU_SWAPZERO){
+                    CopyAllToHost();
+                }
+				
+>>>>>>> b33c734c139db842ace1cf2fcaf54d7432534e19
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
@@ -2573,52 +2618,101 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					}
 				}
 			}
+            
+            /////////////////////////////////////
+            // Simple end of loop kernels
 
-
-
+            if(GPU_SWAPZERO){
+                if(!GPU_MOVEMENT) CopyAllToDevice();
+                
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, volume);
+                
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I2_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I3_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I4_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I5_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I6_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I7_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I8_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, volume);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, volume);
+                
+                
+                
+                
+                
+                if(!GPU_UPDATEOCCUPANCY) CopyAllToHost();
+                
+                
+            }else{
 			// Swap pointers
-			std::swap(arr_B, arr_B_new);
-			std::swap(arr_I0, arr_I0_new);
-			std::swap(arr_I1, arr_I1_new);
-			std::swap(arr_I2, arr_I2_new);
-			std::swap(arr_I3, arr_I3_new);
-			std::swap(arr_I4, arr_I4_new);
-			std::swap(arr_I5, arr_I5_new);
-			std::swap(arr_I6, arr_I6_new);
-			std::swap(arr_I7, arr_I7_new);
-			std::swap(arr_I8, arr_I8_new);
-			std::swap(arr_I9, arr_I9_new);
-			std::swap(arr_P, arr_P_new);
+                std::swap(arr_B, arr_B_new);
+                std::swap(arr_I0, arr_I0_new);
+                std::swap(arr_I1, arr_I1_new);
+                std::swap(arr_I2, arr_I2_new);
+                std::swap(arr_I3, arr_I3_new);
+                std::swap(arr_I4, arr_I4_new);
+                std::swap(arr_I5, arr_I5_new);
+                std::swap(arr_I6, arr_I6_new);
+                std::swap(arr_I7, arr_I7_new);
+                std::swap(arr_I8, arr_I8_new);
+                std::swap(arr_I9, arr_I9_new);
+                std::swap(arr_P, arr_P_new);
+                
+                // Zero the _new arrays
+                for (int i = 0; i < nGridXY; i++) {
+                    for (int j = 0; j < nGridXY; j++ ) {
+                        for (int k = 0; k < nGridZ; k++ ) {
+                            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+                            arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+                        }
+                    }
+                }
+            }
+			
 
-			// Zero the _new arrays
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-						arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-					}
-				}
-			}
-
-
+            if(GPU_UPDATEOCCUPANCY){
+                if(!GPU_SWAPZERO) CopyAllToDevice();
+                                
+                UpdateOccupancy<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_B, d_arr_I0, d_arr_I1, d_arr_I2, d_arr_I3, d_arr_I4, d_arr_I5, d_arr_I6, d_arr_I7, d_arr_I8, d_arr_I9, volume);
+                
+                // if(!nextstep)
+                CopyAllToHost();
+                
+            }else{
 			// Update occupancy
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-				}
-			}
+                for (int i = 0; i < nGridXY; i++) {
+                    for (int j = 0; j < nGridXY; j++ ) {
+                        for (int k = 0; k < nGridZ; k++ ) {
+                            arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
+                        }
+                    }
+                }
+            }
 
 
 			// NUTRIENT DIFFUSION

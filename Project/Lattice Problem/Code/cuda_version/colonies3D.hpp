@@ -38,6 +38,7 @@ class Colonies3D {
   double H;                       // [µm]     Height of the simulation array
   int    nGridXY;                 //          Number of gridpoints
   int    nGridZ;                  //          Number of gridpoints
+  int    volume;
 
   double nSamp;                   //          Number of samples to save per simulation hour
 
