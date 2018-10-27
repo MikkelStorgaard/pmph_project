@@ -228,7 +228,9 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
       *Warn_fastGrowth = true;
     }
 
-    N = round( arr_nutrient[i] );
+    // DETERMINITIC CHANGE
+    //N = round( arr_nutrient[i] );
+    N = arr_nutrient[i];
   }
 
   // Update count
@@ -264,8 +266,11 @@ __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Oc
   // Update count
   arr_I9[i]    = max(0.0, arr_I9[i] - N);
   arr_Occ[i]   = max(0.0, arr_Occ[i] - N);
-  arr_P_new[i] += round( (1 - alpha) * Beta * N);
-  arr_M[i]     = round(alpha * Beta * N);
+  // DETERMINITIC CHANGE
+  // arr_P_new[i] += round( (1 - alpha) * Beta * N);
+  // arr_M[i]     = round(alpha * Beta * N);
+  arr_P_new[i] += (1 - alpha) * Beta * N;
+  arr_M[i]     = alpha * Beta * N;
   arr_p[i]     = p;
 }
 
@@ -409,8 +414,11 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
       tmp = ComputeEvents(P, p, rng_state[tid]);           // Number of targets hit //
     }
 
-    if (tmp + M >= 1) {
-      // If bacteria were hit, update events
+
+    // If bacteria were hit, update events
+    // DETERMINITIC CHANGE
+    // if (tmp + M >= 1) {
+
       arr_P[tid] = max(0.0, P - tmp); // Update count
 
       double S;
@@ -438,7 +446,7 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
       } else {
         arr_P_new[tid] += tmp * (1 - alpha) * Beta;
       }
-    }
+    // }
   }
 }
 __global__ void PhageDecay(double* arr_P, double p,
