@@ -205,13 +205,14 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
 
   // Compute the growth modifier
   double growthModifier = arr_nutrient[i] / (arr_nutrient[i] + K);
-  if (arr_nutrient[i] < 1) {
-    growthModifier = 0;
-  }
   arr_GrowthModifier[i] = growthModifier;
 
   // Compute birth probability
   double p = g * growthModifier * dT;
+  if (arr_nutrient[i] < 1) {
+    p = 0;
+  }
+
 
   // Produce warning
   if ((p > 0.1) and (!(*Warn_g))){
@@ -596,8 +597,8 @@ __global__ void UpdateOccupancy(double* arr_Occ,
 
     if(tid<vol){
         arr_Occ[tid] = arr_B[tid] + arr_I0[tid] + arr_I1[tid] + arr_I2[tid] + arr_I3[tid] + arr_I4[tid] + arr_I5[tid] + arr_I6[tid] + arr_I7[tid] + arr_I8[tid] + arr_I9[tid];
-    }                                        
-                                    
+    }
+
 }
 __global__ void NutrientDiffusion(double* arr_nutrient,
                                   double* arr_nutrient_new,
@@ -606,60 +607,59 @@ __global__ void NutrientDiffusion(double* arr_nutrient,
                                   int nGridXY,
                                   int nGridZ,
                                   bool experimentalConditions,
-                                  int vol){
-int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    
-if(tid < vol) {
-        
-    
+                                  int vol) {
+
+  int tid = blockIdx.x*blockDim.x + threadIdx.x;
+
+  if(tid < vol) {
+
     int k = tid%nGridZ;
     int j = ((tid - k)/nGridZ)%nGridXY;
     int i = ((tid -k) /nGridZ)/nGridXY;
-    
-    
+
     // Update positions
-	int ip, jp, kp, im, jm, km;
+    int ip, jp, kp, im, jm, km;
 
-	if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-	else ip = i + 1;
+    if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+    else ip = i + 1;
 
-	if (i == 0) im = nGridXY - 1;
-	else im = i - 1;
+    if (i == 0) im = nGridXY - 1;
+    else im = i - 1;
 
-	if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-	else jp = j + 1;
+    if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+    else jp = j + 1;
 
-	if (j == 0) jm = nGridXY - 1;
-	else jm = j - 1;
+    if (j == 0) jm = nGridXY - 1;
+    else jm = j - 1;
 
-	if (not experimentalConditions) {   // Periodic boundaries in Z direction
+    if (not experimentalConditions) {   // Periodic boundaries in Z direction
 
-        if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-        else kp = k + 1;
+      if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+      else kp = k + 1;
 
-        if (k == 0) km = nGridZ - 1;
-		else km = k - 1;
+      if (k == 0) km = nGridZ - 1;
+      else km = k - 1;
 
-	} else {    // Reflective boundaries in Z direction
-        if (k + 1 >= nGridZ) kp = k - 1;
-		else kp = k + 1;
+    } else {    // Reflective boundaries in Z direction
 
-		if (k == 0) km = k + 1;
-		else km = k - 1;
-	}
+      if (k + 1 >= nGridZ) kp = k - 1;
+      else kp = k + 1;
+
+      if (k == 0) km = k + 1;
+      else km = k - 1;
+
+    }
 
     double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-	arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
-	arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-	arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-	arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
-	arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
-	arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
-	arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
-    }
+    arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
+    arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+    arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+    arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
+    arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
+    arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
+    arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
+  }
 }
-
-    }
 
 #endif
 
