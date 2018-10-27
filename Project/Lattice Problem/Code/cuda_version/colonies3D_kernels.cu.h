@@ -573,13 +573,13 @@ __global__ void ApplyMovement(double* arr_new,
     }
 
     // Update counts
-    arr_new[ i*nGridXY*nGridZ +  j*nGridZ + k]  += arr_n_0[tid];
-    arr_new[ip*nGridXY*nGridZ +  j*nGridZ + k]  += arr_n_u[tid];
-    arr_new[im*nGridXY*nGridZ +  j*nGridZ + k]  += arr_n_d[tid];
-    arr_new[ i*nGridXY*nGridZ + jp*nGridZ + k]  += arr_n_r[tid];
-    arr_new[ i*nGridXY*nGridZ + jm*nGridZ + k]  += arr_n_l[tid];
-    arr_new[ i*nGridXY*nGridZ +  j*nGridZ + kp] += arr_n_f[tid];
-    arr_new[ i*nGridXY*nGridZ +  j*nGridZ + km] += arr_n_b[tid];
+    arr_new[tid] += arr_n_0[ i*nGridXY*nGridZ +  j*nGridZ + k ];
+    arr_new[tid] += arr_n_u[ip*nGridXY*nGridZ +  j*nGridZ + k ];
+    arr_new[tid] += arr_n_d[im*nGridXY*nGridZ +  j*nGridZ + k ];
+    arr_new[tid] += arr_n_r[ i*nGridXY*nGridZ + jp*nGridZ + k ];
+    arr_new[tid] += arr_n_l[ i*nGridXY*nGridZ + jm*nGridZ + k ];
+    arr_new[tid] += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
+    arr_new[tid] += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
 
 }
 
