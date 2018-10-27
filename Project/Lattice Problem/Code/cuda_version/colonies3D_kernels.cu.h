@@ -55,6 +55,76 @@ __global__ void initRNG(curandState *state, int N){
   }
 }
 
+__device__ void ComputeDiffusion(curandState state, double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k, int nGridXY) {
+
+		// Reset positions
+		*n_0 = 0.0;
+		*n_u = 0.0;
+		*n_d = 0.0;
+		*n_l = 0.0;
+		*n_r = 0.0;
+		*n_f = 0.0;
+		*n_b = 0.0;
+
+		// Trivial case
+		if (n < 1) return;
+
+		// Check if diffusion should occur
+		if ((lambda == 0) or (nGridXY == 1)) {
+				*n_0 = n;
+				return;
+		}
+
+		if (lambda*n < 5) {   // Compute all movement individually
+
+				for (int l = 0; l < round(n); l++) {
+
+						double r = curand_uniform(&state);
+
+						if       (r <    lambda)                     (*n_u)++;  // Up movement
+						else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
+						else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
+						else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
+						else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
+						else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
+						else                                         (*n_0)++;  // No movement
+
+				}
+
+
+		} else {
+
+				// Compute the number of agents which move
+				double N = RandP(state, 3*lambda*n); // Factor of 3 comes from 3D
+
+				*n_u = RandP(state, N/6);
+				*n_d = RandP(state, N/6);
+				*n_l = RandP(state, N/6);
+				*n_r = RandP(state, N/6);
+				*n_f = RandP(state, N/6);
+				*n_b = RandP(state, N/6);
+				*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+		}
+
+		*n_u = round(*n_u);
+		*n_d = round(*n_d);
+		*n_l = round(*n_l);
+		*n_r = round(*n_r);
+		*n_f = round(*n_f);
+		*n_b = round(*n_b);
+		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+/*
+		assert(*n_0 >= 0);
+		assert(*n_u >= 0);
+		assert(*n_d >= 0);
+		assert(*n_l >= 0);
+		assert(*n_r >= 0);
+		assert(*n_f >= 0);
+		assert(*n_b >= 0);
+		assert(fabs(n - (*n_0 + *n_u + *n_d + *n_l + *n_r + *n_f + *n_b)) < 1);
+*/
+}
+
 __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -387,5 +457,201 @@ __global__ void PhageDecay(double* arr_P, double p,
  arr_P[i] = max(0.0, arr_P[i] - N);
 }
 
+// first movement kernel (if nGridXY > 1)
+__global__ void Movement1(curandState *rng_state, 
+                          double* arr_B,
+                          double* arr_B_new,
+                          double* arr_I0,
+                          double* arr_I0_new,
+                          double* arr_I1,
+                          double* arr_I1_new,
+                          double* arr_I2,
+                          double* arr_I2_new,
+                          double* arr_I3,
+                          double* arr_I3_new,
+                          double* arr_I4,
+                          double* arr_I4_new,
+                          double* arr_I5,
+                          double* arr_I5_new,
+                          double* arr_I6,
+                          double* arr_I6_new,
+                          double* arr_I7,
+                          double* arr_I7_new,
+                          double* arr_I8,
+                          double* arr_I8_new,
+                          double* arr_I9,
+                          double* arr_I9_new,
+                          double* arr_P,
+                          double* arr_P_new,
+                          bool* arr_IsActive,
+                          double r,
+                          int nGridZ, 
+                          int nGridXY, 
+                          bool experimentalConditions,
+                          double lambdaB,
+                          double lambdaP){
+                              
+    int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    
+    // Skip empty sites
+    if (!arr_IsActive[tid]){
+        return;
+    }
+    
+    int k = tid%nGridZ;
+    int j = ((tid - k)/nGridZ)%nGridXY;
+    int i = ((tid -k) /nGridZ)/nGridXY;
+
+	int ip, jp, kp, im, jm, km;
+
+	if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+	else ip = i + 1;
+
+	if (i == 0) im = nGridXY - 1;
+	else im = i - 1;
+
+	if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+	else jp = j + 1;
+
+	if (j == 0) jm = nGridXY - 1;
+	else jm = j - 1;
+
+	if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+        if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+        else kp = k + 1;
+
+        if (k == 0) km = nGridZ - 1;
+        else km = k - 1;
+
+	} else {    // Reflective boundaries in Z direction
+		if (k + 1 >= nGridZ) kp = k - 1;
+		else kp = k + 1;
+
+		if (k == 0) km = k + 1;
+		else km = k - 1;
+
+    }
+    
+    // Update counts
+	double n_0; // No movement
+	double n_u; // Up
+	double n_d; // Down
+	double n_l; // Left
+	double n_r; // Right
+	double n_f; // Front
+	double n_b; // Back
+
+								// CELLS
+    ComputeDiffusion(rng_state[tid], arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k, nGridXY);
+        arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; 
+        arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; 
+        arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; 
+        arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; 
+        arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; 
+        arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; 
+        arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+	if (r > 0.0) {
+		ComputeDiffusion(rng_state[tid], arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; 
+        arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; 
+        arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; 
+        arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; 
+        arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; 
+        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; 
+        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+        ComputeDiffusion(rng_state[tid], arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+            arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; 
+            arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+		ComputeDiffusion(rng_state[tid], arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+			arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+		ComputeDiffusion(rng_state[tid], arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+			arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+		ComputeDiffusion(rng_state[tid], arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+			arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+		ComputeDiffusion(rng_state[tid], arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+			arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+		ComputeDiffusion(rng_state[tid], arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+			arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+		ComputeDiffusion(rng_state[tid], arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+			arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+		ComputeDiffusion(rng_state[tid], arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+			arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+		ComputeDiffusion(rng_state[tid], arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k, nGridXY);
+			arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+		}
+
+								// PHAGES
+		ComputeDiffusion(rng_state[tid], arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k, nGridXY);
+			arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+								// KERNEL END
+    
+    
+}
+
+__global__ void Movement2(double* arr_B,
+                          double* arr_B_new,
+                          double* arr_I0,
+                          double* arr_I0_new,
+                          double* arr_I1,
+                          double* arr_I1_new,
+                          double* arr_I2,
+                          double* arr_I2_new,
+                          double* arr_I3,
+                          double* arr_I3_new,
+                          double* arr_I4,
+                          double* arr_I4_new,
+                          double* arr_I5,
+                          double* arr_I5_new,
+                          double* arr_I6,
+                          double* arr_I6_new,
+                          double* arr_I7,
+                          double* arr_I7_new,
+                          double* arr_I8,
+                          double* arr_I8_new,
+                          double* arr_I9,
+                          double* arr_I9_new,
+                          double* arr_P,
+                          double* arr_P_new,
+                          bool* arr_IsActive,
+                          double r){
+                              
+    int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    // CELLS
+	// Skip empty sites
+    if (!arr_IsActive[tid]){
+        return;
+    }
+	
+    arr_B_new[tid] += arr_B[tid];
+
+	if (r > 0.0) {
+		arr_I0_new[tid] += arr_I0[tid];
+		arr_I1_new[tid] += arr_I1[tid];
+		arr_I2_new[tid] += arr_I2[tid];
+		arr_I3_new[tid] += arr_I3[tid];
+		arr_I4_new[tid] += arr_I4[tid];
+		arr_I5_new[tid] += arr_I5[tid];
+		arr_I6_new[tid] += arr_I6[tid];
+		arr_I7_new[tid] += arr_I7[tid];
+		arr_I8_new[tid] += arr_I8[tid];
+		arr_I9_new[tid] += arr_I9[tid];
+	}
+
+	// PHAGES
+	arr_P_new[tid] += arr_P[tid];
+    
+}
 #endif
 

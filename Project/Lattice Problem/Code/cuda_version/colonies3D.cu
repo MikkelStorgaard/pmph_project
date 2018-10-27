@@ -6,9 +6,9 @@
 #define GPU_MAXOCCUPANCY true
 #define GPU_BIRTH true
 #define GPU_INFECTIONS true
-#define GPU_NEWINFECTIONS true
+#define GPU_NEWINFECTIONS false
 #define GPU_PHAGEDECAY false
-#define GPU_MOVEMENT false
+#define GPU_MOVEMENT true
 
 
 using namespace std;
@@ -1396,7 +1396,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								else km = k - 1;
 
 							}
-
+                            
 							// Update counts
 							double n_0; // No movement
 							double n_u; // Up
@@ -2290,13 +2290,17 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			// Phage decay ///////////////////////////////////////////////////////////////////
 			if (GPU_PHAGEDECAY) {
-				CopyAllToDevice();
+                if(!GPU_NEWINFECTIONS){
+                    CopyAllToDevice();
+                }
+				
 
 				PhageDecay<<<gridSize, blockSize>>>(d_arr_P, delta*dT,
                                             d_Warn_delta, d_rng_state,
                                             d_arr_IsActive);
-
-				CopyAllToHost();
+                if(!GPU_MOVEMENT){
+                    CopyAllToHost();
+                }
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
@@ -2341,7 +2345,73 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 			// Movement ///////////////////////////////////////////////////////////////////
 			if (GPU_MOVEMENT) {
-				// Do
+                if(!GPU_PHAGEDECAY){
+                    CopyAllToDevice();
+                }
+                if (nGridXY > 1) {
+                    Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B,
+                          d_arr_B_new,
+                          d_arr_I0,
+                          d_arr_I0_new,
+                          d_arr_I1,
+                          d_arr_I1_new,
+                          d_arr_I2,
+                          d_arr_I2_new,
+                          d_arr_I3,
+                          d_arr_I3_new,
+                          d_arr_I4,
+                          d_arr_I4_new,
+                          d_arr_I5,
+                          d_arr_I5_new,
+                          d_arr_I6,
+                          d_arr_I6_new,
+                          d_arr_I7,
+                          d_arr_I7_new,
+                          d_arr_I8,
+                          d_arr_I8_new,
+                          d_arr_I9,
+                          d_arr_I9_new,
+                          d_arr_P,
+                          d_arr_P_new,
+                          d_arr_IsActive,
+                          r,
+                          nGridZ, 
+                          nGridXY, 
+                          experimentalConditions,
+                          lambdaB,
+                          lambdaP);
+                }
+                else {
+                    Movement2<<<gridSize,blockSize>>>(d_arr_B,
+                          d_arr_B_new,
+                          d_arr_I0,
+                          d_arr_I0_new,
+                          d_arr_I1,
+                          d_arr_I1_new,
+                          d_arr_I2,
+                          d_arr_I2_new,
+                          d_arr_I3,
+                          d_arr_I3_new,
+                          d_arr_I4,
+                          d_arr_I4_new,
+                          d_arr_I5,
+                          d_arr_I5_new,
+                          d_arr_I6,
+                          d_arr_I6_new,
+                          d_arr_I7,
+                          d_arr_I7_new,
+                          d_arr_I8,
+                          d_arr_I8_new,
+                          d_arr_I9,
+                          d_arr_I9_new,
+                          d_arr_P,
+                          d_arr_P_new,
+                          d_arr_IsActive,
+                          r);
+                    
+                }
+                CopyAllToHost();
+				
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
@@ -2405,11 +2475,23 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 								// CELLS
 								ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
-								arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                    arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; 
+                                    arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; 
+                                    arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; 
+                                    arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; 
+                                    arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; 
+                                    arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; 
+                                    arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
 								if (r > 0.0) {
 									ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; 
+                                        arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; 
+                                        arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; 
+                                        arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; 
+                                        arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; 
+                                        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; 
+                                        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
 
 									ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
 									arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
