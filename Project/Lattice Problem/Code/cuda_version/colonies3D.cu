@@ -2367,71 +2367,6 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                     CopyAllToDevice();
                 }
                 if (nGridXY > 1) {
-<<<<<<< HEAD
-                    Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B,
-                          d_arr_B_new,
-                          d_arr_I0,
-                          d_arr_I0_new,
-                          d_arr_I1,
-                          d_arr_I1_new,
-                          d_arr_I2,
-                          d_arr_I2_new,
-                          d_arr_I3,
-                          d_arr_I3_new,
-                          d_arr_I4,
-                          d_arr_I4_new,
-                          d_arr_I5,
-                          d_arr_I5_new,
-                          d_arr_I6,
-                          d_arr_I6_new,
-                          d_arr_I7,
-                          d_arr_I7_new,
-                          d_arr_I8,
-                          d_arr_I8_new,
-                          d_arr_I9,
-                          d_arr_I9_new,
-                          d_arr_P,
-                          d_arr_P_new,
-                          d_arr_IsActive,
-                          r,
-                          nGridZ,
-                          nGridXY,
-                          experimentalConditions,
-                          lambdaB,
-                          lambdaP);
-                }
-                else {
-                    Movement2<<<gridSize,blockSize>>>(d_arr_B,
-                          d_arr_B_new,
-                          d_arr_I0,
-                          d_arr_I0_new,
-                          d_arr_I1,
-                          d_arr_I1_new,
-                          d_arr_I2,
-                          d_arr_I2_new,
-                          d_arr_I3,
-                          d_arr_I3_new,
-                          d_arr_I4,
-                          d_arr_I4_new,
-                          d_arr_I5,
-                          d_arr_I5_new,
-                          d_arr_I6,
-                          d_arr_I6_new,
-                          d_arr_I7,
-                          d_arr_I7_new,
-                          d_arr_I8,
-                          d_arr_I8_new,
-                          d_arr_I9,
-                          d_arr_I9_new,
-                          d_arr_P,
-                          d_arr_P_new,
-                          d_arr_IsActive,
-                          r);
-
-                }
-                CopyAllToHost();
-
-=======
                     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, d_arr_B_new,d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
                     if (r > 0.0){
                         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, d_arr_I0_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
@@ -2449,7 +2384,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 }
                 else {
                     Movement2<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, d_arr_IsActive);
-                    
+
                     if(r>0.0){
                         Movement2<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, d_arr_IsActive);
                         Movement2<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, d_arr_IsActive);
@@ -2461,17 +2396,16 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                         Movement2<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, d_arr_IsActive);
                         Movement2<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, d_arr_IsActive);
                         Movement2<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, d_arr_IsActive);
-                        
+
                     }
                     Movement2<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, d_arr_IsActive);
-                    
-                    
+
+
                 }
                 if(!GPU_SWAPZERO){
                     CopyAllToHost();
                 }
-				
->>>>>>> b33c734c139db842ace1cf2fcaf54d7432534e19
+
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
 					if (exit) break;
@@ -2618,13 +2552,13 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					}
 				}
 			}
-            
+
             /////////////////////////////////////
             // Simple end of loop kernels
 
             if(GPU_SWAPZERO){
                 if(!GPU_MOVEMENT) CopyAllToDevice();
-                
+
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, volume);
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, volume);
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, volume);
@@ -2637,7 +2571,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, volume);
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, volume);
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, volume);
-                
+
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, volume);
@@ -2650,14 +2584,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I8_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, volume);
-                
-                
-                
-                
-                
+
+
+
+
+
                 if(!GPU_UPDATEOCCUPANCY) CopyAllToHost();
-                
-                
+
+
             }else{
 			// Swap pointers
                 std::swap(arr_B, arr_B_new);
@@ -2672,7 +2606,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 std::swap(arr_I8, arr_I8_new);
                 std::swap(arr_I9, arr_I9_new);
                 std::swap(arr_P, arr_P_new);
-                
+
                 // Zero the _new arrays
                 for (int i = 0; i < nGridXY; i++) {
                     for (int j = 0; j < nGridXY; j++ ) {
@@ -2693,16 +2627,16 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                     }
                 }
             }
-			
+
 
             if(GPU_UPDATEOCCUPANCY){
                 if(!GPU_SWAPZERO) CopyAllToDevice();
-                                
+
                 UpdateOccupancy<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_B, d_arr_I0, d_arr_I1, d_arr_I2, d_arr_I3, d_arr_I4, d_arr_I5, d_arr_I6, d_arr_I7, d_arr_I8, d_arr_I9, volume);
-                
+
                 // if(!nextstep)
                 CopyAllToHost();
-                
+
             }else{
 			// Update occupancy
                 for (int i = 0; i < nGridXY; i++) {
