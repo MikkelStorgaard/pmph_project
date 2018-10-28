@@ -106,6 +106,7 @@ class Colonies3D {
   std::ofstream f_n;              // Filestream to save configuration of nutrient
   std::ofstream f_N;              // Filestream to save number agents
   std::ofstream f_log;            // Filestream to save log.txt
+  std::ofstream f_kerneltimings;  // Filestream to save GPU kernel timings
 
   std::string path;               // Sets the path to store in
 

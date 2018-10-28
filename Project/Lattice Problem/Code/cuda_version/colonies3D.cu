@@ -1,6 +1,7 @@
 #include "colonies3D.hpp"
 #include "colonies3D_kernels.cu.h"
 // #include "colonies3D_helpers.cu"
+#include <chrono>
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY true
@@ -14,8 +15,10 @@
 #define GPU_NUTRIENTDIFFUSION false
 #define GPU_SWAPZERO2 true
 
+#define GPU_KERNEL_TIMING true
 
 using namespace std;
+using namespace std::chrono;
 
 // Constructers /////////////////////////////////////////////////////////////////////////
 // Direct constructer
@@ -1763,6 +1766,11 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	time_t  tic;
 	time(&tic);
 
+	// Get start time
+  high_resolution_clock::time_point kernel_start;
+  high_resolution_clock::duration kernel_elapsed;
+
+
 	// Generate a path
 	path = GeneratePath();
 
@@ -1771,6 +1779,11 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	// Export data
 	ExportData_arr(T,filename_suffix);
+
+  if (GPU_KERNEL_TIMING){
+    std::string s = "kernel_timings";
+    OpenFileStream(f_kerneltimings, s);
+  }
 
 	// Determine the number of samples to take
 	int nSamplings = nSamp*T_end;
@@ -1971,7 +1984,17 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				CopyAllToDevice();
 
 				// Run first Kernel
+
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
 				FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        }
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in FirstKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -2003,18 +2026,46 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				// Copy to the device
 				if(!GPU_NC) CopyAllToDevice();
 
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
 				// set active flags
 				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_P, d_arr_IsActive, totalElements);
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        }
+
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err)); errC--;}
 
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
 				// Run second Kernel
 				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(double)>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, blockSize);
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        }
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 
       			// This places the maximum occupancy in d_arr_maxOccupancy[0]
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
 				SequentialReduce<<<1,1>>>(d_arr_maxOccupancy, gridSize);
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        }
 
 				// Copy data back from device
 				if(!GPU_BIRTH) CopyAllToHost();
@@ -2052,7 +2103,16 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				// Copy to the device
 				if(!GPU_MAXOCCUPANCY) CopyAllToDevice();
 
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
 				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_rng_state, d_arr_IsActive);
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        }
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in ComputeBirthEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -2120,6 +2180,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				// Copy to the device
 				if(!GPU_BIRTH) CopyAllToDevice();
 
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
 				// Infections kernels
 				BurstingEvents<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_Occ, d_arr_GrowthModifier, d_arr_M, d_arr_p, alpha, beta, r, dT, reducedBeta, d_Warn_r, d_rng_state, d_arr_IsActive);
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I8, d_arr_I9, d_arr_p, d_rng_state, d_arr_IsActive);
@@ -2131,6 +2195,11 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I2, d_arr_I3, d_arr_p, d_rng_state, d_arr_IsActive);
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_rng_state, d_arr_IsActive);
 				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_rng_state, d_arr_IsActive);
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        }
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in BurstingEvents or NonBurstingEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
 
@@ -2233,11 +2302,20 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				// Copy to the device
 				if (!GPU_INFECTIONS) CopyAllToDevice();
 
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
 				NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
 																										 d_arr_GrowthModifier, d_arr_B, d_arr_B_new,
 																										 d_arr_M, d_arr_I0_new, d_arr_IsActive,
 																										 reducedBeta, clustering, shielding,
 																										 K, alpha, beta, eta, zeta, dT, r, d_rng_state);
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        }
 				// Copy data back from device
 				if (!GPU_PHAGEDECAY) CopyAllToHost();
 
@@ -2340,9 +2418,18 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 }
 
 
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
 				PhageDecay<<<gridSize, blockSize>>>(d_arr_P, delta*dT,
                                             d_Warn_delta, d_rng_state,
                                             d_arr_IsActive);
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        }
                 if(!GPU_MOVEMENT){
                     CopyAllToHost();
                 }
@@ -2391,6 +2478,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                     CopyAllToDevice();
                 }
 
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
 				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
 				ApplyMovement<<<gridSize,blockSize>>>(d_arr_B_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
@@ -2428,6 +2519,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, lambdaP, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
 				ApplyMovement<<<gridSize,blockSize>>>(d_arr_P_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
+
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        }
 
                 // if (nGridXY > 1) {
                 //     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, d_arr_B_new,d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
@@ -2621,7 +2718,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
             if(GPU_SWAPZERO){
                 if(!GPU_MOVEMENT) CopyAllToDevice();
-
+        if (GPU_KERNEL_TIMING){
+          cudaDeviceSynchronize();
+          kernel_start = high_resolution_clock::now();
+        }
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, volume);
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, volume);
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, volume);
@@ -2647,6 +2747,11 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I8_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, volume);
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
+                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+                }
 
 
 
@@ -2695,7 +2800,16 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
             if(GPU_UPDATEOCCUPANCY){
                 if(!GPU_SWAPZERO) CopyAllToDevice();
 
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_start = high_resolution_clock::now();
+                }
                 UpdateOccupancy<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_B, d_arr_I0, d_arr_I1, d_arr_I2, d_arr_I3, d_arr_I4, d_arr_I5, d_arr_I6, d_arr_I7, d_arr_I8, d_arr_I9, volume);
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
+                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+                }
 
                 if(!GPU_NUTRIENTDIFFUSION)
                     CopyAllToHost();
@@ -2719,7 +2833,16 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
             if(GPU_NUTRIENTDIFFUSION){
                 if(!GPU_UPDATEOCCUPANCY)
                     CopyAllToDevice();
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_start = high_resolution_clock::now();
+                }
                 NutrientDiffusion<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, alphaXY, alphaZ, nGridXY, nGridZ, experimentalConditions, volume);
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
+                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+                }
                 if(!GPU_SWAPZERO2)
                     CopyAllToHost();
 
@@ -2776,8 +2899,17 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
             if(GPU_SWAPZERO2){
                 if(!GPU_NUTRIENTDIFFUSION)
                     CopyAllToDevice();
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_start = high_resolution_clock::now();
+                }
                 SwapArrays<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, volume);
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
+                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\n";
+                }
 
                 //if(!GPU_NC)
                     CopyAllToHost();
