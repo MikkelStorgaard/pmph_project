@@ -1,24 +1,24 @@
 #include "colonies3D.hpp"
 #include "colonies3D_kernels.cu.h"
-// #include "colonies3D_helpers.cu"
 #include <chrono>
 
 #define GPU_NC true
 #define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH false
-#define GPU_INFECTIONS false
-#define GPU_NEWINFECTIONS false
-#define GPU_PHAGEDECAY false
-#define GPU_MOVEMENT false
+#define GPU_BIRTH true
+#define GPU_INFECTIONS true
+#define GPU_NEWINFECTIONS true
+#define GPU_PHAGEDECAY true
+#define GPU_MOVEMENT true
 #define GPU_SWAPZERO true
 #define GPU_UPDATEOCCUPANCY true
-#define GPU_NUTRIENTDIFFUSION false
+#define GPU_NUTRIENTDIFFUSION true
 #define GPU_SWAPZERO2 true
 
 #define GPU_KERNEL_TIMING true
 
 using namespace std;
 using namespace std::chrono;
+
 
 // Constructers /////////////////////////////////////////////////////////////////////////
 // Direct constructer
@@ -34,11 +34,11 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 
 	L                       = 1e4;      // [µm]     Side-length of simulation array
 	H                       = L;        // [µm]     Height of the simulation array
-	nGridXY                 = 50;       //          Number of gridpoints
+	nGridXY                 = 100000;       //          Number of gridpoints
 	nGridZ                  = nGridXY;  //          Number of gridpoints
-    volume                  = nGridXY*nGridXY*nGridZ;
+  volume                  = nGridXY*nGridXY*nGridZ;
 
-	nSamp                   = 10;       //          Number of samples to save per simulation hour
+	nSamp                   = 1000;       //          Number of samples to save per simulation hour
 
 	g                       = 2;        // [1/h]    Doubling rate for the cells
 
@@ -1783,6 +1783,49 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
   if (GPU_KERNEL_TIMING){
     std::string s = "kernel_timings";
     OpenFileStream(f_kerneltimings, s);
+    if (GPU_NC) {
+      f_kerneltimings << "FirstKernel \t";
+    } 
+    if (GPU_MAXOCCUPANCY) {
+      f_kerneltimings << "SetIsActive \t SecondKernel \t SequentialReduce \t";
+
+    } 
+    if (GPU_BIRTH) {
+      f_kerneltimings << "ComputeBirthEvents \t";
+
+    } 
+    if (GPU_INFECTIONS) {
+      f_kerneltimings << "Bursting/NonBurstingEvents \t";
+    } 
+    if (GPU_NEWINFECTIONS) {
+      f_kerneltimings << "NewInfectionsKernel \t";
+
+    } 
+    if (GPU_PHAGEDECAY) {
+      f_kerneltimings << "PhageDecay \t";
+
+    } 
+    if (GPU_MOVEMENT) {
+      f_kerneltimings << "DiffusionAndApplyMovement \t";
+
+    } 
+    if (GPU_SWAPZERO) {
+      f_kerneltimings << "SwapAndZeroArrays \t";
+
+    } 
+    if (GPU_UPDATEOCCUPANCY) {
+      f_kerneltimings << "UpdateOccupancy \t";
+
+    } 
+    if (GPU_NUTRIENTDIFFUSION) {
+      f_kerneltimings << "NutrientDiffusion \t";
+
+    } 
+    if (GPU_SWAPZERO2) {
+      f_kerneltimings << "SwapZero";
+
+    } 
+    f_kerneltimings << "\n";
   }
 
 	// Determine the number of samples to take
@@ -2055,7 +2098,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-      			// This places the maximum occupancy in d_arr_maxOccupancy[0]
+        // This places the maximum occupancy in d_arr_maxOccupancy[0]
         if (GPU_KERNEL_TIMING){
           cudaDeviceSynchronize();
           kernel_start = high_resolution_clock::now();
@@ -2716,8 +2759,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
             /////////////////////////////////////
             // Simple end of loop kernels
 
-            if(GPU_SWAPZERO){
-                if(!GPU_MOVEMENT) CopyAllToDevice();
+      if(GPU_SWAPZERO){
+        if(!GPU_MOVEMENT) CopyAllToDevice();
         if (GPU_KERNEL_TIMING){
           cudaDeviceSynchronize();
           kernel_start = high_resolution_clock::now();
@@ -2810,7 +2853,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                   kernel_elapsed = high_resolution_clock::now() - kernel_start;
                   f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
                 }
-
+                
                 if(!GPU_NUTRIENTDIFFUSION)
                     CopyAllToHost();
 
@@ -2908,7 +2951,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
                   kernel_elapsed = high_resolution_clock::now() - kernel_start;
-                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\n";
+                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count();
                 }
 
                 //if(!GPU_NC)
@@ -2929,6 +2972,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 
 
+                f_kerneltimings << "\n";
 			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
 				cout << "\tWarning: Maximum Density Large!" << "\n";
 				f_log  << "Warning: Maximum Density Large!" << "\n";
@@ -4123,6 +4167,7 @@ void Colonies3D::OpenFileStream(ofstream& stream, string& fileName) {
 				// Debug info
 				cout << "\tSaving data to file: " << path << "/" << fileName << ".txt" << "\n";
 
+
 				// Check if the output file exists
 				time_t theTime = time(NULL);
 				struct tm *aTime = localtime(&theTime);
@@ -4345,6 +4390,10 @@ Colonies3D::~Colonies3D() {
 		if (f_log.is_open()) {
 				f_log.flush();
 				f_log.close();
+		}
+		if (f_kerneltimings.is_open()) {
+				f_kerneltimings.flush();
+				f_kerneltimings.close();
 		}
 
 		 // Delete arrays
