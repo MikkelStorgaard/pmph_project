@@ -364,6 +364,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 							}
 						}
 
+						double dXY = L / nGridXY;
+						double dZ  = H / nGridZ;
+						double dV  = dXY * dXY * dZ;
+						double eta = 1e4 / dV;
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
 							// Compute the number of hits
 							if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
@@ -981,6 +985,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							assert(*tmp != -1);
 							N = *tmp;
+							delete tmp;
 						} else {
 							N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 						}
@@ -993,7 +998,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								Warn_fastGrowth = true;
 							}
 
+							// DETERMINITIC CHANGE
 							N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+							// N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
 						// Update count
@@ -1047,6 +1054,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1054,8 +1062,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							// Update count
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
+                            // DETERMINITIC CHANGE
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+                            arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
+                            // arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
+                            // arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
 
 							// Non-bursting events
 							if (GPU_INFECTIONS) {
@@ -1067,6 +1078,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1082,6 +1094,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1097,6 +1110,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1112,6 +1126,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1127,6 +1142,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1142,6 +1158,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1157,6 +1174,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1172,6 +1190,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1187,6 +1206,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
+								delete tmp;
 							} else {
 								N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 							}
@@ -1240,6 +1260,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							}
 						}
 
+
+						double dXY = L / nGridXY;
+						double dZ  = H / nGridZ;
+						double dV  = dXY * dXY * dZ;
+						double eta = 1e4 / dV;
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
 							// Compute the number of hits
 							if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
@@ -1256,6 +1281,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 									cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 									assert(*tmp != -1);
 									N = *tmp;
+									delete tmp;
 								} else {
 									N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 								}
@@ -1266,6 +1292,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								// cout << "value: "<< tmp << endl;
 							}
 
+							// DETERMINITIC CHANGE
 							if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
 								// If bacteria were hit, update events
 								arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
@@ -1292,6 +1319,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 									cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 									assert(*tmp != -1);
 									N = *tmp;
+									delete tmp;
 								} else {
 									N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 								}
@@ -1349,6 +1377,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
 							assert(*tmp != -1);
 							N = *tmp;
+							delete tmp;
 						} else {
 							N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 						}

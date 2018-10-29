@@ -30,7 +30,7 @@ __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rn
       if (p == 0) return;
       if (n < 1)  return;
 
-      *N = round(RandP(rng_state[i], n*p));
+      *N = RandP(rng_state[i], n*p);
 
     }
 }
@@ -44,7 +44,7 @@ __device__ double ComputeEvents(double n, double p, curandState rng_state){
 		// DETERMINITIC CHANGE
 		if (n < 1)  return 0.0;
 
-		return round(RandP(rng_state, n*p));
+		return RandP(rng_state, n*p);
 		// return n*min(1.0,p);
 
 }
