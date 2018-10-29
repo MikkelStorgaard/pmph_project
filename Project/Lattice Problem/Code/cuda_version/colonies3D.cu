@@ -8,11 +8,11 @@
 #define GPU_INFECTIONS true
 #define GPU_NEWINFECTIONS true
 #define GPU_PHAGEDECAY true
-#define GPU_MOVEMENT true
-#define GPU_SWAPZERO true
-#define GPU_UPDATEOCCUPANCY true
-#define GPU_NUTRIENTDIFFUSION true
-#define GPU_SWAPZERO2 true
+#define GPU_MOVEMENT false
+#define GPU_SWAPZERO false
+#define GPU_UPDATEOCCUPANCY false
+#define GPU_NUTRIENTDIFFUSION false
+#define GPU_SWAPZERO2 false
 
 #define GPU_KERNEL_TIMING true
 
@@ -3846,7 +3846,7 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 		*n_b = 0.0;
 
 		// DETERMINITIC CHANGE
-    	// if (n < 1) return;
+    	if (n < 1) return;
 
 		// Check if diffusion should occur
 		if ((lambda == 0) or (nGridXY == 1)) {
@@ -3855,52 +3855,52 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 		}
 
 		// DETERMINITIC CHANGE
-		// if (lambda*n < 5) {   // Compute all movement individually
+		if (lambda*n < 5) {   // Compute all movement individually
 
-		// 	for (int l = 0; l < round(n); l++) {
+			for (int l = 0; l < round(n); l++) {
 
-		// 		double r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+				double r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
 
-		// 		if       (r <    lambda)                     (*n_u)++;  // Up movement
-		// 		else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
-		// 		else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
-		// 		else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
-		// 		else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
-		// 		else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
-		// 		else                                         (*n_0)++;  // No movement
+				if       (r <    lambda)                     (*n_u)++;  // Up movement
+				else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
+				else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
+				else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
+				else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
+				else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
+				else                                         (*n_0)++;  // No movement
 
-		// 	}
+			}
 
 
-		// } else {
+		} else {
 
-			// // Compute the number of agents which move
-			// double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
+			// Compute the number of agents which move
+			double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
 
-			// *n_u = RandP(N/6, i, j, k);
-			// *n_d = RandP(N/6, i, j, k);
-			// *n_l = RandP(N/6, i, j, k);
-			// *n_r = RandP(N/6, i, j, k);
-			// *n_f = RandP(N/6, i, j, k);
-			// *n_b = RandP(N/6, i, j, k);
-			// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-		// }
+			*n_u = RandP(N/6, i, j, k);
+			*n_d = RandP(N/6, i, j, k);
+			*n_l = RandP(N/6, i, j, k);
+			*n_r = RandP(N/6, i, j, k);
+			*n_f = RandP(N/6, i, j, k);
+			*n_b = RandP(N/6, i, j, k);
+			*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+		}
 
-		// *n_u = round(*n_u);
-		// *n_d = round(*n_d);
-		// *n_l = round(*n_l);
-		// *n_r = round(*n_r);
-		// *n_f = round(*n_f);
-		// *n_b = round(*n_b);
-		// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-
-		*n_u = 0.5*lambda*n;
-		*n_d = 0.5*lambda*n;
-		*n_l = 0.5*lambda*n;
-		*n_r = 0.5*lambda*n;
-		*n_f = 0.5*lambda*n;
-		*n_b = 0.5*lambda*n;
+		*n_u = round(*n_u);
+		*n_d = round(*n_d);
+		*n_l = round(*n_l);
+		*n_r = round(*n_r);
+		*n_f = round(*n_f);
+		*n_b = round(*n_b);
 		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+
+		// *n_u = 0.5*lambda*n;
+		// *n_d = 0.5*lambda*n;
+		// *n_l = 0.5*lambda*n;
+		// *n_r = 0.5*lambda*n;
+		// *n_f = 0.5*lambda*n;
+		// *n_b = 0.5*lambda*n;
+		// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
 		assert(*n_0 >= 0);
 		assert(*n_u >= 0);
