@@ -36,7 +36,7 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 	H                       = L;        // [µm]     Height of the simulation array
 	nGridXY                 = 100000;       //          Number of gridpoints
 	nGridZ                  = nGridXY;  //          Number of gridpoints
-  volume                  = nGridXY*nGridXY*nGridZ;
+  	volume                  = nGridXY*nGridXY*nGridZ;
 
 	nSamp                   = 1000;       //          Number of samples to save per simulation hour
 
@@ -1785,46 +1785,46 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
     OpenFileStream(f_kerneltimings, s);
     if (GPU_NC) {
       f_kerneltimings << "FirstKernel \t";
-    } 
+    }
     if (GPU_MAXOCCUPANCY) {
       f_kerneltimings << "SetIsActive \t SecondKernel \t SequentialReduce \t";
 
-    } 
+    }
     if (GPU_BIRTH) {
       f_kerneltimings << "ComputeBirthEvents \t";
 
-    } 
+    }
     if (GPU_INFECTIONS) {
       f_kerneltimings << "Bursting/NonBurstingEvents \t";
-    } 
+    }
     if (GPU_NEWINFECTIONS) {
       f_kerneltimings << "NewInfectionsKernel \t";
 
-    } 
+    }
     if (GPU_PHAGEDECAY) {
       f_kerneltimings << "PhageDecay \t";
 
-    } 
+    }
     if (GPU_MOVEMENT) {
       f_kerneltimings << "DiffusionAndApplyMovement \t";
 
-    } 
+    }
     if (GPU_SWAPZERO) {
       f_kerneltimings << "SwapAndZeroArrays \t";
 
-    } 
+    }
     if (GPU_UPDATEOCCUPANCY) {
       f_kerneltimings << "UpdateOccupancy \t";
 
-    } 
+    }
     if (GPU_NUTRIENTDIFFUSION) {
       f_kerneltimings << "NutrientDiffusion \t";
 
-    } 
+    }
     if (GPU_SWAPZERO2) {
       f_kerneltimings << "SwapZero";
 
-    } 
+    }
     f_kerneltimings << "\n";
   }
 
@@ -2853,7 +2853,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
                   kernel_elapsed = high_resolution_clock::now() - kernel_start;
                   f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
                 }
-                
+
                 if(!GPU_NUTRIENTDIFFUSION)
                     CopyAllToHost();
 
@@ -3744,12 +3744,12 @@ double Colonies3D::ComputeEvents(double n, double p, int flag, int i, int j, int
 		if (p == 0) return 0.0;
 
 		// DETERMINITIC CHANGE
-		// if (n < 1)  return 0.0;
+		if (n < 1)  return 0.0;
 
-		// double N = RandP(n*p, i, j, k);
+		double N = RandP(n*p, i, j, k);
 
-		// return round(N);
-		return n*min(1.0,p);
+		return round(N);
+		// return n*min(1.0,p);
 }
 
 // Returns the number of events ocurring for given n and p, flat array

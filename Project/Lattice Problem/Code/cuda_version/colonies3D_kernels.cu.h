@@ -4,16 +4,16 @@
 
 __device__ double RandP(curandState rng_state, double lambda) {
 
-  // double L = exp(-lambda);
-  // double p = 1.0;
-  // double k = 0;
-  // while (p > L) {
-  //   k++;
-  //   double u = curand_uniform_double(&rng_state);
-  //   p *= u;
-  // }
-  // return k - 1;
-  return lambda;
+  double L = exp(-lambda);
+  double p = 1.0;
+  double k = 0;
+  while (p > L) {
+    k++;
+    double u = curand_uniform_double(&rng_state);
+    p *= u;
+  }
+  return k - 1;
+  // return lambda;
 
 }
 
@@ -42,10 +42,10 @@ __device__ double ComputeEvents(double n, double p, curandState rng_state){
     if (p == 0) return 0.0;
 
 		// DETERMINITIC CHANGE
-		// if (n < 1)  return 0.0;
+		if (n < 1)  return 0.0;
 
-		// return round(RandP(rng_state, n*p));
-		return n*min(1.0,p);
+		return round(RandP(rng_state, n*p));
+		// return n*min(1.0,p);
 
 }
 
@@ -465,8 +465,7 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
 
 
     // If bacteria were hit, update events
-    // DETERMINITIC CHANGE
-    // if (tmp + M >= 1) {
+    if (tmp + M >= 1) {
 
       arr_P[tid] = max(0.0, P - tmp); // Update count
 
@@ -495,7 +494,7 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
       } else {
         arr_P_new[tid] += tmp * (1 - alpha) * Beta;
       }
-    // }
+    }
   }
 }
 
