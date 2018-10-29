@@ -97,11 +97,19 @@ Colonies3D::Colonies3D(numtype B_0, numtype P_0){
 // CPU Loop start
 //////////////////////////////////////////////////////////////////////
 
-int myround(numtype x){
+inline int cpu_round(numtype x){
 #if NUMTYPE_IS_FLOAT
   return static_cast<int>(roundf(x));
 #else
   return static_cast<int>(round(x));
+#endif
+}
+
+inline numtype cpu_exp(numtype x){
+#if NUMTYPE_IS_FLOAT
+  return expf(x);
+#else
+  return exp(x);
 #endif
 }
 
@@ -132,7 +140,7 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 
 		// Determine the number of timesteps between sampings
 
-		int nStepsPerSample = static_cast<int>(myround(1 / (nSamp *  dT)));
+		int nStepsPerSample = static_cast<int>(cpu_round(1 / (nSamp *  dT)));
 
 		for (int t = 0; t < nStepsPerSample; t++) {
 			if (exit) break;
@@ -392,7 +400,7 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 									// Absorbing medium model
 									numtype d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
 										pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-									S = exp(-zeta * d); // Probability of hitting succebtible target
+									S = cpu_exp(-zeta * d); // Probability of hitting succebtible target
 
 								} else {
 									// Well mixed model
@@ -891,7 +899,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 		if (exit) break;
 
 		// Determine the number of timesteps between sampings
-		int nStepsPerSample = static_cast<int>(myround(1 / (nSamp *  dT)));
+		int nStepsPerSample = static_cast<int>(cpu_round(1 / (nSamp *  dT)));
 
 		for (int t = 0; t < nStepsPerSample; t++) {
 			if (exit) break;
@@ -1001,7 +1009,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								Warn_fastGrowth = true;
 							}
 
-							N = myround( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+							N = cpu_round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
 						}
 
 						// Update count
@@ -1062,8 +1070,8 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 							// Update count
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += myround( (1 - alpha) * Beta * N);   // Phages which escape the colony
-							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = myround(alpha * Beta * N);                        // Phages which reinfect the colony
+							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += cpu_round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = cpu_round(alpha * Beta * N);                        // Phages which reinfect the colony
 
 							// Non-bursting events
 							if (GPU_INFECTIONS) {
@@ -1283,7 +1291,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 									// Absorbing medium model
 									numtype d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
 									pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-									S = exp(-zeta * d); // Probability of hitting succebtible target
+									S = cpu_exp(-zeta * d); // Probability of hitting succebtible target
 
 								} else {
 									// Well mixed model
@@ -1997,7 +2005,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		if (exit) break;
 
 		// Determine the number of timesteps between sampings
-		int nStepsPerSample = static_cast<int>(myround(1 / (nSamp *  dT)));
+		int nStepsPerSample = static_cast<int>(cpu_round(1 / (nSamp *  dT)));
 
         //CopyAllToDevice();
 
@@ -2463,7 +2471,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 										// Absorbing medium model
 										numtype d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
 											pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-										S = exp(-zeta * d); // Probability of hitting succebtible target
+										S = cpu_exp(-zeta * d); // Probability of hitting succebtible target
 
 									} else {
 										// Well mixed model
@@ -3428,7 +3436,7 @@ void Colonies3D::Initialize() {
 
 		// Compute nGridZ
 		if (L != H) {
-			nGridZ = myround(H / L * nGridXY);
+			nGridZ = cpu_round(H / L * nGridXY);
 			H = nGridZ * L / nGridXY;
 		} else {
 			nGridZ = nGridXY;
@@ -3518,7 +3526,7 @@ void Colonies3D::Initialize() {
 void Colonies3D::spawnBacteria() {
 
 		// Determine the number of cells to spawn
-		numtype nBacteria = myround(L * L * H * B_0 / 1e12);
+		numtype nBacteria = cpu_round(L * L * H * B_0 / 1e12);
 
 		// Average bacteria per gridpoint
 		numtype avgBacteria = nBacteria / (nGridXY * nGridXY * nGridZ);
@@ -3608,7 +3616,7 @@ void Colonies3D::spawnBacteria() {
 void Colonies3D::spawnPhages() {
 
 		 // Determine the number of phages to spawn
-		numtype nPhages = (numtype) myround(L * L * H * P_0 / 1e12);
+		numtype nPhages = (numtype) cpu_round(L * L * H * P_0 / 1e12);
 
 		// Apply generic spawning
 		if (not experimentalConditions) {
@@ -3659,7 +3667,7 @@ void Colonies3D::spawnPhages() {
 		} else { // Apply scenario specific settings
 
 				// Determine the number of phages to spawn
-				numtype nPhages = (numtype) myround(L * L * H * P_0 / 1e12);
+				numtype nPhages = (numtype) cpu_round(L * L * H * P_0 / 1e12);
 				numtype numP = 0;
 				if (nPhages <= nGridXY * nGridXY) {
 						for (numtype n = 0; n < nPhages; n++) {
@@ -3767,7 +3775,7 @@ void Colonies3D::ComputeTimeStep() {
 	numtype m = floor(log10(dT));
 
 	// Round remainder to 1, 2 or 5
-	numtype r = myround(dT * pow(10, -m));
+	numtype r = cpu_round(dT * pow(10, -m));
 	if (r >= 5)      dT = 5*pow(10, m);
 	else if (r >= 2) dT = 2*pow(10, m);
 	else             dT =   pow(10, m);
@@ -3824,7 +3832,7 @@ numtype Colonies3D::ComputeEvents(numtype n, numtype p, int flag, int i, int j, 
 
 		numtype N = RandP(n*p, i, j, k);
 
-		return myround(N);
+		return cpu_round(N);
 		// return n*min(1.0,p);
 }
 
@@ -3838,7 +3846,7 @@ numtype Colonies3D::ComputeEvents(numtype n, numtype p, int flag, int i) {
 
 		numtype N = RandP(n*p, i);
 
-		return myround(N);
+		return cpu_round(N);
 }
 
 // Computes how many particles has moved to neighbouing points
@@ -3865,7 +3873,7 @@ void Colonies3D::ComputeDiffusion(numtype n, numtype lambda, numtype* n_0, numty
 		// DETERMINITIC CHANGE
 		if (lambda*n < 5) {   // Compute all movement individually
 
-			for (int l = 0; l < myround(n); l++) {
+			for (int l = 0; l < cpu_round(n); l++) {
 
 				numtype r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
 
@@ -3894,12 +3902,12 @@ void Colonies3D::ComputeDiffusion(numtype n, numtype lambda, numtype* n_0, numty
 			*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 		}
 
-		*n_u = myround(*n_u);
-		*n_d = myround(*n_d);
-		*n_l = myround(*n_l);
-		*n_r = myround(*n_r);
-		*n_f = myround(*n_f);
-		*n_b = myround(*n_b);
+		*n_u = cpu_round(*n_u);
+		*n_d = cpu_round(*n_d);
+		*n_l = cpu_round(*n_l);
+		*n_r = cpu_round(*n_r);
+		*n_f = cpu_round(*n_f);
+		*n_b = cpu_round(*n_b);
 		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
 		// *n_u = 0.5*lambda*n;
@@ -4028,7 +4036,7 @@ numtype Colonies3D::RandP_fast(numtype l) {
 
 		if (l < 60) {
 
-				numtype L = exp(-l);
+				numtype L = cpu_exp(-l);
 				numtype p = 1;
 				N = 0;
 				do {
@@ -4067,12 +4075,12 @@ numtype Colonies3D::RandP_fast(numtype l) {
 						1/(12*xx) - 1/(360*xx3) + 1/(1260*xx5) - 1/(1680*xx7) +
 						1/(1188*xx9) - 691/(360360*xx11);
 
-						f_m = exp(N*log_l - l - lgxx);
+						f_m = cpu_exp(N*log_l - l - lgxx);
 						r = f_m / g_x / 2.4;
 				} while (drand48() > r);
 		}
 
-		return myround(N);
+		return cpu_round(N);
 
 }
 
@@ -4160,9 +4168,9 @@ void Colonies3D::ExportData_arr(numtype t, std::string filename_suffix){
 		// Writes the time, number of cells, number of infected cells, number of phages
 		f_N << fixed    << setprecision(2);
 		f_N << setw(6)  << t       << "\t";
-		f_N << setw(12) << myround(accuB)    << "\t";
-		f_N << setw(12) << myround(accuI)    << "\t";
-		f_N << setw(12) << myround(accuP)    << "\t";
+		f_N << setw(12) << cpu_round(accuB)    << "\t";
+		f_N << setw(12) << cpu_round(accuI)    << "\t";
+		f_N << setw(12) << cpu_round(accuP)    << "\t";
 
 		int nz = 0;
 		for (int i = 0; i < nGridXY; i++) {
@@ -4217,18 +4225,18 @@ void Colonies3D::ExportData_arr(numtype t, std::string filename_suffix){
 
 										f_B << setw(6) << arr_B[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
 										f_P << setw(6) << arr_P[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
-										numtype nI = myround(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
+										numtype nI = cpu_round(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
 										f_I << setw(6) << nI       << "\t";
 										f_n << setw(6) << arr_nutrient[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
 								}
 
 								#define XnGridXYZ x*nGridXY*nGridZ+(nGridXY-1)*nGridZ+z
 								// Write last line ("\n" instead of tab)
-								f_B << setw(6) << myround(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-								f_P << setw(6) << myround(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-								numtype nI = myround(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
+								f_B << setw(6) << cpu_round(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+								f_P << setw(6) << cpu_round(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+								numtype nI = cpu_round(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
 								f_I << setw(6) << nI                        << "\n";
-								f_n << setw(6) << myround(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+								f_n << setw(6) << cpu_round(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
 						}
 				}
 		}
