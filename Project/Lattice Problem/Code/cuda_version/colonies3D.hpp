@@ -24,46 +24,48 @@
 #include <unistd.h>
 #include <ctime>            // Time functions
 
+typedef double numtype;
+
 /* Class to contain simulation parameters, and which drives the simulation forward */
 class Colonies3D {
  private:
 
-  double B_0;                     // [CFU/mL] Initial density of bacteria
-  double P_0;                     // [PFU/mL] Initial density of phages
+  numtype B_0;                     // [CFU/mL] Initial density of bacteria
+  numtype P_0;                     // [PFU/mL] Initial density of phages
 
-  double K;                       //          Carrying capacity
-  double n_0;                     // [1/ml]   Initial nutrient level (number of bacteria per ml)
+  numtype K;                       //          Carrying capacity
+  numtype n_0;                     // [1/ml]   Initial nutrient level (number of bacteria per ml)
 
-  double L;                       // [µm]     Side-length of simulation array
-  double H;                       // [µm]     Height of the simulation array
+  numtype L;                       // [µm]     Side-length of simulation array
+  numtype H;                       // [µm]     Height of the simulation array
   int    nGridXY;                 //          Number of gridpoints
   int    nGridZ;                  //          Number of gridpoints
   int    volume;
 
-  double nSamp;                   //          Number of samples to save per simulation hour
+  numtype nSamp;                   //          Number of samples to save per simulation hour
 
-  double g;                       // [1/hour] Growth rate for the cells
+  numtype g;                       // [1/hour] Growth rate for the cells
 
-  double alpha;                   //          Percentage of phages which escape the colony upon lysis
+  numtype alpha;                   //          Percentage of phages which escape the colony upon lysis
   int    beta;                    //          Multiplication factor phage
-  double eta;                     //          Adsorption coefficient
-  double delta;                   // [1/hour] Rate of phage decay
-  double r;                       //          Constant used in the time-delay mechanism
-  double zeta;                    //          permeability of colony surface
+  numtype eta;                     //          Adsorption coefficient
+  numtype delta;                   // [1/hour] Rate of phage decay
+  numtype r;                       //          Constant used in the time-delay mechanism
+  numtype zeta;                    //          permeability of colony surface
 
-  double D_B;                     // [µm^2/hour] Diffusion constant for the cells
-  double D_P;                     // [µm^2/hour] Diffusion constant for the phage
-  double D_n;                     // [µm^2/hour] Diffusion constant for the nutrient
+  numtype D_B;                     // [µm^2/hour] Diffusion constant for the cells
+  numtype D_P;                     // [µm^2/hour] Diffusion constant for the phage
+  numtype D_n;                     // [µm^2/hour] Diffusion constant for the nutrient
 
-  double lambdaB;                 // Probability of cell to jump to neighbour point
-  double lambdaP;                 // Probability of phage to jump to neighbour point
+  numtype lambdaB;                 // Probability of cell to jump to neighbour point
+  numtype lambdaP;                 // Probability of phage to jump to neighbour point
 
-  double T;                       // [hours]  Current time
-  double dT;                      // [hours]  Time-step size
-  double T_end;                   // [hours]  End time of simulation
-  double T_i;                     // [hours]  Time when the phage infections begins (less than 0 disables phage infection)
+  numtype T;                       // [hours]  Current time
+  numtype dT;                      // [hours]  Time-step size
+  numtype T_end;                   // [hours]  End time of simulation
+  numtype T_i;                     // [hours]  Time when the phage infections begins (less than 0 disables phage infection)
 
-  double initialOccupancy;        // Number of gridpoints occupied initially;
+  numtype initialOccupancy;        // Number of gridpoints occupied initially;
 
   bool   exit;                    // Boolean to control early exit
 
@@ -89,7 +91,7 @@ class Colonies3D {
 
   bool   exportAll;               // Boolean to export everything, not just populationsize
 
-  double rngSeed;                 // The seed for the random number generator
+  numtype rngSeed;                 // The seed for the random number generator
   std::mt19937 rng;               // Mersenne twister, random number generator
   std::mt19937* arr_rng;          // Mersenne twister, random number generator
   std::mt19937* d_arr_rng;        // Mersenne twister, random number generator
@@ -97,8 +99,8 @@ class Colonies3D {
 	curandState *rng_state;
   curandState *d_rng_state;
 
-  std::uniform_real_distribution  <double> rand;
-  std::normal_distribution        <double> randn;
+  std::uniform_real_distribution  <numtype> rand;
+  std::normal_distribution        <numtype> randn;
 
   std::ofstream f_B;              // Filestream to save configuration of sucebtible cells
   std::ofstream f_I;              // Filestream to save configuration of infected cells
@@ -111,92 +113,92 @@ class Colonies3D {
   std::string path;               // Sets the path to store in
 
   // Coordinates of agents in the simulation
-  double* arr_B;           // Sensitive bacteria
-  double* arr_P;           // Phages
-  double* arr_I0;          // Infected bacteria
-  double* arr_I1;          // Infected bacteria
-  double* arr_I2;          // Infected bacteria
-  double* arr_I3;          // Infected bacteria
-  double* arr_I4;          // Infected bacteria
-  double* arr_I5;          // Infected bacteria
-  double* arr_I6;          // Infected bacteria
-  double* arr_I7;          // Infected bacteria
-  double* arr_I8;          // Infected bacteria
-  double* arr_I9;          // Infected bacteria
-  double* arr_nC;          // Number of colonies in gridpoint
+  numtype* arr_B;           // Sensitive bacteria
+  numtype* arr_P;           // Phages
+  numtype* arr_I0;          // Infected bacteria
+  numtype* arr_I1;          // Infected bacteria
+  numtype* arr_I2;          // Infected bacteria
+  numtype* arr_I3;          // Infected bacteria
+  numtype* arr_I4;          // Infected bacteria
+  numtype* arr_I5;          // Infected bacteria
+  numtype* arr_I6;          // Infected bacteria
+  numtype* arr_I7;          // Infected bacteria
+  numtype* arr_I8;          // Infected bacteria
+  numtype* arr_I9;          // Infected bacteria
+  numtype* arr_nC;          // Number of colonies in gridpoint
 
-  double* arr_B_new;       // Sensitive bacteria
-  double* arr_P_new;       // Phages
-  double* arr_I0_new;      // Infected bacteria
-  double* arr_I1_new;      // Infected bacteria
-  double* arr_I2_new;      // Infected bacteria
-  double* arr_I3_new;      // Infected bacteria
-  double* arr_I4_new;      // Infected bacteria
-  double* arr_I5_new;      // Infected bacteria
-  double* arr_I6_new;      // Infected bacteria
-  double* arr_I7_new;      // Infected bacteria
-  double* arr_I8_new;      // Infected bacteria
-  double* arr_I9_new;      // Infected bacteria
+  numtype* arr_B_new;       // Sensitive bacteria
+  numtype* arr_P_new;       // Phages
+  numtype* arr_I0_new;      // Infected bacteria
+  numtype* arr_I1_new;      // Infected bacteria
+  numtype* arr_I2_new;      // Infected bacteria
+  numtype* arr_I3_new;      // Infected bacteria
+  numtype* arr_I4_new;      // Infected bacteria
+  numtype* arr_I5_new;      // Infected bacteria
+  numtype* arr_I6_new;      // Infected bacteria
+  numtype* arr_I7_new;      // Infected bacteria
+  numtype* arr_I8_new;      // Infected bacteria
+  numtype* arr_I9_new;      // Infected bacteria
 
   // allocations for array
-  double* d_arr_B;           // Sensitive bacteria
-  double* d_arr_P;           // Phages
-  double* d_arr_I0;          // Infected bacteria
-  double* d_arr_I1;          // Infected bacteria
-  double* d_arr_I2;          // Infected bacteria
-  double* d_arr_I3;          // Infected bacteria
-  double* d_arr_I4;          // Infected bacteria
-  double* d_arr_I5;          // Infected bacteria
-  double* d_arr_I6;          // Infected bacteria
-  double* d_arr_I7;          // Infected bacteria
-  double* d_arr_I8;          // Infected bacteria
-  double* d_arr_I9;          // Infected bacteria
-  double* d_arr_nC;          // Number of colonies in gridpoint
+  numtype* d_arr_B;           // Sensitive bacteria
+  numtype* d_arr_P;           // Phages
+  numtype* d_arr_I0;          // Infected bacteria
+  numtype* d_arr_I1;          // Infected bacteria
+  numtype* d_arr_I2;          // Infected bacteria
+  numtype* d_arr_I3;          // Infected bacteria
+  numtype* d_arr_I4;          // Infected bacteria
+  numtype* d_arr_I5;          // Infected bacteria
+  numtype* d_arr_I6;          // Infected bacteria
+  numtype* d_arr_I7;          // Infected bacteria
+  numtype* d_arr_I8;          // Infected bacteria
+  numtype* d_arr_I9;          // Infected bacteria
+  numtype* d_arr_nC;          // Number of colonies in gridpoint
 
-  double* d_arr_B_new;       // Sensitive bacteria
-  double* d_arr_P_new;       // Phages
-  double* d_arr_I0_new;      // Infected bacteria
-  double* d_arr_I1_new;      // Infected bacteria
-  double* d_arr_I2_new;      // Infected bacteria
-  double* d_arr_I3_new;      // Infected bacteria
-  double* d_arr_I4_new;      // Infected bacteria
-  double* d_arr_I5_new;      // Infected bacteria
-  double* d_arr_I6_new;      // Infected bacteria
-  double* d_arr_I7_new;      // Infected bacteria
-  double* d_arr_I8_new;      // Infected bacteria
-  double* d_arr_I9_new;      // Infected bacteria
-
-	// Privatized array.
-	double* arr_M;
-  double* arr_GrowthModifier;
-  double* arr_p;
-
-  // Nutrient matrix
-  double* arr_nutrient;
-  double* arr_nutrient_new;
-
-  // Occupancy of grid
-  double* arr_Occ;
+  numtype* d_arr_B_new;       // Sensitive bacteria
+  numtype* d_arr_P_new;       // Phages
+  numtype* d_arr_I0_new;      // Infected bacteria
+  numtype* d_arr_I1_new;      // Infected bacteria
+  numtype* d_arr_I2_new;      // Infected bacteria
+  numtype* d_arr_I3_new;      // Infected bacteria
+  numtype* d_arr_I4_new;      // Infected bacteria
+  numtype* d_arr_I5_new;      // Infected bacteria
+  numtype* d_arr_I6_new;      // Infected bacteria
+  numtype* d_arr_I7_new;      // Infected bacteria
+  numtype* d_arr_I8_new;      // Infected bacteria
+  numtype* d_arr_I9_new;      // Infected bacteria
 
 	// Privatized array.
-	double* d_arr_M;
-  double* d_arr_GrowthModifier;
-  double* d_arr_p;
+	numtype* arr_M;
+  numtype* arr_GrowthModifier;
+  numtype* arr_p;
 
   // Nutrient matrix
-  double* d_arr_nutrient;
-  double* d_arr_nutrient_new;
+  numtype* arr_nutrient;
+  numtype* arr_nutrient_new;
 
   // Occupancy of grid
-  double* d_arr_Occ;
+  numtype* arr_Occ;
 
-  double* d_arr_n_0;
-  double* d_arr_n_u;
-  double* d_arr_n_d;
-  double* d_arr_n_l;
-  double* d_arr_n_r;
-  double* d_arr_n_f;
-  double* d_arr_n_b;
+	// Privatized array.
+	numtype* d_arr_M;
+  numtype* d_arr_GrowthModifier;
+  numtype* d_arr_p;
+
+  // Nutrient matrix
+  numtype* d_arr_nutrient;
+  numtype* d_arr_nutrient_new;
+
+  // Occupancy of grid
+  numtype* d_arr_Occ;
+
+  numtype* d_arr_n_0;
+  numtype* d_arr_n_u;
+  numtype* d_arr_n_d;
+  numtype* d_arr_n_l;
+  numtype* d_arr_n_r;
+  numtype* d_arr_n_f;
+  numtype* d_arr_n_b;
 
   // Active-array
   bool* d_arr_IsActive;
@@ -211,17 +213,17 @@ class Colonies3D {
 
  public:
   // Constructers
-  explicit    Colonies3D(double B_0, double P_0);                           // Direct constructer
+  explicit    Colonies3D(numtype B_0, numtype P_0);                           // Direct constructer
 
   // Driver
-  int         Run_LoopDistributed_CPU(double T_end);                          // Controls the evaluation of the simulation
-  int         Run_LoopDistributed_GPU(double T_end);                          // Controls the evaluation of the simulation
-  int         Run_LoopDistributed_CPU_cuRand(double T_end);                          // Controls the evaluation of the simulation
+  int         Run_LoopDistributed_CPU(numtype T_end);                          // Controls the evaluation of the simulation
+  int         Run_LoopDistributed_GPU(numtype T_end);                          // Controls the evaluation of the simulation
+  int         Run_LoopDistributed_CPU_cuRand(numtype T_end);                          // Controls the evaluation of the simulation
 
  private:
-	void 		    CopyToHost(double* hostArray, double* deviceArray, int failCode, int gridsz);
+	void 		    CopyToHost(numtype* hostArray, numtype* deviceArray, int failCode, int gridsz);
 //	void 		    CopyToHost(bool hostElement, bool deviceElement, int failCode);
-	void		    CopyToDevice(double* hostArray, double* deviceArray, int failCode, int gridsz);
+	void		    CopyToDevice(numtype* hostArray, numtype* deviceArray, int failCode, int gridsz);
 //	void		    CopyToDevice(bool hostElement, bool deviceElement, int failCode);
 	void 		    CopyAllToHost();
 	void		    CopyAllToDevice();
@@ -229,35 +231,35 @@ class Colonies3D {
   void        spawnBacteria();                                                // Spawns the bacteria
   void        spawnPhages();                                                  // Spawns the phages
   void        ComputeTimeStep();                                              // Computes the size of the time-step needed
-  double      ComputeEvents(double n, double p, int flag, int i, int j, int k);                    // Returns the number of events ocurring for given n and p
-  double      ComputeEvents(double n, double p, int flag, int i);                    // Returns the number of events ocurring for given n and p, flat array
-  double      ComputeEvents_cuRand(double n, double p, int flag, int i, int j, int k);                    // Returns the number of events ocurring for given n and p
-  void        ComputeDiffusion(double n, double lambda,                       // Computes how many particles has moved to neighbouing points
-                    double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k);
+  numtype      ComputeEvents(numtype n, numtype p, int flag, int i, int j, int k);                    // Returns the number of events ocurring for given n and p
+  numtype      ComputeEvents(numtype n, numtype p, int flag, int i);                    // Returns the number of events ocurring for given n and p, flat array
+  numtype      ComputeEvents_cuRand(numtype n, numtype p, int flag, int i, int j, int k);                    // Returns the number of events ocurring for given n and p
+  void        ComputeDiffusion(numtype n, numtype lambda,                       // Computes how many particles has moved to neighbouing points
+                    numtype* n_0, numtype* n_u, numtype* n_d, numtype* n_l, numtype* n_r, numtype* n_f, numtype* n_b, int flag, int i, int j, int k);
  public:
-  void        SetLength(double L);                                            // Set the side-length of the simulation
-  void        SetHeight(double H);                                            // Set the height of the simulation
-  void        SetGridSize(double nGrid);                                      // Set the number of gridpoints
-  void        SetTimeStep(double dT);                                         // Set the time step size
+  void        SetLength(numtype L);                                            // Set the side-length of the simulation
+  void        SetHeight(numtype H);                                            // Set the height of the simulation
+  void        SetGridSize(numtype nGrid);                                      // Set the number of gridpoints
+  void        SetTimeStep(numtype dT);                                         // Set the time step size
   void        SetSamples(int nSamp);                                          // Set the number of output samples
 
-  void        PhageInvasionStartTime(double T_i);                             // Sets the time when the phages should start infecting
+  void        PhageInvasionStartTime(numtype T_i);                             // Sets the time when the phages should start infecting
 
-  void        CellGrowthRate(double g);                                       // Sets the maximum growthrate
-  void        CellCarryingCapacity(double K);                                 // Sets the carrying capacity
-  void        CellDiffusionConstant(double D_B);                              // Sets the diffusion constant of the phages
+  void        CellGrowthRate(numtype g);                                       // Sets the maximum growthrate
+  void        CellCarryingCapacity(numtype K);                                 // Sets the carrying capacity
+  void        CellDiffusionConstant(numtype D_B);                              // Sets the diffusion constant of the phages
 
   void        PhageBurstSize(int beta);                                       // Sets the size of the bursts
-  void        PhageAdsorptionRate(double eta);                                // sets the adsorption parameter gamma
-  void        PhageDecayRate(double delta);                                   // Sets the decay rate of the phages
-  void        PhageInfectionRate(double r);                                   // Sets rate of the infection increaasing in stage
-  void        PhageDiffusionConstant(double D_P);                             // Sets the diffusion constant of the phages
-  void        PhageLatencyTime(double tau);                                   // Sets latency time of the phage (r and tau are related by r = 10 / tau)
+  void        PhageAdsorptionRate(numtype eta);                                // sets the adsorption parameter gamma
+  void        PhageDecayRate(numtype delta);                                   // Sets the decay rate of the phages
+  void        PhageInfectionRate(numtype r);                                   // Sets rate of the infection increaasing in stage
+  void        PhageDiffusionConstant(numtype D_P);                             // Sets the diffusion constant of the phages
+  void        PhageLatencyTime(numtype tau);                                   // Sets latency time of the phage (r and tau are related by r = 10 / tau)
 
-  void        SurfacePermeability(double zeta);                               // Sets the permeability of the surface
+  void        SurfacePermeability(numtype zeta);                               // Sets the permeability of the surface
 
-  void        InitialNutrient(double n_0);                                    // Sets the amount of initial nutrient
-  void        NutrientDiffusionConstant(double D_n);                          // Sets the nutrient diffusion rate
+  void        InitialNutrient(numtype n_0);                                    // Sets the amount of initial nutrient
+  void        NutrientDiffusionConstant(numtype D_n);                          // Sets the nutrient diffusion rate
 
   void        SimulateExperimentalConditions();                               // Sets the simulation to spawn phages at top layer and only have x-y periodic boundaries
 
@@ -267,17 +269,17 @@ class Colonies3D {
 
   void        ReducedBoundary(int s);                                         // Sets the reduced boundary bool to true and the value of s
 
-  void        SetAlpha(double alpha);                                         // Sets the value of alpha
+  void        SetAlpha(numtype alpha);                                         // Sets the value of alpha
 
  private:
   // Helping functions
   int         RandI(int n);                                                   // Returns random integer less than n
-  double      Rand(std::mt19937);                                             // Returns random double less than n
-  double      RandN(double m, double s);                                      // Returns random normal dist. number with mean m and variance s^2
-  double      RandP(double l, int i, int j, int k);                           // Returns poisson dist. number with mean l
-  double      RandP(double l, int i);                           // Returns poisson dist. number with mean l, flat array
-  double      RandP(double l);                                                // Returns poisson dist. number with mean l
-  double      RandP_fast(double l);                                           // Returns poisson dist. number with mean l
+  numtype      Rand(std::mt19937);                                             // Returns random numtype less than n
+  numtype      RandN(numtype m, numtype s);                                      // Returns random normal dist. number with mean m and variance s^2
+  numtype      RandP(numtype l, int i, int j, int k);                           // Returns poisson dist. number with mean l
+  numtype      RandP(numtype l, int i);                           // Returns poisson dist. number with mean l, flat array
+  numtype      RandP(numtype l);                                                // Returns poisson dist. number with mean l
+  numtype      RandP_fast(numtype l);                                           // Returns poisson dist. number with mean l
 
  public:
   void        SetRngSeed(int n);                                              // Sets the seed of the random number generator
@@ -290,7 +292,7 @@ class Colonies3D {
   void        ExportAll();                                                    // Sets the simulation to export everything
 
  private:
-  void        ExportData_arr(double t, std::string filename_suffix);              // Master function to export the data
+  void        ExportData_arr(numtype t, std::string filename_suffix);              // Master function to export the data
 
   // Data handling
   void        OpenFileStream(std::ofstream& stream,                           // Open filstream if not allready opened
