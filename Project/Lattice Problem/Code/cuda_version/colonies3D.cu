@@ -26,7 +26,7 @@ using namespace std::chrono;
 
 // Constructers /////////////////////////////////////////////////////////////////////////
 // Direct constructer
-Colonies3D::Colonies3D(double B_0, double P_0){
+Colonies3D::Colonies3D(numtype B_0, numtype P_0){
 
 	// Store the initial densities
 	this->B_0 = B_0;
@@ -40,7 +40,7 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 	H                       = L;        // [µm]     Height of the simulation array
 	nGridXY                 = 100000;       //          Number of gridpoints
 	nGridZ                  = nGridXY;  //          Number of gridpoints
-  	volume                  = nGridXY*nGridXY*nGridZ;
+  volume                  = nGridXY*nGridXY*nGridZ;
 
 	nSamp                   = 1000;       //          Number of samples to save per simulation hour
 
@@ -97,8 +97,15 @@ Colonies3D::Colonies3D(double B_0, double P_0){
 // CPU Loop start
 //////////////////////////////////////////////////////////////////////
 
+int myround(numtype x){
+#if NUMTYPE_IS_FLOAT
+  return static_cast<int>(roundf(x));
+#else
+  return static_cast<int>(round(x));
+#endif
+}
 
-int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
+int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 	std::string filename_suffix = "loopDistributedCPU";
 
 	this->T_end = T_end;
@@ -124,7 +131,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 		if (exit) break;
 
 		// Determine the number of timesteps between sampings
-		int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
+
+		int nStepsPerSample = static_cast<int>(myround(1 / (nSamp *  dT)));
 
 		for (int t = 0; t < nStepsPerSample; t++) {
 			if (exit) break;
@@ -139,7 +147,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 			}
 
 			// Reset density counter
-			double maxOccupancy = 0.0;
+			numtype maxOccupancy = 0.0;
 
 			/////////////////////////////////////////////////////
 			// Main loop start //////////////////////////////////
@@ -194,11 +202,11 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						// Skip empty sites
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
+						numtype p = 0; // privatize
+						numtype N = 0; // privatize
 
 						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+						numtype growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
 						arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
 						p = g * growthModifier*dT;
@@ -248,14 +256,14 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						// Skip empty sites
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
+						numtype p = 0; // privatize
+						numtype N = 0; // privatize
 
 						// Compute the growth modifier
-						double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+						numtype growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 
 						// Compute beta
-						double Beta = beta;
+						numtype Beta = beta;
 						if (reducedBeta) {
 							Beta *= growthModifier;
 						}
@@ -337,19 +345,19 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 
-						double p = 0; // privatize
-						double N = 0; // privatize
-												// double M = 0; // privatize
+						numtype p = 0; // privatize
+						numtype N = 0; // privatize
+												// numtype M = 0; // privatize
 
 						// Compute beta
-						double Beta = beta;
+						numtype Beta = beta;
 						if (reducedBeta) {
 							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
 						// PRIVATIZE BOTH OF THESE
-						double s;   // The factor which modifies the adsorption rate
-						double n;   // The number of targets the phage has
+						numtype s;   // The factor which modifies the adsorption rate
+						numtype n;   // The number of targets the phage has
 												// Infectons
 
 
@@ -379,10 +387,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 								arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
 
-								double S;
+								numtype S;
 								if (shielding) {
 									// Absorbing medium model
-									double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
+									numtype d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
 										pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
 									S = exp(-zeta * d); // Probability of hitting succebtible target
 
@@ -425,8 +433,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 
-						double p = 0; // privatize
-						double N = 0; // privatize
+						numtype p = 0; // privatize
+						numtype N = 0; // privatize
 
 						// KERNEL BEGIN
 						p = delta*dT;
@@ -499,13 +507,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 							}
 
 							// Update counts
-							double n_0; // No movement
-							double n_u; // Up
-							double n_d; // Down
-							double n_l; // Left
-							double n_r; // Right
-							double n_f; // Front
-							double n_b; // Back
+							numtype n_0; // No movement
+							numtype n_u; // Up
+							numtype n_d; // Down
+							numtype n_l; // Left
+							numtype n_r; // Right
+							numtype n_f; // Front
+							numtype n_b; // Back
 
 							// CELLS
 							ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 1, i, j, k);
@@ -625,8 +633,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 
 				// NUTRIENT DIFFUSION
-				double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
-				double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
+				numtype alphaXY = D_n * dT / pow(L / (numtype)nGridXY, 2);
+				numtype alphaZ  = D_n * dT / pow(H / (numtype)nGridZ, 2);
 
 				for (int i = 0; i < nGridXY; i++) {
 					for (int j = 0; j < nGridXY; j++ ) {
@@ -665,7 +673,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 							}
 
-							double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+							numtype tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 							arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
 							arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
 							arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
@@ -698,7 +706,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 		// Fast exit conditions
 		// 1) There are no more sucebtible cells
 		// -> Convert all infected cells to phages and stop simulation
-		double accuB = 0.0;
+		numtype accuB = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
@@ -740,7 +748,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 		// 2) There are no more alive cells
 		// -> Stop simulation
 
-		double accuOcc = 0.0;
+		numtype accuOcc = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
@@ -756,12 +764,12 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 		// 3) The food is on average less than one per gridpoint
 		// and the maximal nutrient at any point in space is less than 1
 
-		double accuNutrient = 0.0;
-		double maxNutrient  = 0.0;
+		numtype accuNutrient = 0.0;
+		numtype maxNutrient  = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
-					double tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+					numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 					accuNutrient += tmpN;
 
 					if (tmpN > maxNutrient) {
@@ -836,7 +844,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 	}
 }
 
-int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
+int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 	std::string filename_suffix = "loopDistributedCPU_cuRand";
 
 	this->T_end = T_end;
@@ -870,8 +878,8 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 	err = cudaMemcpy(d_rng_state, rng_state, sizeof(curandState)*totalElements, cudaMemcpyHostToDevice);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy rng_state to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-	double *d_N;
-	err = cudaMalloc((void**)&d_N,sizeof(double));
+	numtype *d_N;
+	err = cudaMalloc((void**)&d_N,sizeof(numtype));
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate d_N on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
@@ -883,7 +891,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 		if (exit) break;
 
 		// Determine the number of timesteps between sampings
-		int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
+		int nStepsPerSample = static_cast<int>(myround(1 / (nSamp *  dT)));
 
 		for (int t = 0; t < nStepsPerSample; t++) {
 			if (exit) break;
@@ -898,7 +906,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 			}
 
 			// Reset density counter
-			double maxOccupancy = 0.0;
+			numtype maxOccupancy = 0.0;
 
 			/////////////////////////////////////////////////////
 			// Main loop start //////////////////////////////////
@@ -953,11 +961,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						// Skip empty sites
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
+						numtype p = 0; // privatize
+						numtype N = 0; // privatize
 
 						// Compute the growth modifier
-						double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+						numtype growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
 						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
 							growthModifier = 0;
 						}
@@ -974,11 +982,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 						/* BEGIN anden Map-kernel */
 						if (GPU_BIRTH) {
-							double *tmp = new double;
+							numtype *tmp = new numtype;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							err = cudaGetLastError();
 							if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-							cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 							assert(*tmp != -1);
 							N = *tmp;
 						} else {
@@ -993,7 +1001,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								Warn_fastGrowth = true;
 							}
 
-							N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+							N = myround( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
 						}
 
 						// Update count
@@ -1017,14 +1025,14 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						// Skip empty sites
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-						double p = 0; // privatize
-						double N = 0; // privatize
+						numtype p = 0; // privatize
+						numtype N = 0; // privatize
 
 						// Compute the growth modifier
-						double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+						numtype growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 
 						// Compute beta
-						double Beta = beta;
+						numtype Beta = beta;
 						if (reducedBeta) {
 							Beta *= growthModifier;
 						}
@@ -1040,11 +1048,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							}
 
 							if (GPU_INFECTIONS) {
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1054,17 +1062,17 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							// Update count
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
+							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += myround( (1 - alpha) * Beta * N);   // Phages which escape the colony
+							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = myround(alpha * Beta * N);                        // Phages which reinfect the colony
 
 							// Non-bursting events
 							if (GPU_INFECTIONS) {
 								N = -1;
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1075,11 +1083,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 							if (GPU_INFECTIONS) {
 								N = -1;
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1090,11 +1098,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 							if (GPU_INFECTIONS) {
 								N = -1;
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1105,11 +1113,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 							if (GPU_INFECTIONS) {
 								N = -1;
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1120,11 +1128,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 							if (GPU_INFECTIONS) {
 								N = -1;
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1135,11 +1143,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 							if (GPU_INFECTIONS) {
 								N = -1;
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1150,11 +1158,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 							if (GPU_INFECTIONS) {
 								N = -1;
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1165,11 +1173,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 							if (GPU_INFECTIONS) {
 								N = -1;
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1180,11 +1188,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 							if (GPU_INFECTIONS) {
 								N = -1;
-								double *tmp = new double;
+								numtype *tmp = new numtype;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-								cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 								assert(*tmp != -1);
 								N = *tmp;
 							} else {
@@ -1213,19 +1221,19 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 
-						double p = 0; // privatize
-						double N = 0; // privatize
-												// double M = 0; // privatize
+						numtype p = 0; // privatize
+						numtype N = 0; // privatize
+												// numtype M = 0; // privatize
 
 						// Compute beta
-						double Beta = beta;
+						numtype Beta = beta;
 						if (reducedBeta) {
 							Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
 						// PRIVATIZE BOTH OF THESE
-						double s;   // The factor which modifies the adsorption rate
-						double n;   // The number of targets the phage has
+						numtype s;   // The factor which modifies the adsorption rate
+						numtype n;   // The number of targets the phage has
 												// Infectons
 
 
@@ -1249,11 +1257,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 								if (GPU_NEWINFECTIONS) {
 									N = -1;
-									double *tmp = new double;
+									numtype *tmp = new numtype;
 									ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 									err = cudaGetLastError();
 									if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-									cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+									cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 									assert(*tmp != -1);
 									N = *tmp;
 								} else {
@@ -1270,10 +1278,10 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								// If bacteria were hit, update events
 								arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
 
-								double S;
+								numtype S;
 								if (shielding) {
 									// Absorbing medium model
-									double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
+									numtype d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
 									pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
 									S = exp(-zeta * d); // Probability of hitting succebtible target
 
@@ -1285,11 +1293,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],S)); // Probability of hitting succebtible target
 
 								if (GPU_NEWINFECTIONS) {
-									double *tmp = new double;
+									numtype *tmp = new numtype;
 									ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 									err = cudaGetLastError();
 									if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-									cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+									cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 									assert(*tmp != -1);
 									N = *tmp;
 								} else {
@@ -1329,8 +1337,8 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 
-						double p = 0; // privatize
-						double N = 0; // privatize
+						numtype p = 0; // privatize
+						numtype N = 0; // privatize
 
 						// KERNEL BEGIN
 						p = delta*dT;
@@ -1342,11 +1350,11 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 						if (GPU_PHAGEDECAY) {
 							N = -1;
-							double *tmp = new double;
+							numtype *tmp = new numtype;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
 							err = cudaGetLastError();
 							if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-							cudaMemcpy(tmp, d_N, sizeof(double),cudaMemcpyDeviceToHost);
+							cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
 							assert(*tmp != -1);
 							N = *tmp;
 						} else {
@@ -1417,13 +1425,13 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							}
 
 							// Update counts
-							double n_0; // No movement
-							double n_u; // Up
-							double n_d; // Down
-							double n_l; // Left
-							double n_r; // Right
-							double n_f; // Front
-							double n_b; // Back
+							numtype n_0; // No movement
+							numtype n_u; // Up
+							numtype n_d; // Down
+							numtype n_l; // Left
+							numtype n_r; // Right
+							numtype n_f; // Front
+							numtype n_b; // Back
 
 							// CELLS
 							ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 1, i, j, k);
@@ -1543,8 +1551,8 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 
 				// NUTRIENT DIFFUSION
-				double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
-				double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
+				numtype alphaXY = D_n * dT / pow(L / (numtype)nGridXY, 2);
+				numtype alphaZ  = D_n * dT / pow(H / (numtype)nGridZ, 2);
 
 				for (int i = 0; i < nGridXY; i++) {
 					for (int j = 0; j < nGridXY; j++ ) {
@@ -1583,7 +1591,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 							}
 
-							double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+							numtype tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 							arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
 							arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
 							arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
@@ -1616,7 +1624,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 		// Fast exit conditions
 		// 1) There are no more sucebtible cells
 		// -> Convert all infected cells to phages and stop simulation
-		double accuB = 0.0;
+		numtype accuB = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
@@ -1658,7 +1666,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 		// 2) There are no more alive cells
 		// -> Stop simulation
 
-		double accuOcc = 0.0;
+		numtype accuOcc = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
@@ -1674,12 +1682,12 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 		// 3) The food is on average less than one per gridpoint
 		// and the maximal nutrient at any point in space is less than 1
 
-		double accuNutrient = 0.0;
-		double maxNutrient  = 0.0;
+		numtype accuNutrient = 0.0;
+		numtype maxNutrient  = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
-					double tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+					numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 					accuNutrient += tmpN;
 
 					if (tmpN > maxNutrient) {
@@ -1761,7 +1769,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 
 
 
-int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
+int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	std::string filename_suffix = "loopDistributedGPU";
 
 	this->T_end = T_end;
@@ -1828,15 +1836,15 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 	/* Allocate arrays on the device */
 	int totalElements = nGridXY * nGridXY * nGridZ;
-	int totalMemSize = totalElements * sizeof(double);
+	int totalMemSize = totalElements * sizeof(numtype);
 	int blockSize = 256;
 	int gridSize = (totalElements + blockSize - 1) / blockSize;
 
 	cudaError_t err = cudaSuccess;
 
 	// Allocate on GPU
-	double *arr_maxOccupancy = new double[gridSize]();
-	double *d_arr_maxOccupancy;
+	numtype *arr_maxOccupancy = new numtype[gridSize]();
+	numtype *d_arr_maxOccupancy;
 
 	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1847,10 +1855,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 	err = cudaMalloc((void**)&d_arr_IsActive, blockSize*gridSize*sizeof(bool));
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_IsActive on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-	err = cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(double)*gridSize);
+	err = cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(numtype)*gridSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_maxOccupancy on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-	err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyHostToDevice);
+	err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, sizeof(numtype)*gridSize, cudaMemcpyHostToDevice);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	err = cudaMalloc((void**)&d_rng_state, sizeof(curandState)*totalElements);
@@ -1989,7 +1997,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		if (exit) break;
 
 		// Determine the number of timesteps between sampings
-		int nStepsPerSample = static_cast<int>(round(1 / (nSamp *  dT)));
+		int nStepsPerSample = static_cast<int>(myround(1 / (nSamp *  dT)));
 
         //CopyAllToDevice();
 
@@ -2006,7 +2014,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 			}
 
 			// Reset density counter
-			double maxOccupancy = 0.0;
+			numtype maxOccupancy = 0.0;
 
 			// /////////////////////////////////////////////////////
 			// // Main loop start //////////////////////////////////
@@ -2092,7 +2100,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 				}
 
 				// Run second Kernel
-				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(double)>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, blockSize);
+				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, blockSize);
 
 				if (GPU_KERNEL_TIMING){
 					cudaDeviceSynchronize();
@@ -2122,7 +2130,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 					CopyAllToHost();
 				}
 
-				err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(double)*gridSize, cudaMemcpyDeviceToHost);
+				err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(numtype)*gridSize, cudaMemcpyDeviceToHost);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
 					errC--; }
 
@@ -2192,11 +2200,11 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 							// Skip empty sites
 							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-							double p = 0; // privatize
-							double N = 0; // privatize
+							numtype p = 0; // privatize
+							numtype N = 0; // privatize
 
 							// Compute the growth modifier
-							double growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+							numtype growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
 							arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
 							p = g * growthModifier*dT;
@@ -2286,14 +2294,14 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 							// Skip empty sites
 							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
-							double p = 0; // privatize
-							double N = 0; // privatize
+							numtype p = 0; // privatize
+							numtype N = 0; // privatize
 
 							// Compute the growth modifier
-							double growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+							numtype growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 
 							// Compute beta
-							double Beta = beta;
+							numtype Beta = beta;
 
 							if (reducedBeta) {
 								Beta *= growthModifier;
@@ -2407,19 +2415,19 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 
-							double p = 0; // privatize
-							double N = 0; // privatize
+							numtype p = 0; // privatize
+							numtype N = 0; // privatize
 							// double M = 0; // privatize
 
 							// Compute beta
-							double Beta = beta;
+							numtype Beta = beta;
 							if (reducedBeta) {
 								Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
 							}
 
 							// PRIVATIZE BOTH OF THESE
-							double s;   // The factor which modifies the adsorption rate
-							double n;   // The number of targets the phage has
+							numtype s;   // The factor which modifies the adsorption rate
+							numtype n;   // The number of targets the phage has
 							// Infectons
 
 
@@ -2450,10 +2458,10 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 									arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
 
-									double S;
+									numtype S;
 									if (shielding) {
 										// Absorbing medium model
-										double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
+										numtype d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
 											pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
 										S = exp(-zeta * d); // Probability of hitting succebtible target
 
@@ -2526,8 +2534,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
 
 
-							double p = 0; // privatize
-							double N = 0; // privatize
+							numtype p = 0; // privatize
+							numtype N = 0; // privatize
 
 							// KERNEL BEGIN
 							p = delta*dT;
@@ -2703,13 +2711,13 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 								}
 
 								// Update counts
-								double n_0; // No movement
-								double n_u; // Up
-								double n_d; // Down
-								double n_l; // Left
-								double n_r; // Right
-								double n_f; // Front
-								double n_b; // Back
+								numtype n_0; // No movement
+								numtype n_u; // Up
+								numtype n_d; // Down
+								numtype n_l; // Left
+								numtype n_r; // Right
+								numtype n_f; // Front
+								numtype n_b; // Back
 
 								// CELLS
 								ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
@@ -2922,8 +2930,8 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
 
 			// NUTRIENT DIFFUSION
-			double alphaXY = D_n * dT / pow(L / (double)nGridXY, 2);
-			double alphaZ  = D_n * dT / pow(H / (double)nGridZ, 2);
+			numtype alphaXY = D_n * dT / pow(L / (numtype)nGridXY, 2);
+			numtype alphaZ  = D_n * dT / pow(H / (numtype)nGridZ, 2);
 
             if(GPU_NUTRIENTDIFFUSION){
 
@@ -2988,7 +2996,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 
                             }
 
-                            double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+                            numtype tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
                             arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
                             arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
                             arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
@@ -3057,7 +3065,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		// Fast exit conditions
 		// 1) There are no more sucebtible cells
 		// -> Convert all infected cells to phages and stop simulation
-		double accuB = 0.0;
+		numtype accuB = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
@@ -3099,7 +3107,7 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		// 2) There are no more alive cells
 		// -> Stop simulation
 
-		double accuOcc = 0.0;
+		numtype accuOcc = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
@@ -3115,12 +3123,12 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 		// 3) The food is on average less than one per gridpoint
 		// and the maximal nutrient at any point in space is less than 1
 
-		double accuNutrient = 0.0;
-		double maxNutrient  = 0.0;
+		numtype accuNutrient = 0.0;
+		numtype maxNutrient  = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
-					double tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+					numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 					accuNutrient += tmpN;
 
 					if (tmpN > maxNutrient) {
@@ -3261,9 +3269,9 @@ int Colonies3D::Run_LoopDistributed_GPU(double T_end) {
 /////////////////////////////////////////////////////////////////////
 
 // GPU copy helper functions
-void Colonies3D::CopyToHost(double* hostArray, double* deviceArray, int failCode, int gridsz){
+void Colonies3D::CopyToHost(numtype* hostArray, numtype* deviceArray, int failCode, int gridsz){
 	cudaError_t err = cudaSuccess;
-	err = cudaMemcpy(hostArray, deviceArray, sizeof(double)*gridsz, cudaMemcpyDeviceToHost);
+	err = cudaMemcpy(hostArray, deviceArray, sizeof(numtype)*gridsz, cudaMemcpyDeviceToHost);
 		if (err != cudaSuccess && errC > 0)	{
 			fprintf(stderr, "Failed to copy to the host! Code %d error = %s\n", failCode, cudaGetErrorString(err));
 			errC--;
@@ -3335,9 +3343,9 @@ void Colonies3D::CopyAllToHost(){
 
 
 ////
-void Colonies3D::CopyToDevice(double* hostArray, double* deviceArray, int failCode, int gridsz){
+void Colonies3D::CopyToDevice(numtype* hostArray, numtype* deviceArray, int failCode, int gridsz){
 	cudaError_t err = cudaSuccess;
-	err = cudaMemcpy(deviceArray, hostArray, sizeof(double)*gridsz, cudaMemcpyHostToDevice);
+	err = cudaMemcpy(deviceArray, hostArray, sizeof(numtype)*gridsz, cudaMemcpyHostToDevice);
 		if (err != cudaSuccess && errC > 0) {
 			fprintf(stderr, "Failed to copy to the device! Code %d error = %s\n", failCode, cudaGetErrorString(err));
 			errC--;
@@ -3420,7 +3428,7 @@ void Colonies3D::Initialize() {
 
 		// Compute nGridZ
 		if (L != H) {
-			nGridZ = round(H / L * nGridXY);
+			nGridZ = myround(H / L * nGridXY);
 			H = nGridZ * L / nGridXY;
 		} else {
 			nGridZ = nGridXY;
@@ -3428,49 +3436,49 @@ void Colonies3D::Initialize() {
 
 		// Allocate the arrays
 		// Compute the step size
-		double dXY = L / nGridXY;
-		double dZ  = H / nGridZ;
-		double dV  = dXY * dXY * dZ;
+		numtype dXY = L / nGridXY;
+		numtype dZ  = H / nGridZ;
+		numtype dV  = dXY * dXY * dZ;
 
 		// Allocate arrays
-		arr_B   = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I0  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I1  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I2  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I3  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I4  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I5  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I6  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I7  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I8  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I9  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_P   = new double[nGridXY*nGridXY*nGridZ]();
-		arr_nC  = new double[nGridXY*nGridXY*nGridZ]();
+		arr_B   = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I0  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I1  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I2  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I3  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I4  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I5  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I6  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I7  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I8  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I9  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_P   = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_nC  = new numtype[nGridXY*nGridXY*nGridZ]();
 
-		arr_B_new   = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I0_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I1_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I2_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I3_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I4_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I5_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I6_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I7_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I8_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_I9_new  = new double[nGridXY*nGridXY*nGridZ]();
-		arr_P_new   = new double[nGridXY*nGridXY*nGridZ]();
+		arr_B_new   = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I0_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I1_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I2_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I3_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I4_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I5_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I6_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I7_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I8_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_I9_new  = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_P_new   = new numtype[nGridXY*nGridXY*nGridZ]();
 
-		arr_nutrient = new double[nGridXY*nGridXY*nGridZ]();
-		arr_Occ      = new double[nGridXY*nGridXY*nGridZ]();
-		arr_nutrient_new = new double[nGridXY*nGridXY*nGridZ]();
+		arr_nutrient = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_Occ      = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_nutrient_new = new numtype[nGridXY*nGridXY*nGridZ]();
 
 		arr_rng = new std::mt19937[nGridXY*nGridXY*nGridZ];
 
 		rng_state = new curandState[nGridXY*nGridXY*nGridZ];
 
-		arr_M = new double[nGridXY*nGridXY*nGridZ]();
-		arr_GrowthModifier = new double[nGridXY*nGridXY*nGridZ]();
-		arr_p = new double[nGridXY*nGridXY*nGridZ]();
+		arr_M = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_GrowthModifier = new numtype[nGridXY*nGridXY*nGridZ]();
+		arr_p = new numtype[nGridXY*nGridXY*nGridZ]();
 
 		// Initialize arrays
 		for (int i = 0; i < nGridXY; i++) {
@@ -3510,13 +3518,13 @@ void Colonies3D::Initialize() {
 void Colonies3D::spawnBacteria() {
 
 		// Determine the number of cells to spawn
-		double nBacteria = round(L * L * H * B_0 / 1e12);
+		numtype nBacteria = myround(L * L * H * B_0 / 1e12);
 
 		// Average bacteria per gridpoint
-		double avgBacteria = nBacteria / (nGridXY * nGridXY * nGridZ);
+		numtype avgBacteria = nBacteria / (nGridXY * nGridXY * nGridZ);
 
 		// Keep track of the number of cells spawned
-		double numB = 0;
+		numtype numB = 0;
 
 		// Initialize cell and phage populations
 		if (nBacteria > (nGridXY * nGridXY * nGridZ)) {
@@ -3525,7 +3533,7 @@ void Colonies3D::spawnBacteria() {
 								for (int i = 0; i < nGridXY; i++) {
 
 										// Compute the number of bacteria to land in this gridpoint
-										double BB = RandP(avgBacteria);
+										numtype BB = RandP(avgBacteria);
 										if (BB < 1) continue;
 
 										// Store the number of clusters in this gridpoint
@@ -3600,14 +3608,14 @@ void Colonies3D::spawnBacteria() {
 void Colonies3D::spawnPhages() {
 
 		 // Determine the number of phages to spawn
-		double nPhages = (double)round(L * L * H * P_0 / 1e12);
+		numtype nPhages = (numtype) myround(L * L * H * P_0 / 1e12);
 
 		// Apply generic spawning
 		if (not experimentalConditions) {
 
-				double numP = 0;
+				numtype numP = 0;
 				if (nPhages <= nGridXY * nGridXY * nGridZ ) {
-						for (double n = 0; n < nPhages; n++) {
+						for (numtype n = 0; n < nPhages; n++) {
 								int i = RandI(nGridXY - 1);
 								int j = RandI(nGridXY - 1);
 								int k = RandI(nGridZ  - 1);
@@ -3618,7 +3626,7 @@ void Colonies3D::spawnPhages() {
 						for (int k = 0; k < nGridZ; k++ ) {
 								for (int j = 0; j < nGridXY; j++ ) {
 										for (int i = 0; i < nGridXY; i++) {
-												double PP = RandP(nPhages / (double)(nGridXY * nGridXY * nGridZ));
+												numtype PP = RandP(nPhages / (numtype)(nGridXY * nGridXY * nGridZ));
 
 												if (PP < 1) continue;
 												arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = PP;
@@ -3651,17 +3659,17 @@ void Colonies3D::spawnPhages() {
 		} else { // Apply scenario specific settings
 
 				// Determine the number of phages to spawn
-				double nPhages = (double)round(L * L * H * P_0 / 1e12);
-				double numP = 0;
+				numtype nPhages = (numtype) myround(L * L * H * P_0 / 1e12);
+				numtype numP = 0;
 				if (nPhages <= nGridXY * nGridXY) {
-						for (double n = 0; n < nPhages; n++) {
+						for (numtype n = 0; n < nPhages; n++) {
 								arr_P[RandI(nGridXY - 1)*nGridXY*nGridZ + RandI(nGridXY - 1)*nGridZ + nGridZ - 1]++;
 								numP++;
 						}
 				} else {
 						for (int j = 0; j < nGridXY; j++ ) {
 								for (int i = 0; i < nGridXY; i++ ) {
-										arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1] = RandP(nPhages / (double)(nGridXY * nGridXY * nGridZ));
+										arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1] = RandP(nPhages / (numtype)(nGridXY * nGridXY * nGridZ));
 										numP += arr_P[i*nGridXY*nGridZ + j*nGridZ + nGridZ - 1];
 								}
 						}
@@ -3693,16 +3701,16 @@ void Colonies3D::ComputeTimeStep() {
 	if (this->dT > 0) return;
 
 	// Compute the step size
-	double dXY = L / (double)nGridXY;
-	double dZ  = H / (double)nGridZ;
+	numtype dXY = L / (numtype)nGridXY;
+	numtype dZ  = H / (numtype)nGridZ;
 	assert(dXY == dZ);
-	double dx  = dXY;
+	numtype dx  = dXY;
 
 	// Compute the time-step size
 	int limiter = 0;
 
-	double dT = min(pow(10,-2), 1 / nSamp);
-	double dt;
+	numtype dT = min(pow(10,-2), 1 / nSamp);
+	numtype dt;
 
 	// Compute time-step limit set by D_P (LambdaP < 0.1)
 	if (D_P > 0) {
@@ -3756,10 +3764,10 @@ void Colonies3D::ComputeTimeStep() {
 	}
 
 	// Get the order of magnitude of the timestep
-	double m = floor(log10(dT));
+	numtype m = floor(log10(dT));
 
 	// Round remainder to 1, 2 or 5
-	double r = round(dT * pow(10, -m));
+	numtype r = myround(dT * pow(10, -m));
 	if (r >= 5)      dT = 5*pow(10, m);
 	else if (r >= 2) dT = 2*pow(10, m);
 	else             dT =   pow(10, m);
@@ -3805,7 +3813,7 @@ void Colonies3D::ComputeTimeStep() {
 }
 
 // Returns the number of events ocurring for given n and p
-double Colonies3D::ComputeEvents(double n, double p, int flag, int i, int j, int k) {
+numtype Colonies3D::ComputeEvents(numtype n, numtype p, int flag, int i, int j, int k) {
 
 		// Trivial cases
 		if (p == 1) return n;
@@ -3814,27 +3822,27 @@ double Colonies3D::ComputeEvents(double n, double p, int flag, int i, int j, int
 		// DETERMINITIC CHANGE
 		if (n < 1)  return 0.0;
 
-		double N = RandP(n*p, i, j, k);
+		numtype N = RandP(n*p, i, j, k);
 
-		return round(N);
+		return myround(N);
 		// return n*min(1.0,p);
 }
 
 // Returns the number of events ocurring for given n and p, flat array
-double Colonies3D::ComputeEvents(double n, double p, int flag, int i) {
+numtype Colonies3D::ComputeEvents(numtype n, numtype p, int flag, int i) {
 
 		// Trivial cases
 		if (p == 1) return n;
 		if (p == 0) return 0.0;
 		if (n < 1)  return 0.0;
 
-		double N = RandP(n*p, i);
+		numtype N = RandP(n*p, i);
 
-		return round(N);
+		return myround(N);
 }
 
 // Computes how many particles has moved to neighbouing points
-void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int flag, int i, int j, int k) {
+void Colonies3D::ComputeDiffusion(numtype n, numtype lambda, numtype* n_0, numtype* n_u, numtype* n_d, numtype* n_l, numtype* n_r, numtype* n_f, numtype* n_b, int flag, int i, int j, int k) {
 
 		// Reset positions
 		*n_0 = 0.0;
@@ -3857,9 +3865,9 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 		// DETERMINITIC CHANGE
 		if (lambda*n < 5) {   // Compute all movement individually
 
-			for (int l = 0; l < round(n); l++) {
+			for (int l = 0; l < myround(n); l++) {
 
-				double r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+				numtype r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
 
 				if       (r <    lambda)                     (*n_u)++;  // Up movement
 				else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
@@ -3875,7 +3883,7 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 		} else {
 
 			// Compute the number of agents which move
-			double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
+			numtype N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
 
 			*n_u = RandP(N/6, i, j, k);
 			*n_d = RandP(N/6, i, j, k);
@@ -3886,12 +3894,12 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 			*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 		}
 
-		*n_u = round(*n_u);
-		*n_d = round(*n_d);
-		*n_l = round(*n_l);
-		*n_r = round(*n_r);
-		*n_f = round(*n_f);
-		*n_b = round(*n_b);
+		*n_u = myround(*n_u);
+		*n_d = myround(*n_d);
+		*n_l = myround(*n_l);
+		*n_r = myround(*n_r);
+		*n_f = myround(*n_f);
+		*n_b = myround(*n_b);
 		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
 		// *n_u = 0.5*lambda*n;
@@ -3915,34 +3923,34 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 
 
 // Settings /////////////////////////////////////////////////////////////////////////////
-void Colonies3D::SetLength(double L){this->L=L;}                                 // Set the side-length of the simulation
-void Colonies3D::SetHeight(double H) {this->H=H;}                                // Set the height of the simulation}
-void Colonies3D::SetGridSize(double nGrid){this->nGridXY=nGrid;}                 // Set the number of gridpoints
-void Colonies3D::SetTimeStep(double dT){this->dT=dT;}                            // Set the time step size
+void Colonies3D::SetLength(numtype L){this->L=L;}                                 // Set the side-length of the simulation
+void Colonies3D::SetHeight(numtype H) {this->H=H;}                                // Set the height of the simulation}
+void Colonies3D::SetGridSize(numtype nGrid){this->nGridXY=nGrid;}                 // Set the number of gridpoints
+void Colonies3D::SetTimeStep(numtype dT){this->dT=dT;}                            // Set the time step size
 void Colonies3D::SetSamples(int nSamp){this->nSamp=nSamp;}                       // Set the number of output samples
 
-void Colonies3D::PhageInvasionStartTime(double T_i){this->T_i=T_i;}              // Sets the time when the phages should start infecting
+void Colonies3D::PhageInvasionStartTime(numtype T_i){this->T_i=T_i;}              // Sets the time when the phages should start infecting
 
-void Colonies3D::CellGrowthRate(double g){this->g=g;}                            // Sets the maximum growthrate
-void Colonies3D::CellCarryingCapacity(double K){this->K=K;}                      // Sets the carrying capacity
-void Colonies3D::CellDiffusionConstant(double D_B){this->D_B=D_B;}               // Sets the diffusion constant of the phages
+void Colonies3D::CellGrowthRate(numtype g){this->g=g;}                            // Sets the maximum growthrate
+void Colonies3D::CellCarryingCapacity(numtype K){this->K=K;}                      // Sets the carrying capacity
+void Colonies3D::CellDiffusionConstant(numtype D_B){this->D_B=D_B;}               // Sets the diffusion constant of the phages
 
 void Colonies3D::PhageBurstSize(int beta){this->beta=beta;}                      // Sets the size of the bursts
-void Colonies3D::PhageAdsorptionRate(double eta){this->eta=eta;}                 // sets the adsorption parameter eta
-void Colonies3D::PhageDecayRate(double delta){this->delta=delta;}                // Sets the decay rate of the phages
-void Colonies3D::PhageInfectionRate(double r){this->r=r;}                        // Sets rate of the infection increaasing in stage
-void Colonies3D::PhageDiffusionConstant(double D_P){this->D_P=D_P;}              // Sets the diffusion constant of the phages
+void Colonies3D::PhageAdsorptionRate(numtype eta){this->eta=eta;}                 // sets the adsorption parameter eta
+void Colonies3D::PhageDecayRate(numtype delta){this->delta=delta;}                // Sets the decay rate of the phages
+void Colonies3D::PhageInfectionRate(numtype r){this->r=r;}                        // Sets rate of the infection increaasing in stage
+void Colonies3D::PhageDiffusionConstant(numtype D_P){this->D_P=D_P;}              // Sets the diffusion constant of the phages
 
 // Sets latency time of the phage (r and tau are related by r = 10 / tau)
-void Colonies3D::PhageLatencyTime(double tau) {
+void Colonies3D::PhageLatencyTime(numtype tau) {
 		if (tau > 0.0) r = 10 / tau;
 		else r = 0.0;
 }
 
-void Colonies3D::SurfacePermeability(double zeta){this->zeta=zeta;}             // Sets the permeability of the surface
+void Colonies3D::SurfacePermeability(numtype zeta){this->zeta=zeta;}             // Sets the permeability of the surface
 
-void Colonies3D::InitialNutrient(double n_0){this->n_0=n_0;}                    // Sets the amount of initial nutrient
-void Colonies3D::NutrientDiffusionConstant(double D_n){this->D_n=D_n;}          // Sets the nutrient diffusion rate
+void Colonies3D::InitialNutrient(numtype n_0){this->n_0=n_0;}                    // Sets the amount of initial nutrient
+void Colonies3D::NutrientDiffusionConstant(numtype D_n){this->D_n=D_n;}          // Sets the nutrient diffusion rate
 
 void Colonies3D::SimulateExperimentalConditions(){experimentalConditions=true;} // Sets the simulation to spawn phages at top layer and only have x-y periodic boundaries
 
@@ -3956,7 +3964,7 @@ void Colonies3D::ReducedBoundary(int s) {
 		reducedBoundary = true;
 }
 
-void Colonies3D::SetAlpha(double alpha){this->alpha=alpha;}                     // Sets the value of alpha
+void Colonies3D::SetAlpha(numtype alpha){this->alpha=alpha;}                     // Sets the value of alpha
 
 // Helping functions ////////////////////////////////////////////////////////////////////
 // Returns random integter between 0 and n
@@ -3968,26 +3976,26 @@ int Colonies3D::RandI(int n) {
 		return distr(rng);
 }
 
-// Returns random double between 0 and 1
-double Colonies3D::Rand(std::mt19937 rng) {
+// Returns random numtype between 0 and 1
+numtype Colonies3D::Rand(std::mt19937 rng) {
 
 		// Set limit on distribution
-		uniform_real_distribution <double> distr(0, 1);
+		uniform_real_distribution <numtype> distr(0, 1);
 
 		return distr(rng);
 }
 
 // Returns random normal dist. number with mean m and variance s^2
-double Colonies3D::RandN(double m, double s) {
+numtype Colonies3D::RandN(numtype m, numtype s) {
 
 		// Set limit on distribution
-		normal_distribution <double> distr(m, s);
+		normal_distribution <numtype> distr(m, s);
 
 		return distr(rng);
 }
 
 // Returns poisson dist. number with mean l
-double Colonies3D::RandP(double l, int i, int j, int k) {
+numtype Colonies3D::RandP(numtype l, int i, int j, int k) {
 
 		// Set limit on distribution
 		poisson_distribution <long long> distr(l);
@@ -3996,7 +4004,7 @@ double Colonies3D::RandP(double l, int i, int j, int k) {
 }
 
 // Returns poisson dist. number with mean l, flat array
-double Colonies3D::RandP(double l, int i) {
+numtype Colonies3D::RandP(numtype l, int i) {
 
 		// Set limit on distribution
 		poisson_distribution <long long> distr(l);
@@ -4005,7 +4013,7 @@ double Colonies3D::RandP(double l, int i) {
 }
 
 // Returns poisson dist. number with mean l
-double Colonies3D::RandP(double l) {
+numtype Colonies3D::RandP(numtype l) {
 
 		// Set limit on distribution
 		poisson_distribution <long long> distr(l);
@@ -4014,14 +4022,14 @@ double Colonies3D::RandP(double l) {
 }
 
 // Returns poisson dist. number with mean l
-double Colonies3D::RandP_fast(double l) {
+numtype Colonies3D::RandP_fast(numtype l) {
 
-		double N;
+		numtype N;
 
 		if (l < 60) {
 
-				double L = exp(-l);
-				double p = 1;
+				numtype L = exp(-l);
+				numtype p = 1;
 				N = 0;
 				do {
 						N++;
@@ -4031,13 +4039,13 @@ double Colonies3D::RandP_fast(double l) {
 
 		} else {
 
-				double r;
-				double x;
-				double pi = 3.14159265358979;
-				double sqrt_l = sqrt(l);
-				double log_l = log(l);
-				double g_x;
-				double f_m;
+				numtype r;
+				numtype x;
+				numtype pi = 3.14159265358979;
+				numtype sqrt_l = sqrt(l);
+				numtype log_l = log(l);
+				numtype g_x;
+				numtype f_m;
 
 				do {
 						do {
@@ -4047,15 +4055,15 @@ double Colonies3D::RandP_fast(double l) {
 						g_x = sqrt_l/(pi*((x-l)*(x-l) + l));
 						N = floor(x);
 
-						double xx = N + 1;
-						double pi = 3.14159265358979;
-						double xx2 = xx*xx;
-						double xx3 = xx2*xx;
-						double xx5 = xx3*xx2;
-						double xx7 = xx5*xx2;
-						double xx9 = xx7*xx2;
-						double xx11 = xx9*xx2;
-						double lgxx = xx*log(xx) - xx - 0.5*log(xx/(2*pi)) +
+						numtype xx = N + 1;
+						numtype pi = 3.14159265358979;
+						numtype xx2 = xx*xx;
+						numtype xx3 = xx2*xx;
+						numtype xx5 = xx3*xx2;
+						numtype xx7 = xx5*xx2;
+						numtype xx9 = xx7*xx2;
+						numtype xx11 = xx9*xx2;
+						numtype lgxx = xx*log(xx) - xx - 0.5*log(xx/(2*pi)) +
 						1/(12*xx) - 1/(360*xx3) + 1/(1260*xx5) - 1/(1680*xx7) +
 						1/(1188*xx9) - 691/(360360*xx11);
 
@@ -4064,7 +4072,7 @@ double Colonies3D::RandP_fast(double l) {
 				} while (drand48() > r);
 		}
 
-		return round(N);
+		return myround(N);
 
 }
 
@@ -4125,18 +4133,18 @@ void Colonies3D::FastExit(){fastExit=true;}
 void Colonies3D::ExportAll(){exportAll=true;}
 
 // Master function to export the data
-void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
+void Colonies3D::ExportData_arr(numtype t, std::string filename_suffix){
 
 		// Verify the file stream is open
 		string fileName = "PopulationSize_"+filename_suffix;
 		OpenFileStream(f_N, fileName);
 
 
-		double accuB = 0.0;
-		double accuI = 0.0;
-		double accuP = 0.0;
-		double accuNutrient = 0.0;
-		double accuClusters = 0.0;
+		numtype accuB = 0.0;
+		numtype accuI = 0.0;
+		numtype accuP = 0.0;
+		numtype accuNutrient = 0.0;
+		numtype accuClusters = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 				for (int j = 0; j < nGridXY; j++ ) {
 						for (int k = 0; k < nGridZ; k++ ) {
@@ -4152,9 +4160,9 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
 		// Writes the time, number of cells, number of infected cells, number of phages
 		f_N << fixed    << setprecision(2);
 		f_N << setw(6)  << t       << "\t";
-		f_N << setw(12) << round(accuB)    << "\t";
-		f_N << setw(12) << round(accuI)    << "\t";
-		f_N << setw(12) << round(accuP)    << "\t";
+		f_N << setw(12) << myround(accuB)    << "\t";
+		f_N << setw(12) << myround(accuI)    << "\t";
+		f_N << setw(12) << myround(accuP)    << "\t";
 
 		int nz = 0;
 		for (int i = 0; i < nGridXY; i++) {
@@ -4167,7 +4175,7 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
 				}
 		}
 
-		f_N << setw(12) << static_cast<double>(nz) / initialOccupancy << "\t";
+		f_N << setw(12) << static_cast<numtype>(nz) / initialOccupancy << "\t";
 		f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accuNutrient << "\t";
 		f_N << setw(12) << accuClusters << endl;
 
@@ -4209,18 +4217,18 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
 
 										f_B << setw(6) << arr_B[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
 										f_P << setw(6) << arr_P[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
-										double nI = round(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
+										numtype nI = myround(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
 										f_I << setw(6) << nI       << "\t";
 										f_n << setw(6) << arr_nutrient[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
 								}
 
 								#define XnGridXYZ x*nGridXY*nGridZ+(nGridXY-1)*nGridZ+z
 								// Write last line ("\n" instead of tab)
-								f_B << setw(6) << round(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-								f_P << setw(6) << round(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-								double nI = round(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
+								f_B << setw(6) << myround(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+								f_P << setw(6) << myround(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+								numtype nI = myround(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
 								f_I << setw(6) << nI                        << "\n";
-								f_n << setw(6) << round(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+								f_n << setw(6) << myround(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
 						}
 				}
 		}

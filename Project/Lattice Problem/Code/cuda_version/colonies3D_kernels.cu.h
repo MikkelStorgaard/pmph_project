@@ -1,23 +1,21 @@
-// #include "colonies3D_helpers.cu"
-#ifndef TRANSPOSE_KERS
-#define TRANSPOSE_KERS
+__device__ numtype RandP(curandState rng_state, float lambda) {
 
-__device__ double RandP(curandState rng_state, double lambda) {
-
-  double L = exp(-lambda);
-  double p = 1.0;
-  double k = 0;
+  numtype L = exp(-lambda);
+  numtype p = 1.0;
+  numtype k = 0;
   while (p > L) {
     k++;
-    double u = curand_uniform_double(&rng_state);
+#if NUMTYPE_IS_FLOAT
+    numtype u = curand_uniform(&rng_state);
+#else
+    numtype u = curand_uniform_double(&rng_state);
+#endif
     p *= u;
   }
   return k - 1;
-  // return lambda;
-
 }
 
-__global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rng_state, int index){
+__global__ void ComputeEvents_seq(numtype *N, numtype n, numtype p, curandState* rng_state, int index){
     // Trivial cases
     int i = blockDim.x*blockIdx.x + threadIdx.x;
 
@@ -31,11 +29,10 @@ __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rn
       if (n < 1)  return;
 
       *N = round(RandP(rng_state[i], n*p));
-
     }
 }
 
-__device__ double ComputeEvents(double n, double p, curandState rng_state){
+__device__ numtype ComputeEvents(numtype n, numtype p, curandState rng_state){
     // Trivial cases
 
     if (p == 1) return n;
@@ -58,7 +55,7 @@ __global__ void initRNG(curandState *state, int N){
   }
 }
 
-__device__ void ComputeDiffusion(curandState state, double n, double lambda, double* n_0, double* n_u, double* n_d, double* n_l, double* n_r, double* n_f, double* n_b, int i, int j, int k, int nGridXY) {
+__device__ void ComputeDiffusion(curandState state, numtype n, numtype lambda, numtype* n_0, numtype* n_u, numtype* n_d, numtype* n_l, numtype* n_r, numtype* n_f, numtype* n_b, int i, int j, int k, int nGridXY) {
 
 		// Reset positions
 		*n_0 = 0.0;
@@ -83,7 +80,7 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 
 		// 		for (int l = 0; l < round(n); l++) {
 
-		// 				double r = curand_uniform(&state);
+		// 				numtype r = curand_uniform(&state);
 
 		// 				if       (r <    lambda)                     (*n_u)++;  // Up movement
 		// 				else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
@@ -137,7 +134,7 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 
 }
 
-__global__ void ComputeDiffusionWeights(curandState* state, double* arr, double lambda, double* arr_n_0, double* arr_n_u, double* arr_n_d, double* arr_n_l, double* arr_n_r, double* arr_n_f, double* arr_n_b, int nGridXY, bool* arr_IsActive) {
+__global__ void ComputeDiffusionWeights(curandState* state, numtype* arr, numtype lambda, numtype* arr_n_0, numtype* arr_n_u, numtype* arr_n_d, numtype* arr_n_l, numtype* arr_n_r, numtype* arr_n_f, numtype* arr_n_b, int nGridXY, bool* arr_IsActive) {
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -145,14 +142,14 @@ __global__ void ComputeDiffusionWeights(curandState* state, double* arr, double 
     return;
   }
 
-  double tmp = arr[i];
-  double n_0 = 0.0;
-  double n_u = 0.0;
-  double n_d = 0.0;
-  double n_l = 0.0;
-  double n_r = 0.0;
-  double n_f = 0.0;
-  double n_b = 0.0;
+  numtype tmp = arr[i];
+  numtype n_0 = 0.0;
+  numtype n_u = 0.0;
+  numtype n_d = 0.0;
+  numtype n_l = 0.0;
+  numtype n_r = 0.0;
+  numtype n_f = 0.0;
+  numtype n_b = 0.0;
 
   // DETERMINITIC CHANGE
   // if (n < 1) return;
@@ -231,7 +228,7 @@ __global__ void ComputeDiffusionWeights(curandState* state, double* arr, double 
 
 }
 
-__global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
+__global__ void FirstKernel(numtype* arr_Occ, numtype* arr_nC, int N){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -246,22 +243,22 @@ __global__ void FirstKernel(double* arr_Occ, double* arr_nC, int N){
   arr_nC[i] = min(arr_nC[i],arr_Occ[i]);
 }
 
-__global__ void SetIsActive(double* arr_Occ, double* arr_P, bool* arr_IsActive, int N){
+__global__ void SetIsActive(numtype* arr_Occ, numtype* arr_P, bool* arr_IsActive, int N){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
   bool insideBounds = (i < N);
 
-  double Occ = insideBounds ? arr_Occ[i] : 0.0;
-  double P   = insideBounds ? arr_P[i]   : 0.0;
+  numtype Occ = insideBounds ? arr_Occ[i] : 0.0;
+  numtype P   = insideBounds ? arr_P[i]   : 0.0;
   arr_IsActive[i] = insideBounds && ((P >= 1.0) && (Occ >= 1.0));
 
 }
 
-__global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
+__global__ void SecondKernel(numtype* arr_Occ, numtype* arr_nC, numtype* maxOcc,
                              bool* arr_IsActive, int N){
 
-  extern __shared__ double shared[];
+  extern __shared__ numtype shared[];
   int i = blockIdx.x*blockDim.x + threadIdx.x;
   int tid = threadIdx.x;
 
@@ -279,14 +276,14 @@ __global__ void SecondKernel(double* arr_Occ, double* arr_nC, double* maxOcc,
   }
 }
 
-__global__ void SequentialReduce(double* A, int A_len){
+__global__ void SequentialReduce(numtype* A, int A_len){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
   if (i > 0){
     return;
   }
-  double tmp = 0.0;
-  double current_max = 0.0;
+  numtype tmp = 0.0;
+  numtype current_max = 0.0;
 
   // the little thread that could
   for (unsigned int ind=0; ind<A_len; ind++) {
@@ -298,7 +295,7 @@ __global__ void SequentialReduce(double* A, int A_len){
   A[0] = current_max;
 }
 
-__global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr_nutrient, double* arr_GrowthModifier, double K, double g, double dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, bool* arr_IsActive){
+__global__ void ComputeBirthEvents(numtype* arr_B, numtype* arr_B_new, numtype* arr_nutrient, numtype* arr_GrowthModifier, numtype K, numtype g, numtype dT, bool* Warn_g, bool* Warn_fastGrowth, curandState *rng_state, bool* arr_IsActive){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -307,14 +304,14 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   }
 
   // Compute the growth modifier
-  double growthModifier = arr_nutrient[i] / (arr_nutrient[i] + K);
+  numtype growthModifier = arr_nutrient[i] / (arr_nutrient[i] + K);
   if (arr_nutrient[i] < 1) {
     growthModifier = 0;
   }
   arr_GrowthModifier[i] = growthModifier;
 
   // Compute birth probability
-  double p = g * growthModifier * dT;
+  numtype p = g * growthModifier * dT;
 
   // Produce warning
   if ((p > 0.1) and (!(*Warn_g))){
@@ -322,7 +319,7 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
   }
 
   // Compute the number of births
-  double N = ComputeEvents(arr_B[i], p, rng_state[i]);
+  numtype N = ComputeEvents(arr_B[i], p, rng_state[i]);
 
   // Ensure there is enough nutrient
 	if ( N > arr_nutrient[i] ) {
@@ -340,7 +337,7 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
 
 }
 
-__global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Occ, double* arr_GrowthModifier, double* arr_M, double* arr_p, double alpha, double beta, double r, double dT, bool reducedBeta, bool* Warn_r, curandState *rng_state, bool* arr_IsActive){
+__global__ void BurstingEvents(numtype* arr_I9, numtype* arr_P_new, numtype* arr_Occ, numtype* arr_GrowthModifier, numtype* arr_M, numtype* arr_p, numtype alpha, numtype beta, numtype r, numtype dT, bool reducedBeta, bool* Warn_r, curandState *rng_state, bool* arr_IsActive){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -349,13 +346,13 @@ __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Oc
   }
 
   // Fetch growthModifier
-  double growthModifier = arr_GrowthModifier[i];
+  numtype growthModifier = arr_GrowthModifier[i];
   if (reducedBeta) {
     beta *= growthModifier;
   }
 
   // Compute infection increse probability
-  double p = r * growthModifier *dT;
+  numtype p = r * growthModifier *dT;
 
   // Produce warning
   if ((p > 0.25) and (!(*Warn_r))){
@@ -363,7 +360,7 @@ __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Oc
   }
 
   // Compute the number of bursts
-  double N = ComputeEvents(arr_I9[i], p, rng_state[i]);
+  numtype N = ComputeEvents(arr_I9[i], p, rng_state[i]);
 
   // Update count
   arr_I9[i]    = max(0.0, arr_I9[i] - N);
@@ -376,7 +373,7 @@ __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Oc
   arr_p[i]     = p;
 }
 
-__global__ void NonBurstingEvents(double* arr_I, double* arr_In, double* arr_p, curandState *rng_state, bool* arr_IsActive){
+__global__ void NonBurstingEvents(numtype* arr_I, numtype* arr_In, numtype* arr_p, curandState *rng_state, bool* arr_IsActive){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -386,33 +383,33 @@ __global__ void NonBurstingEvents(double* arr_I, double* arr_In, double* arr_p, 
   }
 
   // Compute the number of bursts
-  double N = ComputeEvents(arr_I[i], arr_p[i], rng_state[i]);
+  numtype N = ComputeEvents(arr_I[i], arr_p[i], rng_state[i]);
 
   // Update count
   arr_I[i]     = max(0.0, arr_I[i] - N);
   arr_In[i]    += N;
 }
 
-__global__ void NewInfectionsKernel(double* arr_Occ,
-                                    double* arr_nC,
-                                    double* arr_P,
-                                    double* arr_P_new,
-                                    double* arr_GrowthModifier,
-                                    double* arr_B,
-                                    double* arr_B_new,
-                                    double* arr_M,
-                                    double* arr_I0_new,
+__global__ void NewInfectionsKernel(numtype* arr_Occ,
+                                    numtype* arr_nC,
+                                    numtype* arr_P,
+                                    numtype* arr_P_new,
+                                    numtype* arr_GrowthModifier,
+                                    numtype* arr_B,
+                                    numtype* arr_B_new,
+                                    numtype* arr_M,
+                                    numtype* arr_I0_new,
                                     bool* arr_IsActive,
                                     bool reducedBeta,
                                     bool clustering,
                                     bool shielding,
-                                    double K,
-                                    double alpha,
-                                    double beta,
-                                    double eta,
-                                    double zeta,
-                                    double dT,
-                                    double r,
+                                    numtype K,
+                                    numtype alpha,
+                                    numtype beta,
+                                    numtype eta,
+                                    numtype zeta,
+                                    numtype dT,
+                                    numtype r,
                                     curandState* rng_state
                                     ){
 
@@ -422,26 +419,26 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
     return;
   }
 
-  double B = arr_B[tid];
-  double nC = arr_nC[tid];
-  double Occ = arr_Occ[tid];
-  double P = arr_P[tid];
-  double M = arr_M[tid];
-  double tmp;
+  numtype B = arr_B[tid];
+  numtype nC = arr_nC[tid];
+  numtype Occ = arr_Occ[tid];
+  numtype P = arr_P[tid];
+  numtype M = arr_M[tid];
+  numtype tmp;
 
 
 	// Compute the growth modifier
-	double growthModifier = arr_GrowthModifier[tid];
+	numtype growthModifier = arr_GrowthModifier[tid];
 
   // Compute beta
-  double Beta = beta;
+  numtype Beta = beta;
   if (reducedBeta) {
     Beta *= growthModifier;
   }
 
-  double p;
-  double s;
-  double n;
+  numtype p;
+  numtype s;
+  numtype n;
 
   // KERNEL THIS
   if ((Occ >= 1) && (P >= 1)) {
@@ -467,11 +464,11 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
 
       arr_P[tid] = max(0.0, P - tmp); // Update count
 
-      double S;
+      numtype S;
 
       if (shielding) {
         // Absorbing medium model
-        double d =
+        numtype d =
           pow(Occ / nC, 1.0 / 3.0) - pow(B / nC, 1.0 / 3.0);
         S = exp(-zeta * d); // Probability of hitting succebtible target
 
@@ -496,7 +493,7 @@ __global__ void NewInfectionsKernel(double* arr_Occ,
   }
 }
 
-__global__ void PhageDecay(double* arr_P, double p,
+__global__ void PhageDecay(numtype* arr_P, numtype p,
                            bool *warn_delta, curandState* rng_state,
                            bool* arr_IsActive){
 
@@ -505,7 +502,7 @@ __global__ void PhageDecay(double* arr_P, double p,
     return;
   }
 
- double N = ComputeEvents(arr_P[i], p, rng_state[i]);
+ numtype N = ComputeEvents(arr_P[i], p, rng_state[i]);
 
  if ((p > 0.1) && (!(*warn_delta))){
    *warn_delta = true;
@@ -514,14 +511,14 @@ __global__ void PhageDecay(double* arr_P, double p,
  arr_P[i] = max(0.0, arr_P[i] - N);
 }
 
-__global__ void ApplyMovement(double* arr_new,
-                              double* arr_n_0,
-                              double* arr_n_u,
-                              double* arr_n_d,
-                              double* arr_n_l,
-                              double* arr_n_r,
-                              double* arr_n_f,
-                              double* arr_n_b,
+__global__ void ApplyMovement(numtype* arr_new,
+                              numtype* arr_n_0,
+                              numtype* arr_n_u,
+                              numtype* arr_n_d,
+                              numtype* arr_n_l,
+                              numtype* arr_n_r,
+                              numtype* arr_n_f,
+                              numtype* arr_n_b,
                               int nGridZ,
                               int nGridXY,
                               bool experimentalConditions,
@@ -583,13 +580,13 @@ __global__ void ApplyMovement(double* arr_new,
 
 // first movement kernel (if nGridXY > 1)
 __global__ void Movement1(curandState *rng_state,
-                          double* arr,
-                          double* arr_new,
+                          numtype* arr,
+                          numtype* arr_new,
                           bool* arr_IsActive,
                           int nGridZ,
                           int nGridXY,
                           bool experimentalConditions,
-                          double lambda){
+                          numtype lambda){
 
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -634,13 +631,13 @@ __global__ void Movement1(curandState *rng_state,
     }
 
     // Update counts
-    double n_0; // No movement
-    double n_u; // Up
-    double n_d; // Down
-    double n_l; // Left
-    double n_r; // Right
-    double n_f; // Front
-    double n_b; // Back
+    numtype n_0; // No movement
+    numtype n_u; // Up
+    numtype n_d; // Down
+    numtype n_l; // Left
+    numtype n_r; // Right
+    numtype n_f; // Front
+    numtype n_b; // Back
 
     ComputeDiffusion(rng_state[tid], arr[i*nGridXY*nGridZ + j*nGridZ + k], lambda, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, i, j, k, nGridXY);
         arr_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
@@ -653,8 +650,8 @@ __global__ void Movement1(curandState *rng_state,
 
 }
 
-__global__ void Movement2(double* arr,
-                          double* arr_new,
+__global__ void Movement2(numtype* arr,
+                          numtype* arr_new,
                           bool* arr_IsActive){
 
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -672,11 +669,11 @@ __global__ void Movement2(double* arr,
 ///////////////////////////////
 // Simple end of loop kernels.
 
-__global__ void SwapArrays(double* arr1, double* arr2, int size){
+__global__ void SwapArrays(numtype* arr1, numtype* arr2, int size){
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
     if(tid<size){
-        double tmp;
+        numtype tmp;
         tmp = arr1[tid];
         arr1[tid] = arr2[tid];
         arr2[tid] = tmp;
@@ -684,25 +681,25 @@ __global__ void SwapArrays(double* arr1, double* arr2, int size){
 
 }
 
-__global__ void ZeroArray(double* arr, int size){
+__global__ void ZeroArray(numtype* arr, int size){
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
     if(tid<size){
         arr[tid] = 0.0;
     }
 }
-__global__ void UpdateOccupancy(double* arr_Occ,
-                                double* arr_B,
-                                double* arr_I0,
-                                double* arr_I1,
-                                double* arr_I2,
-                                double* arr_I3,
-                                double* arr_I4,
-                                double* arr_I5,
-                                double* arr_I6,
-                                double* arr_I7,
-                                double* arr_I8,
-                                double* arr_I9,
+__global__ void UpdateOccupancy(numtype* arr_Occ,
+                                numtype* arr_B,
+                                numtype* arr_I0,
+                                numtype* arr_I1,
+                                numtype* arr_I2,
+                                numtype* arr_I3,
+                                numtype* arr_I4,
+                                numtype* arr_I5,
+                                numtype* arr_I6,
+                                numtype* arr_I7,
+                                numtype* arr_I8,
+                                numtype* arr_I9,
                                 int vol){
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -711,10 +708,10 @@ __global__ void UpdateOccupancy(double* arr_Occ,
     }
 
 }
-__global__ void NutrientDiffusion(double* arr_nutrient,
-                                  double* arr_nutrient_new,
-                                  double alphaXY,
-                                  double alphaZ,
+__global__ void NutrientDiffusion(numtype* arr_nutrient,
+                                  numtype* arr_nutrient_new,
+                                  numtype alphaXY,
+                                  numtype alphaZ,
                                   int nGridXY,
                                   int nGridZ,
                                   bool experimentalConditions,
@@ -760,7 +757,7 @@ __global__ void NutrientDiffusion(double* arr_nutrient,
       else km = k - 1;
     }
 
-    double tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+    numtype tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
     arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
     arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
     arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
@@ -770,6 +767,3 @@ __global__ void NutrientDiffusion(double* arr_nutrient,
     arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
   }
 }
-
-#endif
-
