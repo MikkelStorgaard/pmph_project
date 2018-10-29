@@ -70,7 +70,7 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 		*n_b = 0.0;
 
 		// DETERMINITIC CHANGE
-		// if (n < 1) return;
+		if (n < 1) return;
 
 		// Check if diffusion should occur
 		if ((lambda == 0) or (nGridXY == 1)) {
@@ -79,52 +79,52 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 		}
 
     // DETERMINITIC CHANGE
-		// if (lambda*n < 5) {   // Compute all movement individually
+		if (lambda*n < 5) {   // Compute all movement individually
 
-		// 		for (int l = 0; l < round(n); l++) {
+				for (int l = 0; l < round(n); l++) {
 
-		// 				double r = curand_uniform(&state);
+						double r = curand_uniform(&state);
 
-		// 				if       (r <    lambda)                     (*n_u)++;  // Up movement
-		// 				else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
-		// 				else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
-		// 				else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
-		// 				else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
-		// 				else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
-		// 				else                                         (*n_0)++;  // No movement
+						if       (r <    lambda)                     (*n_u)++;  // Up movement
+						else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
+						else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
+						else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
+						else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
+						else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
+						else                                         (*n_0)++;  // No movement
 
-		// 		}
+				}
 
 
-		// } else {
+		} else {
 
-				// // Compute the number of agents which move
-				// double N = RandP(state, 3*lambda*n); // Factor of 3 comes from 3D
+				// Compute the number of agents which move
+				double N = RandP(state, 3*lambda*n); // Factor of 3 comes from 3D
 
-				// *n_u = RandP(state, N/6);
-				// *n_d = RandP(state, N/6);
-				// *n_l = RandP(state, N/6);
-				// *n_r = RandP(state, N/6);
-				// *n_f = RandP(state, N/6);
-				// *n_b = RandP(state, N/6);
-				// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-		// }
+				*n_u = RandP(state, N/6);
+				*n_d = RandP(state, N/6);
+				*n_l = RandP(state, N/6);
+				*n_r = RandP(state, N/6);
+				*n_f = RandP(state, N/6);
+				*n_b = RandP(state, N/6);
+				*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+		}
 
-		// *n_u = round(*n_u);
-		// *n_d = round(*n_d);
-		// *n_l = round(*n_l);
-		// *n_r = round(*n_r);
-		// *n_f = round(*n_f);
-		// *n_b = round(*n_b);
-		// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+		*n_u = round(*n_u);
+		*n_d = round(*n_d);
+		*n_l = round(*n_l);
+		*n_r = round(*n_r);
+		*n_f = round(*n_f);
+		*n_b = round(*n_b);
+		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
-    *n_u = 0.5*lambda*n;
-    *n_d = 0.5*lambda*n;
-    *n_l = 0.5*lambda*n;
-    *n_r = 0.5*lambda*n;
-    *n_f = 0.5*lambda*n;
-    *n_b = 0.5*lambda*n;
-    *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+    // *n_u = 0.5*lambda*n;
+    // *n_d = 0.5*lambda*n;
+    // *n_l = 0.5*lambda*n;
+    // *n_r = 0.5*lambda*n;
+    // *n_f = 0.5*lambda*n;
+    // *n_b = 0.5*lambda*n;
+    // *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
 		// assert(*n_0 >= 0);
 		// assert(*n_u >= 0);
