@@ -364,10 +364,6 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 							}
 						}
 
-						double dXY = L / nGridXY;
-						double dZ  = H / nGridZ;
-						double dV  = dXY * dXY * dZ;
-						double eta = 1e4 / dV;
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
 							// Compute the number of hits
 							if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
@@ -1260,11 +1256,6 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 							}
 						}
 
-
-						double dXY = L / nGridXY;
-						double dZ  = H / nGridZ;
-						double dV  = dXY * dXY * dZ;
-						double eta = 1e4 / dV;
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
 							// Compute the number of hits
 							if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
@@ -1285,11 +1276,6 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								} else {
 									N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 								}
-
-								// cout << "mean: " << arr_P[i*nGridXY*nGridZ + j*nGridZ + k] * p << endl;
-								// cout << "value: "<< N << endl;
-								// double tmp = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
-								// cout << "value: "<< tmp << endl;
 							}
 
 							// DETERMINITIC CHANGE
@@ -1323,9 +1309,6 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(double T_end) {
 								} else {
 									N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
 								}
-
-								// cout << "mean: " << (tmp + arr_M[i*nGridXY*nGridZ + j*nGridZ + k]) * p << endl;
-								// cout << "value: "<< N << endl;
 
 								if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
 									N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
