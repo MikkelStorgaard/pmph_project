@@ -1,6 +1,30 @@
-__device__ numtype RandP(curandState rng_state, float lambda) {
+inline __device__ numtype gpu_round(numtype x){
+#if NUMTYPE_IS_FLOAT
+  return roundf(x);
+#else
+  return round(x);
+#endif
+}
 
-  numtype L = exp(-lambda);
+inline __device__ numtype gpu_exp(numtype x){
+#if NUMTYPE_IS_FLOAT
+  return expf(x);
+#else
+  return exp(x);
+#endif
+}
+
+inline __device__ numtype gpu_pow(numtype x, numtype y){
+#if NUMTYPE_IS_FLOAT
+  return powf(x,y);
+#else
+  return pow(x,y);
+#endif
+}
+
+__device__ numtype RandP(curandState rng_state, numtype lambda) {
+
+  numtype L = gpu_exp(-lambda);
   numtype p = 1.0;
   numtype k = 0;
   while (p > L) {
@@ -448,7 +472,7 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
   // KERNEL THIS
   if ((Occ >= 1) && (P >= 1)) {
     if (clustering) {   // Check if clustering is enabled
-      s = pow(Occ / nC, 1.0 / 3.0);
+      s = gpu_pow(Occ / nC, 1.0 / 3.0);
       n = nC;
     } else {            // Else use mean field computation
       s = 1.0;
@@ -459,7 +483,7 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
     if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
       tmp = P;
     } else {
-      p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+      p = 1 - gpu_pow(1 - eta * s * dT, n);        // Probability hitting any target
       tmp = ComputeEvents(P, p, rng_state[tid]);           // Number of targets hit //
     }
 
@@ -474,7 +498,7 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
       if (shielding) {
         // Absorbing medium model
         numtype d =
-          pow(Occ / nC, 1.0 / 3.0) - pow(B / nC, 1.0 / 3.0);
+          gpu_pow(Occ / nC, 1.0 / 3.0) - gpu_pow(B / nC, 1.0 / 3.0);
         S = exp(-zeta * d); // Probability of hitting succebtible target
 
       } else {
