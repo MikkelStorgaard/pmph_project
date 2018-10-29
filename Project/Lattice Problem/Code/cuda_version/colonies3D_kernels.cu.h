@@ -331,9 +331,7 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
       *Warn_fastGrowth = true;
     }
 
-    // DETERMINITIC CHANGE
-    //N = round( arr_nutrient[i] );
-    N = arr_nutrient[i];
+    N = round( arr_nutrient[i] );
   }
 
   // Update count
