@@ -18,10 +18,10 @@ void shuffleArray(int *arr, int size, mt19937 rng){
 int main(int argc, char** argv){
      // Default parameters 
     
-    int minGridSize = 4;
+    int minGridSize = 6;
     int stepSize    = 4;
-    int steps       = 3;
-    int repeats     = 1;
+    int steps       = 4;
+    int repeats     = 5;
     int beta  	 = 100;
     double delta = 1.0/10.0;
     double eta   = 1e4;
@@ -61,7 +61,9 @@ int main(int argc, char** argv){
 
 	// Open the file stream
     f_benchmark.open(streamPath, fstream::trunc);    
-    f_benchmark << "Function;GridSize;Seconds\n";
+
+//  My python statistics script cannot handle headlines.
+//  f_benchmark << "Function;GridSize;Seconds\n";
    
     for(int i = 0; i < repeats; i++){
         for (int k = 0; k < 2; k++) {
@@ -105,7 +107,7 @@ int main(int argc, char** argv){
                 f_benchmark << arr_steps[i];
                 f_benchmark << ";";
                 float seconds = difftime(toc, tic);
-                f_benchmark << seconds << ";\n";
+                f_benchmark << seconds << "\n";
             }
         }
     }
