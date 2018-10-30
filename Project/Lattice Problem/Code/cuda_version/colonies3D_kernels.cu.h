@@ -39,7 +39,7 @@ __device__ numtype RandP(curandState rng_state, numtype lambda) {
   return k - 1;
 }
 
-__global__ void ComputeEvents_seq(numtype *N, numtype n, numtype p, curandState rng_state, int index){
+__global__ void ComputeEvents_seq(numtype *N, numtype n, numtype p, curandState *rng_state, int index){
     // Trivial cases
     int i = blockDim.x*blockIdx.x + threadIdx.x;
 
@@ -52,7 +52,7 @@ __global__ void ComputeEvents_seq(numtype *N, numtype n, numtype p, curandState 
       } else if (n < 1) {
         *N = 0.0;
       } else {
-        *N = gpu_round(RandP(rng_state, n*p));
+        *N = gpu_round(RandP(rng_state[index], n*p));
         // *N = n*min(1.0,p);
       }
     }
