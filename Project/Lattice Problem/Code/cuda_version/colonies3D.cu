@@ -975,13 +975,12 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 
 						// Compute the growth modifier
 						numtype growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {
-							growthModifier = 0;
-						}
 						arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
-						p = g * growthModifier * dT;
-
+						p = g * growthModifier*dT;
+						if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
+							p = 0;
+						}
 
 						if ((p > 0.1) and (!Warn_g)) {
 							cout << "\tWarning: Birth Probability Large!" << "\n";
@@ -3095,7 +3094,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
         //Sample loop ends...
         ////////////////////////////
 
-//CopyAllToHost();
+		//CopyAllToHost();
 
 		// Fast exit conditions
 		// 1) There are no more sucebtible cells
