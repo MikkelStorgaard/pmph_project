@@ -240,8 +240,8 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 								}
 
 								// DETERMINITIC CHANGE
-                            	N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
-								// N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+                            	// N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+								N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
 						// Update count
@@ -292,10 +292,10 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							// DETERMINITIC CHANGE
-                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-							arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
-							// arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
-                            // arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
+                            // arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+							// arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
+							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
+                            arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
 
 							// Non-bursting events
 							N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
@@ -392,7 +392,7 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 
 							// If bacteria were hit, update events
 							// DETERMINITIC CHANGE
-							if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
+							// if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
 
 								arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
 
@@ -422,7 +422,7 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 								} else {
 									arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
 								}
-							}
+							// }
 						}
  					}
 				}
@@ -1872,8 +1872,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	int totalElements = nGridXY * nGridXY * nGridZ;
 	int totalMemSize = totalElements * sizeof(numtype);
 	int blockSize = 256;
-	int gridSize = (totalElements + blockSize - 1) / blockSize;
-
+	// int gridSize = (totalElements + blockSize - 1) / blockSize;
+	int gridSize = ceil(totalElements / blockSize);
 	cudaError_t err = cudaSuccess;
 
 	// Allocate on GPU
@@ -3856,9 +3856,8 @@ numtype Colonies3D::ComputeEvents(numtype n, numtype p, int flag, int i, int j, 
 		// DETERMINITIC CHANGE
 		if (n < 1)  return 0.0;
 
-		double N = RandP(n*p, i, j, k);
+		return RandP(n*p, i, j, k);
 
-		return round(N);
 		// return n*min(1.0,p);
 }
 
@@ -3888,7 +3887,7 @@ void Colonies3D::ComputeDiffusion(numtype n, numtype lambda, numtype* n_0, numty
 		*n_b = 0.0;
 
 		// DETERMINITIC CHANGE
-    	if (n < 1) return;
+    	// if (n < 1) return;
 
 		// Check if diffusion should occur
 		if ((lambda == 0) or (nGridXY == 1)) {
@@ -3896,61 +3895,61 @@ void Colonies3D::ComputeDiffusion(numtype n, numtype lambda, numtype* n_0, numty
 			return;
 		}
 
-		if (lambda*n < 5) {   // Compute all movement individually
+		// if (lambda*n < 5) {   // Compute all movement individually
 
-			for (int l = 0; l < cpu_round(n); l++) {
+		// 	for (int l = 0; l < cpu_round(n); l++) {
 
-				double r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+		// 		double r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
 
-				if       (r <    lambda)                     (*n_u)++;  // Up movement
-				else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
-				else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
-				else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
-				else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
-				else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
-				else                                         (*n_0)++;  // No movement
+		// 		if       (r <    lambda)                     (*n_u)++;  // Up movement
+		// 		else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
+		// 		else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
+		// 		else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
+		// 		else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
+		// 		else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
+		// 		else                                         (*n_0)++;  // No movement
 
-			}
+		// 	}
 
 
-		} else {
+		// } else {
 
-			// Compute the number of agents which move
-			double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
+		// 	// Compute the number of agents which move
+		// 	double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
 
-			*n_u = RandP(N/6, i, j, k);
-			*n_d = RandP(N/6, i, j, k);
-			*n_l = RandP(N/6, i, j, k);
-			*n_r = RandP(N/6, i, j, k);
-			*n_f = RandP(N/6, i, j, k);
-			*n_b = RandP(N/6, i, j, k);
-			*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-		}
+		// 	*n_u = RandP(N/6, i, j, k);
+		// 	*n_d = RandP(N/6, i, j, k);
+		// 	*n_l = RandP(N/6, i, j, k);
+		// 	*n_r = RandP(N/6, i, j, k);
+		// 	*n_f = RandP(N/6, i, j, k);
+		// 	*n_b = RandP(N/6, i, j, k);
+		// 	*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+		// }
 
-		*n_u = round(*n_u);
-		*n_d = round(*n_d);
-		*n_l = round(*n_l);
-		*n_r = round(*n_r);
-		*n_f = round(*n_f);
-		*n_b = round(*n_b);
-		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-
-		// *n_u = 0.5*lambda*n;
-		// *n_d = 0.5*lambda*n;
-		// *n_l = 0.5*lambda*n;
-		// *n_r = 0.5*lambda*n;
-		// *n_f = 0.5*lambda*n;
-		// *n_b = 0.5*lambda*n;
+		// *n_u = round(*n_u);
+		// *n_d = round(*n_d);
+		// *n_l = round(*n_l);
+		// *n_r = round(*n_r);
+		// *n_f = round(*n_f);
+		// *n_b = round(*n_b);
 		// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
-		assert(*n_0 >= 0);
-		assert(*n_u >= 0);
-		assert(*n_d >= 0);
-		assert(*n_l >= 0);
-		assert(*n_r >= 0);
-		assert(*n_f >= 0);
-		assert(*n_b >= 0);
-		assert(fabs(n - (*n_0 + *n_u + *n_d + *n_l + *n_r + *n_f + *n_b)) < 1);
+		*n_u = 0.5*lambda*n;
+		*n_d = 0.5*lambda*n;
+		*n_l = 0.5*lambda*n;
+		*n_r = 0.5*lambda*n;
+		*n_f = 0.5*lambda*n;
+		*n_b = 0.5*lambda*n;
+		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+
+		// assert(*n_0 >= 0);
+		// assert(*n_u >= 0);
+		// assert(*n_d >= 0);
+		// assert(*n_l >= 0);
+		// assert(*n_r >= 0);
+		// assert(*n_f >= 0);
+		// assert(*n_b >= 0);
+		// assert(fabs(n - (*n_0 + *n_u + *n_d + *n_l + *n_r + *n_f + *n_b)) < 1);
 
 }
 
@@ -4034,6 +4033,9 @@ numtype Colonies3D::RandP(numtype l, int i, int j, int k) {
 		// poisson_distribution <long long> distr(l);
 
 		// return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+
+		return l;
+
 		double L = exp(-l);
 		double p = 1.0;
 		double n = 0;
