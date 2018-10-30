@@ -10,7 +10,7 @@
 #define GPU_PHAGEDECAY true
 #define GPU_MOVEMENT true
 #define GPU_SWAPZERO true
-#define GPU_UPDATEOCCUPANCY false		// Does not work
+#define GPU_UPDATEOCCUPANCY true
 #define GPU_NUTRIENTDIFFUSION false		// Does not work
 #define GPU_SWAPZERO2 false				// Does not work
 
