@@ -4183,103 +4183,96 @@ void Colonies3D::ExportAll(){exportAll=true;}
 // Master function to export the data
 void Colonies3D::ExportData_arr(numtype t, std::string filename_suffix){
 
+	// Verify the file stream is open
+	string fileName = "PopulationSize_"+filename_suffix;
+	OpenFileStream(f_N, fileName);
+
+
+	numtype accuB = 0.0;
+	numtype accuI = 0.0;
+	numtype accuP = 0.0;
+	numtype accuNutrient = 0.0;
+	numtype accuClusters = 0.0;
+	numtype nz = 0.0;
+	for (int i = 0; i < nGridXY; i++) {
+		for (int j = 0; j < nGridXY; j++ ) {
+			for (int k = 0; k < nGridZ; k++ ) {
+				accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+				accuI += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
+				accuP += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
+				accuNutrient += arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+				accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+				if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 0.0) {
+					nz++;
+				}
+			}
+		}
+	}
+
+	// Writes the time, number of cells, number of infected cells, number of phages
+	f_N << fixed    << setprecision(2);
+	f_N << setw(6)  << t       << "\t";
+	f_N << setw(12) << cpu_round(accuB)    << "\t";
+	f_N << setw(12) << cpu_round(accuI)    << "\t";
+	f_N << setw(12) << cpu_round(accuP)    << "\t";
+
+	f_N << setw(12) << nz / initialOccupancy << "\t";
+	f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accuNutrient << "\t";
+	f_N << setw(12) << accuClusters << endl;
+
+	if (exportAll) {
+		// Save the position data
 		// Verify the file stream is open
-		string fileName = "PopulationSize_"+filename_suffix;
-		OpenFileStream(f_N, fileName);
+		fileName = "CellDensity_"+filename_suffix;
+		OpenFileStream(f_B, fileName);
 
+		fileName = "InfectedDensity_"+filename_suffix;
+		OpenFileStream(f_I, fileName);
 
-		numtype accuB = 0.0;
-		numtype accuI = 0.0;
-		numtype accuP = 0.0;
-		numtype accuNutrient = 0.0;
-		numtype accuClusters = 0.0;
-		for (int i = 0; i < nGridXY; i++) {
-			for (int j = 0; j < nGridXY; j++ ) {
-				for (int k = 0; k < nGridZ; k++ ) {
-					accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-					accuI += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
-					accuP += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-					accuNutrient += arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-					accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+		fileName = "PhageDensity_"+filename_suffix;
+		OpenFileStream(f_P, fileName);
+
+		fileName = "NutrientDensity_"+filename_suffix;
+		OpenFileStream(f_n, fileName);
+
+		// Write file as MATLAB would a 3D matrix!
+		// row 1 is x_vector, for y_1 and z_1
+		// row 2 is x_vector, for y_2 and z_1
+		// row 3 is x_vector, for y_3 and z_1
+		// ...
+		// When y_vector for x_n has been printed, it goes:
+		// row n+1 is x_vector, for y_1 and z_2
+		// row n+2 is x_vector, for y_2 and z_2
+		// row n+3 is x_vector, for y_3 and z_2
+		// ... and so on
+
+		// Loop over z
+		for (int z = 0; z < nGridZ; z++) {
+
+			// Loop over x
+			for (int x = 0; x < nGridXY; x++) {
+
+				// Loop over y
+				for (int y = 0; y < nGridXY - 1; y++) {
+					#define XYZ x*nGridXY*nGridZ+y*nGridZ+z
+
+					f_B << setw(6) << arr_B[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
+					f_P << setw(6) << arr_P[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
+					numtype nI = cpu_round(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
+					f_I << setw(6) << nI       << "\t";
+					f_n << setw(6) << arr_nutrient[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
 				}
+
+				#define XnGridXYZ x*nGridXY*nGridZ+(nGridXY-1)*nGridZ+z
+				// Write last line ("\n" instead of tab)
+				f_B << setw(6) << cpu_round(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+				f_P << setw(6) << cpu_round(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+				numtype nI = cpu_round(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
+				f_I << setw(6) << nI                        << "\n";
+				f_n << setw(6) << cpu_round(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
 			}
 		}
-
-		// Writes the time, number of cells, number of infected cells, number of phages
-		f_N << fixed    << setprecision(2);
-		f_N << setw(6)  << t       << "\t";
-		f_N << setw(12) << cpu_round(accuB)    << "\t";
-		f_N << setw(12) << cpu_round(accuI)    << "\t";
-		f_N << setw(12) << cpu_round(accuP)    << "\t";
-
-		double nz = 0;
-		for (int i = 0; i < nGridXY; i++) {
-			for (int j = 0; j < nGridXY; j++ ) {
-				for (int k = 0; k < nGridZ; k++ ) {
-					if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 0) {
-						nz++;
-					}
-				}
-			}
-		}
-
-		f_N << setw(12) << nz / initialOccupancy << "\t";
-		f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accuNutrient << "\t";
-		f_N << setw(12) << accuClusters << endl;
-
-		if (exportAll) {
-				// Save the position data
-				// Verify the file stream is open
-				fileName = "CellDensity_"+filename_suffix;
-				OpenFileStream(f_B, fileName);
-
-				fileName = "InfectedDensity_"+filename_suffix;
-				OpenFileStream(f_I, fileName);
-
-				fileName = "PhageDensity_"+filename_suffix;
-				OpenFileStream(f_P, fileName);
-
-				fileName = "NutrientDensity_"+filename_suffix;
-				OpenFileStream(f_n, fileName);
-
-				// Write file as MATLAB would a 3D matrix!
-				// row 1 is x_vector, for y_1 and z_1
-				// row 2 is x_vector, for y_2 and z_1
-				// row 3 is x_vector, for y_3 and z_1
-				// ...
-				// When y_vector for x_n has been printed, it goes:
-				// row n+1 is x_vector, for y_1 and z_2
-				// row n+2 is x_vector, for y_2 and z_2
-				// row n+3 is x_vector, for y_3 and z_2
-				// ... and so on
-
-				// Loop over z
-				for (int z = 0; z < nGridZ; z++) {
-
-						// Loop over x
-						for (int x = 0; x < nGridXY; x++) {
-
-								// Loop over y
-								for (int y = 0; y < nGridXY - 1; y++) {
-									#define XYZ x*nGridXY*nGridZ+y*nGridZ+z
-
-										f_B << setw(6) << arr_B[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
-										f_P << setw(6) << arr_P[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
-										numtype nI = cpu_round(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
-										f_I << setw(6) << nI       << "\t";
-										f_n << setw(6) << arr_nutrient[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
-								}
-
-								#define XnGridXYZ x*nGridXY*nGridZ+(nGridXY-1)*nGridZ+z
-								// Write last line ("\n" instead of tab)
-								f_B << setw(6) << cpu_round(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-								f_P << setw(6) << cpu_round(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-								numtype nI = cpu_round(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
-								f_I << setw(6) << nI                        << "\n";
-								f_n << setw(6) << cpu_round(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-						}
-				}
-		}
+	}
 }
 
 // Open filstream if not allready opened

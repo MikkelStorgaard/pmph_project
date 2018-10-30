@@ -3179,7 +3179,7 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
     double accuP = 0.0;
     double accuNutrient = 0.0;
     double accuClusters = 0.0;
-    double nz_arr = 0.0;
+    double nz = 0.0;
     for (int i = 0; i < nGridXY; i++) {
         for (int j = 0; j < nGridXY; j++ ) {
             for (int k = 0; k < nGridZ; k++ ) {
@@ -3188,8 +3188,8 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
                 accuP += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
                 accuNutrient += arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
                 accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-                if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 1) {
-                    nz_arr++;
+                if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 0) {
+                    nz++;
                 }
             }
         }
@@ -3201,17 +3201,6 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
     f_N << setw(12) << round(accuB)    << "\t";
     f_N << setw(12) << round(accuI)    << "\t";
     f_N << setw(12) << round(accuP)    << "\t";
-
-    double nz = 0;
-    for (int i = 0; i < nGridXY; i++) {
-        for (int j = 0; j < nGridXY; j++ ) {
-            for (int k = 0; k < nGridZ; k++ ) {
-                if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 0) {
-                    nz++;
-                }
-            }
-        }
-    }
 
     f_N << setw(12) << nz / initialOccupancy << "\t";
     f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accuNutrient << "\t";
