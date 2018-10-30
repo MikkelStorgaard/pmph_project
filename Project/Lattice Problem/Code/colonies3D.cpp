@@ -3010,10 +3010,21 @@ double Colonies3D::RandN(double m, double s) {
 // Returns poisson dist. number with mean l
 double Colonies3D::RandP(double l, int i, int j, int k) {
 
-    // Set limit on distribution
-    poisson_distribution <long long> distr(l);
+    // // Set limit on distribution
+    // poisson_distribution <long long> distr(l);
 
-    return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+    // return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+
+    double L = exp(-l);
+    double p = 1.0;
+    double n = 0;
+    while (p > L) {
+        n++;
+        double u = rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+        p *= u;
+    }
+    return n - 1;
+
 }
 
 // original RandP function
@@ -3026,60 +3037,6 @@ double Colonies3D::RandP(double l) {
 	return distr(rng);
 }
 
-// Returns poisson dist. number with mean l
-double Colonies3D::RandP_fast(double l) {
-
-    double N;
-
-    if (l < 60) {
-
-        double L = exp(-l);
-        double p = 1;
-        N = 0;
-        do {
-            N++;
-            p *= drand48();
-        } while (p > L);
-        N--;
-
-    } else {
-
-        double r;
-        double x;
-        double pi = 3.14159265358979;
-        double sqrt_l = sqrt(l);
-        double log_l = log(l);
-        double g_x;
-        double f_m;
-
-        do {
-            do {
-                x = l + sqrt_l*tan(pi*(drand48()-1/2.0));
-            } while (x < 0);
-
-            g_x = sqrt_l/(pi*((x-l)*(x-l) + l));
-            N = floor(x);
-
-            double xx = N + 1;
-            double pi = 3.14159265358979;
-            double xx2 = xx*xx;
-            double xx3 = xx2*xx;
-            double xx5 = xx3*xx2;
-            double xx7 = xx5*xx2;
-            double xx9 = xx7*xx2;
-            double xx11 = xx9*xx2;
-            double lgxx = xx*log(xx) - xx - 0.5*log(xx/(2*pi)) +
-            1/(12*xx) - 1/(360*xx3) + 1/(1260*xx5) - 1/(1680*xx7) +
-            1/(1188*xx9) - 691/(360360*xx11);
-
-            f_m = exp(N*log_l - l - lgxx);
-            r = f_m / g_x / 2.4;
-        } while (drand48() > r);
-    }
-
-    return round(N);
-
-}
 
 // Sets the seed of the random number generator
 void Colonies3D::SetRngSeed(int n) {

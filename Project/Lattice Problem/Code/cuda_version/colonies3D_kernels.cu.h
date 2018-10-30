@@ -4,16 +4,16 @@
 
 __device__ double RandP(curandState rng_state, double lambda) {
 
-  // double L = exp(-lambda);
-  // double p = 1.0;
-  // double k = 0;
-  // while (p > L) {
-  //   k++;
-  //   double u = curand_uniform_double(&rng_state);
-  //   p *= u;
-  // }
-  // return k - 1;
-  return lambda;
+  double L = exp(-lambda);
+  double p = 1.0;
+  double k = 0;
+  while (p > L) {
+      k++;
+      double u = curand_uniform_double(&rng_state);
+      p *= u;
+  }
+  return k - 1;
+  // return lambda;
 
 }
 

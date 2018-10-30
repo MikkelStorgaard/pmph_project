@@ -4000,10 +4000,19 @@ double Colonies3D::RandN(double m, double s) {
 // Returns poisson dist. number with mean l
 double Colonies3D::RandP(double l, int i, int j, int k) {
 
-		// Set limit on distribution
-		poisson_distribution <long long> distr(l);
+		// // Set limit on distribution
+		// poisson_distribution <long long> distr(l);
 
-		return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+		// return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+		double L = exp(-l);
+		double p = 1.0;
+		double n = 0;
+		while (p > L) {
+			n++;
+			double u = rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+			p *= u;
+		}
+		return n - 1;
 }
 
 // Returns poisson dist. number with mean l, flat array
