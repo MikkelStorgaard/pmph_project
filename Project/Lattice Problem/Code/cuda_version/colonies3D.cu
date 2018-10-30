@@ -851,27 +851,21 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 	f_timing.close();
 
 
-
-
 	numtype accuB = 0.0;
 	numtype accuI = 0.0;
 	numtype accuP = 0.0;
-	numtype accuNutrient = 0.0;
 	numtype accuClusters = 0.0;
-	numtype nz = 0.0;
 	for (int i = 0; i < nGridXY; i++) {
 		for (int j = 0; j < nGridXY; j++ ) {
 			for (int k = 0; k < nGridZ; k++ ) {
 				accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
 				accuI += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
 				accuP += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-				accuNutrient += arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 				accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
 			}
 		}
 	}
-	return (int)(accuB+accuI+accuI+accuNutrient+accuClusters);
-
+	return (int)(accuB+accuI+accuI+accuClusters);
 
 }
 
@@ -3337,21 +3331,18 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	numtype accuB = 0.0;
 	numtype accuI = 0.0;
 	numtype accuP = 0.0;
-	numtype accuNutrient = 0.0;
 	numtype accuClusters = 0.0;
-	numtype nz = 0.0;
 	for (int i = 0; i < nGridXY; i++) {
 		for (int j = 0; j < nGridXY; j++ ) {
 			for (int k = 0; k < nGridZ; k++ ) {
 				accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
 				accuI += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
 				accuP += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-				accuNutrient += arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 				accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
 			}
 		}
 	}
-	return (int)(accuB+accuI+accuI+accuNutrient+accuClusters);
+	return (int)(accuB+accuI+accuI+accuClusters);
 }
 
 /////////////////////////////////////////////////////////////////////
