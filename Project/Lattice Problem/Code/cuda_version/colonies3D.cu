@@ -2,12 +2,12 @@
 #include "colonies3D_kernels.cu.h"
 #include <chrono>
 
-#define GPU_NC true
-#define GPU_MAXOCCUPANCY true
-#define GPU_BIRTH true
-#define GPU_INFECTIONS true
-#define GPU_NEWINFECTIONS true
-#define GPU_PHAGEDECAY true
+#define GPU_NC false
+#define GPU_MAXOCCUPANCY false
+#define GPU_BIRTH false
+#define GPU_INFECTIONS false
+#define GPU_NEWINFECTIONS false
+#define GPU_PHAGEDECAY false
 #define GPU_MOVEMENT false
 #define GPU_SWAPZERO false
 #define GPU_UPDATEOCCUPANCY false
@@ -2236,7 +2236,12 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 							if (exit) break;
 
 							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
+								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
+								continue;
+							} else {
+								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
+							}
 
 							numtype p = 0; // privatize
 							numtype N = 0; // privatize
@@ -2275,6 +2280,21 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 							arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 							arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							/* END anden Map-kernel */
+						}
+					}
+				}
+			}
+			if (GPU_BIRTH) {	// We still need to compute the skip array
+				for (int i = 0; i < nGridXY; i++) {
+					for (int j = 0; j < nGridXY; j++) {
+						for (int k = 0; k < nGridZ; k++) {
+
+						// Skip empty sites
+						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
+							skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
+							continue;
+						} else {
+							skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
 						}
 					}
 				}
@@ -2330,7 +2350,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 							if (exit) break;
 
 							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 							numtype p = 0; // privatize
 							numtype N = 0; // privatize
@@ -2450,7 +2470,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 							if (exit) break;
 
 							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 
 							numtype p = 0; // privatize
@@ -2569,7 +2589,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 							if (exit) break;
 
 							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 
 							numtype p = 0; // privatize
@@ -2707,14 +2727,14 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 							if (exit) break;
 
 							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 							if (nGridXY > 1) {
 								// KERNEL BEGIN
 								// Update positions
 
 								// Skip empty sites
-								if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+								if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 								int ip, jp, kp, im, jm, km;
 
