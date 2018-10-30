@@ -9,7 +9,7 @@
 #define GPU_NEWINFECTIONS true
 #define GPU_PHAGEDECAY true
 #define GPU_MOVEMENT true
-#define GPU_SWAPZERO false				// Does not work
+#define GPU_SWAPZERO true
 #define GPU_UPDATEOCCUPANCY false		// Does not work
 #define GPU_NUTRIENTDIFFUSION false		// Does not work
 #define GPU_SWAPZERO2 false				// Does not work
@@ -40,7 +40,7 @@ Colonies3D::Colonies3D(numtype B_0, numtype P_0){
 	H                       = L;        // [µm]     Height of the simulation array
 	nGridXY                 = 100000;       //          Number of gridpoints
 	nGridZ                  = nGridXY;  //          Number of gridpoints
-  	volume                  = nGridXY*nGridXY*nGridZ;
+  volume                  = nGridXY*nGridXY*nGridZ;
 
 	nSamp                   = 1000;       //          Number of samples to save per simulation hour
 
@@ -2728,7 +2728,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				// }
 
 				// Copy data back from device
-                if(!GPU_SWAPZERO) {
+        if(!GPU_SWAPZERO) {
 					CopyAllToHost();
 				}
 
@@ -2874,7 +2874,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
             // Simple end of loop kernels
 
 			if(GPU_SWAPZERO){
-
+        
 				// Copy to the device
 				if(!GPU_MOVEMENT) {
 					CopyAllToDevice();
@@ -2898,31 +2898,20 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                 std::swap(d_arr_I9, d_arr_I9_new);
                 std::swap(d_arr_P, d_arr_P_new);
 
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, volume);
-
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I2_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I3_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I4_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I5_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I6_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I7_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I8_new, volume);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, volume);
-				ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, volume);
+                cudaDeviceSynchronize();
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I2_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I3_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I4_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I5_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I6_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I7_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I8_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, totalElements);
+                cudaDeviceSynchronize();
 
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
@@ -2984,7 +2973,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                   kernel_start = high_resolution_clock::now();
 				}
 
-				UpdateOccupancy<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_B, d_arr_I0, d_arr_I1, d_arr_I2, d_arr_I3, d_arr_I4, d_arr_I5, d_arr_I6, d_arr_I7, d_arr_I8, d_arr_I9, volume);
+				UpdateOccupancy<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_B, d_arr_I0, d_arr_I1, d_arr_I2, d_arr_I3, d_arr_I4, d_arr_I5, d_arr_I6, d_arr_I7, d_arr_I8, d_arr_I9, totalElements);
 
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
@@ -3023,7 +3012,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                   kernel_start = high_resolution_clock::now();
 				}
 
-				NutrientDiffusion<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, alphaXY, alphaZ, nGridXY, nGridZ, experimentalConditions, volume);
+				NutrientDiffusion<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, alphaXY, alphaZ, nGridXY, nGridZ, experimentalConditions, totalElements);
 
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
@@ -3099,8 +3088,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                   kernel_start = high_resolution_clock::now();
 				}
 
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, volume);
-				ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, totalElements);
+				ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, totalElements);
 
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
