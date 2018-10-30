@@ -469,21 +469,21 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
 
   // KERNEL THIS
   if ((Occ >= 1) && (P >= 1)) {
-    if (clustering) {   // Check if clustering is enabled
-      s = gpu_pow(Occ / nC, 1.0 / 3.0);
-      n = nC;
-    } else {            // Else use mean field computation
-      s = 1.0;
-      n = Occ;
-    }
+    // if (clustering) {   // Check if clustering is enabled
+    //   s = gpu_pow(Occ / nC, 1.0 / 3.0);
+    //   n = nC;
+    // } else {            // Else use mean field computation
+    //   s = 1.0;
+    //   n = Occ;
+    // }
 
     // Compute the number of hits
-    if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+    // if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
       tmp = P;
-    } else {
-      p = 1 - gpu_pow(1 - eta * s * dT, n);        // Probability hitting any target
-      tmp = ComputeEvents(P, p, rng_state[tid]);           // Number of targets hit //
-    }
+    // } else {
+      // p = 1 - gpu_pow(1 - eta * s * dT, n);        // Probability hitting any target
+      // tmp = ComputeEvents(P, p, rng_state[tid]);           // Number of targets hit //
+    // }
 
 
     // If bacteria were hit, update events
@@ -495,8 +495,7 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
 
       if (shielding) {
         // Absorbing medium model
-        numtype d =
-          gpu_pow(Occ / nC, 1.0 / 3.0) - gpu_pow(B / nC, 1.0 / 3.0);
+        numtype d = gpu_pow(Occ / nC, 1.0 / 3.0) - gpu_pow(B / nC, 1.0 / 3.0);
         S = exp(-zeta * d); // Probability of hitting succebtible target
 
       } else {
