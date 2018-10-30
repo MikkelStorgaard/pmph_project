@@ -2562,8 +2562,6 @@ void Colonies3D::spawnBacteria() {
         arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]++;
 
         numB++;
-
-
     }
 
     // Correct for overspawning
@@ -2575,14 +2573,14 @@ void Colonies3D::spawnBacteria() {
         if (B(i, j, k) < 1) continue;
 
         B(i, j, k)--;
-        numB--;
         nC(i, j, k)--;
 
         // if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] < 1) continue;
 
         arr_B[i*nGridXY*nGridZ + j*nGridZ + k]--;
-        numB--;
         arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]--;
+
+        numB--;
     }
 
     // Count the initial occupancy
@@ -3104,14 +3102,14 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
     // Writes the time, number of cells, number of infected cells, number of phages
     f_N << fixed    << setprecision(2);
     f_N << setw(6)  << t       << "\t";
-    f_N << setw(12) << round(accu(B))    << "\t";
-    f_N << setw(12) << round(accu(I0) + accu(I1) + accu(I2) + accu(I3) + accu(I4) + accu(I5) + accu(I6) + accu(I7) + accu(I8) + accu(I9))    << "\t";
-    f_N << setw(12) << round(accu(P))    << "\t";
+    f_N << setw(12) << (int)(accu(B))    << "\t";
+    f_N << setw(12) << (int)(accu(I0) + accu(I1) + accu(I2) + accu(I3) + accu(I4) + accu(I5) + accu(I6) + accu(I7) + accu(I8) + accu(I9))    << "\t";
+    f_N << setw(12) << (int)(accu(P))    << "\t";
 
     uvec nz = find(B);
     f_N << setw(12) << static_cast<double>(nz.n_elem) / initialOccupancy << "\t";
-    f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accu(nutrient) << "\t";
-    f_N << setw(12) << accu(nC) << endl;
+    f_N << setw(12) << (int)(n_0 / 1e12 * pow(L, 2) * H - accu(nutrient)) << "\t";
+    f_N << setw(12) << (int)accu(nC) << endl;
 
     if (exportAll) {
         // Save the position data
@@ -3150,17 +3148,17 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
 
                     f_B << setw(6) << B(x,y,z) << "\t";
                     f_P << setw(6) << P(x,y,z) << "\t";
-                    double nI = round(I0(x,y,z) + I1(x,y,z) + I2(x,y,z) + I3(x,y,z) + I4(x,y,z) + I5(x,y,z) + I6(x,y,z) + I7(x,y,z) + I8(x,y,z) + I9(x,y,z));
+                    double nI = (int)(I0(x,y,z) + I1(x,y,z) + I2(x,y,z) + I3(x,y,z) + I4(x,y,z) + I5(x,y,z) + I6(x,y,z) + I7(x,y,z) + I8(x,y,z) + I9(x,y,z));
                     f_I << setw(6) << nI       << "\t";
                     f_n << setw(6) << nutrient(x,y,z) << "\t";
                 }
 
                 // Write last line ("\n" instead of tab)
-                f_B << setw(6) << round(B(x,nGridXY - 1,z)) << "\n";
-                f_P << setw(6) << round(P(x,nGridXY - 1,z)) << "\n";
-                double nI = round(I0(x,nGridXY - 1,z) + I1(x,nGridXY - 1,z) + I2(x,nGridXY - 1,z) + I3(x,nGridXY - 1,z) + I4(x,nGridXY - 1,z) + I5(x,nGridXY - 1,z) + I6(x,nGridXY - 1,z) + I7(x,nGridXY - 1,z) + I8(x,nGridXY - 1,z) + I9(x,nGridXY - 1,z));
+                f_B << setw(6) << (int)(B(x,nGridXY - 1,z)) << "\n";
+                f_P << setw(6) << (int)(P(x,nGridXY - 1,z)) << "\n";
+                double nI = (int)(I0(x,nGridXY - 1,z) + I1(x,nGridXY - 1,z) + I2(x,nGridXY - 1,z) + I3(x,nGridXY - 1,z) + I4(x,nGridXY - 1,z) + I5(x,nGridXY - 1,z) + I6(x,nGridXY - 1,z) + I7(x,nGridXY - 1,z) + I8(x,nGridXY - 1,z) + I9(x,nGridXY - 1,z));
                 f_I << setw(6) << nI                        << "\n";
-                f_n << setw(6) << round(nutrient(x,nGridXY - 1,z)) << "\n";
+                f_n << setw(6) << (int)(nutrient(x,nGridXY - 1,z)) << "\n";
             }
         }
     }
@@ -3198,13 +3196,13 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
     // Writes the time, number of cells, number of infected cells, number of phages
     f_N << fixed    << setprecision(2);
     f_N << setw(6)  << t       << "\t";
-    f_N << setw(12) << round(accuB)    << "\t";
-    f_N << setw(12) << round(accuI)    << "\t";
-    f_N << setw(12) << round(accuP)    << "\t";
+    f_N << setw(12) << (int)(accuB)    << "\t";
+    f_N << setw(12) << (int)(accuI)    << "\t";
+    f_N << setw(12) << (int)(accuP)    << "\t";
 
     f_N << setw(12) << nz / initialOccupancy << "\t";
-    f_N << setw(12) << n_0 / 1e12 * pow(L, 2) * H - accuNutrient << "\t";
-    f_N << setw(12) << accuClusters << endl;
+    f_N << setw(12) << (int)(n_0 / 1e12 * pow(L, 2) * H - accuNutrient) << "\t";
+    f_N << setw(12) << (int)(accuClusters) << endl;
 
     if (exportAll) {
         // Save the position data
@@ -3243,17 +3241,17 @@ void Colonies3D::ExportData_arr(double t, std::string filename_suffix){
 
                     f_B << setw(6) << arr_B[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
                     f_P << setw(6) << arr_P[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
-                    double nI = round(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
+                    double nI = (int)(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
                     f_I << setw(6) << nI       << "\t";
                     f_n << setw(6) << arr_nutrient[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
                 }
 
                 // Write last line ("\n" instead of tab)
-                f_B << setw(6) << round(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-                f_P << setw(6) << round(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-                double nI = round(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
+                f_B << setw(6) << (int)(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+                f_P << setw(6) << (int)(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+                double nI = (int)(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
                 f_I << setw(6) << nI                        << "\n";
-                f_n << setw(6) << round(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+                f_n << setw(6) << (int)(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
             }
         }
     }
