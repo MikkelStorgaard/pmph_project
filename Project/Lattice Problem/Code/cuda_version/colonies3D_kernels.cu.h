@@ -331,13 +331,14 @@ __global__ void ComputeBirthEvents(numtype* arr_B, numtype* arr_B_new, numtype* 
 
   // Compute the growth modifier
   numtype growthModifier = arr_nutrient[i] / (arr_nutrient[i] + K);
-  if (arr_nutrient[i] < 1) {
-    growthModifier = 0;
-  }
   arr_GrowthModifier[i] = growthModifier;
 
   // Compute birth probability
   numtype p = g * growthModifier * dT;
+
+  if (arr_nutrient[i] < 1) {
+    p = 0;
+  }
 
   // Produce warning
   if ((p > 0.1) and (!(*Warn_g))){
@@ -464,8 +465,8 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
   }
 
   numtype p;
-  numtype s;
-  numtype n;
+  // numtype s;
+  // numtype n;
 
   // KERNEL THIS
   if ((Occ >= 1) && (P >= 1)) {
