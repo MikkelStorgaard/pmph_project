@@ -30,13 +30,7 @@ __global__ void RandP_cuda(double *result, double l, curandState *state){
   *result--;
 }
 
-double RandP(double l, std::mt19937 rng) {
-
-  // // Set limit on distribution
-  // poisson_distribution <long long> distr(l);
-
-  // return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
-
+double RandP(double l, std::mt19937 *rng) {
 
   std::uniform_real_distribution <double> distr(0, 1);
 
@@ -45,13 +39,11 @@ double RandP(double l, std::mt19937 rng) {
   double n = 0;
   while (p > L) {
     n++;
-    double u = distr(rng);
+    double u = distr(*rng);
     p *= u;
   }
   return n - 1;
 }
-
-
 
 
 int main() {
@@ -70,7 +62,7 @@ int main() {
   std::map<int, int> hist_std;
   std::map<int, int> hist_cuda;
   for(int n=0; n<10000; ++n) {
-      ++hist_std[(int)RandP(lambda,rng)];
+      ++hist_std[(int)RandP(lambda,&rng)];
 
       RandP_cuda<<<1,1>>>(d_result, lambda, d_state);
       cudaMemcpy(h_result,  d_result,  sizeof(double), cudaMemcpyDeviceToHost);
@@ -78,11 +70,13 @@ int main() {
       ++hist_cuda[static_cast<int>(*h_result)];
   }
 
+  std::cout << "Output from RandP" << std::endl;
   for(auto p : hist_std) {
       std::cout << p.first <<
               ' ' << std::string(p.second/100, '*') << '\n';
   }
-
+  std::cout << std::endl << std::endl;
+  std::cout << "Output from RandP_cuda:" << std::endl;
   for(auto p : hist_cuda) {
     std::cout << p.first <<
             ' ' << std::string(p.second/100, '*') << '\n';
