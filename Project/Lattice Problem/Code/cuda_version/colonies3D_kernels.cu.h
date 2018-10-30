@@ -6,15 +6,13 @@ __device__ double RandP(curandState rng_state, double lambda) {
 
   double L = exp(-lambda);
   double p = 1.0;
-  double k = 0;
+  double n = 0.0;
   while (p > L) {
-      k++;
-      double u = curand_uniform_double(&rng_state);
+      n++;
+      double u = curand_uniform(&rng_state);
       p *= u;
   }
-  return k - 1;
-  // return lambda;
-
+  return n - 1;
 }
 
 __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rng_state, int index){
@@ -30,10 +28,10 @@ __global__ void ComputeEvents_seq(double *N, double n, double p, curandState* rn
       if (p == 0) return;
 
       // DETERMINITIC CHANGE
-      // if (n < 1)  return;
+      if (n < 1)  return;
 
-      // *N = RandP(rng_state[i], n*p);
-      *N = n*min(1.0,p);
+      *N = RandP(rng_state[i], n*p);
+      // *N = n*min(1.0,p);
 
     }
 }
@@ -45,10 +43,10 @@ __device__ double ComputeEvents(double n, double p, curandState rng_state){
     if (p == 0) return 0.0;
 
 		// DETERMINITIC CHANGE
-		// if (n < 1)  return 0.0;
+		if (n < 1)  return 0.0;
 
-		// return RandP(rng_state, n*p);
-		return n*min(1.0,p);
+		return RandP(rng_state, n*p);
+		// return n*min(1.0,p);
 
 }
 
@@ -73,7 +71,7 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 		*n_b = 0.0;
 
 		// DETERMINITIC CHANGE
-		// if (n < 1) return;
+		if (n < 1) return;
 
 		// Check if diffusion should occur
 		if ((lambda == 0) or (nGridXY == 1)) {
@@ -82,52 +80,52 @@ __device__ void ComputeDiffusion(curandState state, double n, double lambda, dou
 		}
 
     // DETERMINITIC CHANGE
-		// if (lambda*n < 5) {   // Compute all movement individually
+		if (lambda*n < 5) {   // Compute all movement individually
 
-		// 		for (int l = 0; l < round(n); l++) {
+				for (int l = 0; l < round(n); l++) {
 
-		// 				double r = curand_uniform(&state);
+						double r = curand_uniform(&state);
 
-		// 				if       (r <    lambda)                     (*n_u)++;  // Up movement
-		// 				else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
-		// 				else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
-		// 				else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
-		// 				else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
-		// 				else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
-		// 				else                                         (*n_0)++;  // No movement
+						if       (r <    lambda)                     (*n_u)++;  // Up movement
+						else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
+						else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
+						else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
+						else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
+						else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
+						else                                         (*n_0)++;  // No movement
 
-		// 		}
+				}
 
 
-		// } else {
+		} else {
 
-		// 		// Compute the number of agents which move
-		// 		double N = RandP(state, 3*lambda*n); // Factor of 3 comes from 3D
+				// Compute the number of agents which move
+				double N = RandP(state, 3*lambda*n); // Factor of 3 comes from 3D
 
-		// 		*n_u = RandP(state, N/6);
-		// 		*n_d = RandP(state, N/6);
-		// 		*n_l = RandP(state, N/6);
-		// 		*n_r = RandP(state, N/6);
-		// 		*n_f = RandP(state, N/6);
-		// 		*n_b = RandP(state, N/6);
-		// 		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-		// }
+				*n_u = RandP(state, N/6);
+				*n_d = RandP(state, N/6);
+				*n_l = RandP(state, N/6);
+				*n_r = RandP(state, N/6);
+				*n_f = RandP(state, N/6);
+				*n_b = RandP(state, N/6);
+				*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+		}
 
-		// *n_u = round(*n_u);
-		// *n_d = round(*n_d);
-		// *n_l = round(*n_l);
-		// *n_r = round(*n_r);
-		// *n_f = round(*n_f);
-		// *n_b = round(*n_b);
-		// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+		*n_u = round(*n_u);
+		*n_d = round(*n_d);
+		*n_l = round(*n_l);
+		*n_r = round(*n_r);
+		*n_f = round(*n_f);
+		*n_b = round(*n_b);
+		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
-    *n_u = 0.5*lambda*n;
-    *n_d = 0.5*lambda*n;
-    *n_l = 0.5*lambda*n;
-    *n_r = 0.5*lambda*n;
-    *n_f = 0.5*lambda*n;
-    *n_b = 0.5*lambda*n;
-    *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+    // *n_u = 0.5*lambda*n;
+    // *n_d = 0.5*lambda*n;
+    // *n_l = 0.5*lambda*n;
+    // *n_r = 0.5*lambda*n;
+    // *n_f = 0.5*lambda*n;
+    // *n_b = 0.5*lambda*n;
+    // *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
 		// assert(*n_0 >= 0);
 		// assert(*n_u >= 0);
@@ -158,7 +156,7 @@ __global__ void ComputeDiffusionWeights(curandState* state, double* arr, double 
   double n_b = 0.0;
 
   // DETERMINITIC CHANGE
-  // if (n < 1) return;
+  if (tmp < 1) return;
 
   // Check if diffusion should occur
   if ((lambda == 0) or (nGridXY == 1)) {
@@ -166,52 +164,52 @@ __global__ void ComputeDiffusionWeights(curandState* state, double* arr, double 
   } else {
 
   // DETERMINITIC CHANGE
-  // if (lambda*n < 5) {   // Compute all movement individually
+  if (lambda*tmp < 5) {   // Compute all movement individually
 
-  // 		for (int l = 0; l < round(n); l++) {
+  		for (int l = 0; l < round(tmp); l++) {
 
-  // 				double r = curand_uniform(&state);
+  				double r = curand_uniform(&state[i]);
 
-  // 				if       (r <    lambda)                     (n_u)++;  // Up movement
-  // 				else if ((r >=   lambda) and (r < 2*lambda)) (n_d)++;  // Down movement
-  // 				else if ((r >= 2*lambda) and (r < 3*lambda)) (n_l)++;  // Left movement
-  // 				else if ((r >= 3*lambda) and (r < 4*lambda)) (n_r)++;  // Right movement
-  // 				else if ((r >= 4*lambda) and (r < 5*lambda)) (n_f)++;  // Forward movement
-  // 				else if ((r >= 5*lambda) and (r < 6*lambda)) (n_b)++;  // Backward movement
-  // 				else                                         (n_0)++;  // No movement
+  				if       (r <    lambda)                     (n_u)++;  // Up movement
+  				else if ((r >=   lambda) and (r < 2*lambda)) (n_d)++;  // Down movement
+  				else if ((r >= 2*lambda) and (r < 3*lambda)) (n_l)++;  // Left movement
+  				else if ((r >= 3*lambda) and (r < 4*lambda)) (n_r)++;  // Right movement
+  				else if ((r >= 4*lambda) and (r < 5*lambda)) (n_f)++;  // Forward movement
+  				else if ((r >= 5*lambda) and (r < 6*lambda)) (n_b)++;  // Backward movement
+  				else                                         (n_0)++;  // No movement
 
-  // 		}
+  		}
 
 
-  // } else {
+  } else {
 
-      // // Compute the number of agents which move
-      // double N = RandP(state[i], 3*lambda*n); // Factor of 3 comes from 3D
+      // Compute the number of agents which move
+      double N = RandP(state[i], 3*lambda*tmp); // Factor of 3 comes from 3D
 
-      // n_u = RandP(state[i], N/6);
-      // n_d = RandP(state[i], N/6);
-      // n_l = RandP(state[i], N/6);
-      // n_r = RandP(state[i], N/6);
-      // n_f = RandP(state[i], N/6);
-      // n_b = RandP(state[i], N/6);
-      // n_0 = n - (n_u + n_d + n_l + n_r + n_f + n_b);
-  // }
+      n_u = RandP(state[i], N/6);
+      n_d = RandP(state[i], N/6);
+      n_l = RandP(state[i], N/6);
+      n_r = RandP(state[i], N/6);
+      n_f = RandP(state[i], N/6);
+      n_b = RandP(state[i], N/6);
+      n_0 = tmp - (n_u + n_d + n_l + n_r + n_f + n_b);
+  }
 
-  // n_u = round(n_u);
-  // n_d = round(n_d);
-  // n_l = round(n_l);
-  // n_r = round(n_r);
-  // n_f = round(n_f);
-  // n_b = round(n_b);
-  // n_0 = n - (n_u + n_d + n_l + n_r + n_f + n_b);
-
-  n_u = 0.5*lambda*tmp;
-  n_d = 0.5*lambda*tmp;
-  n_l = 0.5*lambda*tmp;
-  n_r = 0.5*lambda*tmp;
-  n_f = 0.5*lambda*tmp;
-  n_b = 0.5*lambda*tmp;
+  n_u = round(n_u);
+  n_d = round(n_d);
+  n_l = round(n_l);
+  n_r = round(n_r);
+  n_f = round(n_f);
+  n_b = round(n_b);
   n_0 = tmp - (n_u + n_d + n_l + n_r + n_f + n_b);
+
+  // n_u = 0.5*lambda*tmp;
+  // n_d = 0.5*lambda*tmp;
+  // n_l = 0.5*lambda*tmp;
+  // n_r = 0.5*lambda*tmp;
+  // n_f = 0.5*lambda*tmp;
+  // n_b = 0.5*lambda*tmp;
+  // n_0 = tmp - (n_u + n_d + n_l + n_r + n_f + n_b);
 
   // assert(n_0 >= 0);
   // assert(n_u >= 0);
@@ -334,8 +332,8 @@ __global__ void ComputeBirthEvents(double* arr_B, double* arr_B_new, double* arr
       *Warn_fastGrowth = true;
     }
 
-    // N = round( arr_nutrient[i] );
-    N = arr_nutrient[i];
+    N = round( arr_nutrient[i] );
+    // N = arr_nutrient[i];
   }
 
   // Update count
@@ -373,10 +371,10 @@ __global__ void BurstingEvents(double* arr_I9, double* arr_P_new, double* arr_Oc
   arr_I9[i]    = max(0.0, arr_I9[i] - N);
   arr_Occ[i]   = max(0.0, arr_Occ[i] - N);
   // DETERMINITIC CHANGE
-  // arr_P_new[i] += round( (1 - alpha) * beta * N);
-  // arr_M[i]     = round(alpha * beta * N);
-  arr_P_new[i] += (1 - alpha) * beta * N;
-  arr_M[i]     = alpha * beta * N;
+  arr_P_new[i] += round( (1 - alpha) * beta * N);
+  arr_M[i]     = round(alpha * beta * N);
+  // arr_P_new[i] += (1 - alpha) * beta * N;
+  // arr_M[i]     = alpha * beta * N;
   arr_p[i]     = p;
 }
 
