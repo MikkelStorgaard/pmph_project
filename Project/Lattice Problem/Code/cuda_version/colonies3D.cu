@@ -12,7 +12,7 @@
 #define GPU_SWAPZERO true
 #define GPU_UPDATEOCCUPANCY true
 #define GPU_NUTRIENTDIFFUSION false		// Does not work
-#define GPU_SWAPZERO2 false				// Does not work
+#define GPU_SWAPZERO2 true				// Does not work
 
 #define GPU_KERNEL_TIMING true
 
@@ -3087,9 +3087,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                   cudaDeviceSynchronize();
                   kernel_start = high_resolution_clock::now();
 				}
-
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, totalElements);
-				ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, totalElements);
+                
+                std::swap(d_arr_nutrient, d_arr_nutrient_new);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, totalElements);
 
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
