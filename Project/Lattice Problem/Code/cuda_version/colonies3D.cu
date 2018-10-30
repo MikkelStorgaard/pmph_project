@@ -2289,12 +2289,13 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					for (int j = 0; j < nGridXY; j++) {
 						for (int k = 0; k < nGridZ; k++) {
 
-						// Skip empty sites
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
-							skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
-							continue;
-						} else {
-							skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
+							// Skip empty sites
+							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
+								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
+								continue;
+							} else {
+								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
+							}
 						}
 					}
 				}
