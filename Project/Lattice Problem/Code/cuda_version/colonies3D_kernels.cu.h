@@ -52,10 +52,10 @@ __global__ void ComputeEvents_seq(numtype *N, numtype n, numtype p, curandState*
       if (p == 0) return;
 
       // DETERMINITIC CHANGE
-      // if (n < 1)  return;
+      if (n < 1)  return;
 
-      // *N = RandP(rng_state[i], n*p);
-      *N = n*min(1.0,p);
+      *N = gpu_round(RandP(rng_state[i], n*p));
+      // *N = n*min(1.0,p);
 
     }
 }
@@ -67,10 +67,10 @@ __device__ numtype ComputeEvents(numtype n, numtype p, curandState rng_state){
     if (p == 0) return 0.0;
 
 		// DETERMINITIC CHANGE
-		// if (n < 1)  return 0.0;
+		if (n < 1)  return 0.0;
 
-		// return RandP(rng_state, n*p);
-		return n*min(1.0,p);
+		return gpu_round(RandP(rng_state, n*p));
+		// return n*min(1.0,p);
 
 }
 
