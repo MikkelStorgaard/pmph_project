@@ -21,13 +21,13 @@ __global__ void RandP_cuda(double *result, double l, curandState *state){
 
   double L = exp(-l);
   double p = 1.0;
-  *result = 0;
+  double n = 0.0;
   while (p > L) {
-      *result++;
-      double u = curand_uniform_double(&state[idx]);
+      n++;
+      double u = curand_uniform(&state[idx]);
       p *= u;
   }
-  *result--;
+  *result = n - 1;
 }
 
 double RandP(double l, std::mt19937 *rng) {
