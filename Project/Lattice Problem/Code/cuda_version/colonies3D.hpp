@@ -24,7 +24,14 @@
 #include <unistd.h>
 #include <ctime>            // Time functions
 
+
+#define NUMTYPE_IS_FLOAT false
+#if NUMTYPE_IS_FLOAT
+typedef float numtype;
+#else
 typedef double numtype;
+#endif
+
 
 /* Class to contain simulation parameters, and which drives the simulation forward */
 class Colonies3D {
