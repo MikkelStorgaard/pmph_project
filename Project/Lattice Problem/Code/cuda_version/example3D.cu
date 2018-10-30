@@ -24,7 +24,7 @@ int main(int argc, char** argv){
 
     double B_0 = pow(10,4);
     double P_0 = pow(10,2);
-    double T   = 5;
+    double T   = 2;
 
     string pathName = "3D_Example";
 

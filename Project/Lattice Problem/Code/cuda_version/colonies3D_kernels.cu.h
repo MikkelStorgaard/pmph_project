@@ -29,11 +29,11 @@ __device__ numtype RandP(curandState rng_state, numtype lambda) {
   numtype k = 0;
   while (p > L) {
     k++;
-#if NUMTYPE_IS_FLOAT
-    numtype u = curand_uniform(&rng_state);
-#else
-    numtype u = curand_uniform_double(&rng_state);
-#endif
+    #if NUMTYPE_IS_FLOAT
+        numtype u = curand_uniform(&rng_state);
+    #else
+        numtype u = curand_uniform_double(&rng_state);
+    #endif
     p *= u;
   }
   return k - 1;
@@ -61,14 +61,14 @@ __global__ void ComputeEvents_seq(numtype *N, numtype n, numtype p, curandState 
 __device__ numtype ComputeEvents(numtype n, numtype p, curandState rng_state){
     // Trivial cases
 
-    if (p == 1) return n;
-    if (p == 0) return 0.0;
+    // if (p >= 1) return n;
+    // if (p == 0) return 0.0;
 
 		// DETERMINITIC CHANGE
-		if (n < 1)  return 0.0;
+		// if (n < 1)  return 0.0;
 
-		return gpu_round(RandP(rng_state, n*p));
-		// return n*min(1.0,p);
+		// return gpu_round(RandP(rng_state, n*p));
+		return n*min(1.0,p);
 
 }
 
