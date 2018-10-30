@@ -46,9 +46,9 @@ int main(int argc, char** argv){
 
     // Start the simulation
     if ( k==0 ) {
-        s.Run_LoopDistributed_GPU(T);
+        cout << s.Run_LoopDistributed_GPU(T) << endl;
     } else if (k == 1) {
-        s.Run_LoopDistributed_CPU(T);
+        cout << s.Run_LoopDistributed_CPU(T) << endl;
     } else if (k == 2) {
         s.Run_LoopDistributed_CPU_cuRand(T);
     }
