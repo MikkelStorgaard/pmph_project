@@ -993,7 +993,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 						if (GPU_BIRTH) {
 							numtype *tmp = new numtype;
 							int index = i*nGridXY*nGridZ + j*nGridZ + k;
+							std::cout << "calling ComputeEvents_seq" << std::endl;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[index], p, d_rng_state[index], index);
+							std::cout << "Success" << std::endl;
 							err = cudaGetLastError();
 							if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 							cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1063,7 +1065,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 							if (GPU_INFECTIONS) {
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I9[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1088,7 +1092,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								N = -1;
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I8[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1105,7 +1111,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								N = -1;
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I7[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1122,7 +1130,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								N = -1;
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I6[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1139,7 +1149,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								N = -1;
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I5[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1156,7 +1168,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								N = -1;
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I4[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1173,7 +1187,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								N = -1;
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I3[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1190,7 +1206,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								N = -1;
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I2[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1207,7 +1225,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								N = -1;
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I1[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1224,7 +1244,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								N = -1;
 								numtype *tmp = new numtype;
 								int index = i*nGridXY*nGridZ + j*nGridZ + k;
+								std::cout << "calling ComputeEvents_seq" << std::endl;
 								ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_I0[index], p, d_rng_state[index], index);
+								std::cout << "Success" << std::endl;
 								err = cudaGetLastError();
 								if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 								cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1295,7 +1317,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 									N = -1;
 									numtype *tmp = new numtype;
 									int index = i*nGridXY*nGridZ + j*nGridZ + k;
+									std::cout << "calling ComputeEvents_seq" << std::endl;
 									ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[index], p, d_rng_state[index], index);
+									std::cout << "Success" << std::endl;
 									err = cudaGetLastError();
 									if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 									cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1329,7 +1353,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 								if (GPU_NEWINFECTIONS) {
 									numtype *tmp = new numtype;
 									int index = i*nGridXY*nGridZ + j*nGridZ + k;
+									std::cout << "calling ComputeEvents_seq" << std::endl;
 									ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, N + arr_M[index], p, d_rng_state[index], index);
+									std::cout << "Success" << std::endl;
 									err = cudaGetLastError();
 									if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 									cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -1385,7 +1411,9 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 							N = -1;
 							numtype *tmp = new numtype;
 							int index = i*nGridXY*nGridZ + j*nGridZ + k;
+							std::cout << "calling ComputeEvents_seq" << std::endl;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[index], p, d_rng_state[index], index);
+							std::cout << "Success" << std::endl;
 							err = cudaGetLastError();
 							if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 							cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
