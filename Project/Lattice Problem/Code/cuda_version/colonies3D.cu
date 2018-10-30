@@ -980,7 +980,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 						}
 						arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
 
-						p = g * growthModifier*dT;
+						p = g * growthModifier * dT;
 
 
 						if ((p > 0.1) and (!Warn_g)) {
@@ -992,7 +992,8 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 						/* BEGIN anden Map-kernel */
 						if (GPU_BIRTH) {
 							numtype *tmp = new numtype;
-							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, d_rng_state, i*nGridXY*nGridZ + j*nGridZ + k);
+							int index = i*nGridXY*nGridZ + j*nGridZ + k;
+							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[index], p, d_rng_state[index], index);
 							err = cudaGetLastError();
 							if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 							cudaMemcpy(tmp, d_N, sizeof(numtype),cudaMemcpyDeviceToHost);
@@ -2250,8 +2251,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 								}
 
 								// DETERMINITIC CHANGE
-                            	// N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
-                            	N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+                            	N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+                            	// N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 							}
 
 							// Update count
@@ -2342,10 +2343,10 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 								arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 								arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 								// DETERMINITIC CHANGE
-								// arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-								// arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
-								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
-								arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
+								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+								arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
+								// arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
+								// arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
 
 								// Non-bursting events
 								N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
@@ -2475,7 +2476,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 								// If bacteria were hit, update events
 								// DETERMINITIC CHANGE
-								// if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
+								if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
 
 									arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
 
@@ -2505,7 +2506,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 									} else {
 										arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
 									}
-								// }
+								}
 							}
 						}
 					}
