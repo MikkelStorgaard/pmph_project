@@ -5,7 +5,7 @@ using namespace std;
 int main(int argc, char** argv){
 
     // Default parameters
-    int nGrid 	 = 20;
+    int nGrid 	 = 8;
     int beta  	 = 100;
     double delta = 1.0/10.0;
     double eta   = 1e4;
@@ -24,7 +24,7 @@ int main(int argc, char** argv){
 
     double B_0 = pow(10,4);
     double P_0 = pow(10,2);
-    double T   = 2;
+    double T   = 5;
 
     string pathName = "3D_Example";
 

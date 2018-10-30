@@ -161,21 +161,6 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 			// Main loop start //////////////////////////////////
 			/////////////////////////////////////////////////////
 
-			numtype accuOcc = 0.0;
-			numtype accuClusters = 0.0;
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-				}
-			}
-			cout << "accuOcc = " << accuOcc << endl;
-			cout << "accuClusters = " << accuClusters << endl;
-			accuOcc = 0.0;
-			accuClusters = 0.0;
-
 			// Kernel 1-2: nC update and maxOccupancy //////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
@@ -188,24 +173,12 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 
 						// Ensure nC is updated
 						if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]){
-								arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+							arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
 					}
 				}
 			}
-
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-				}
-			}
-			cout << "accuOcc = " << accuOcc << endl;
-			cout << "accuClusters = " << accuClusters << endl << endl;
-
 
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
@@ -397,21 +370,21 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						}
 
 						// PRIVATIZE BOTH OF THESE
-						numtype s;   // The factor which modifies the adsorption rate
-						numtype n;   // The number of targets the phage has
+						// numtype s;   // The factor which modifies the adsorption rate
+						// numtype n;   // The number of targets the phage has
 												// Infectons
 
 
 												// KERNEL THIS
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-							if (clustering) {   // Check if clustering is enabled
-								s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-								n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-							} else {            // Else use mean field computation
-								s = 1.0;
-								n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-							}
-						}
+						// if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
+						// 	if (clustering) {   // Check if clustering is enabled
+						// 		s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+						// 		n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+						// 	} else {            // Else use mean field computation
+						// 		s = 1.0;
+						// 		n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						// 	}
+						// }
 
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
 							// Compute the number of hits
@@ -1311,21 +1284,21 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 						}
 
 						// PRIVATIZE BOTH OF THESE
-						numtype s;   // The factor which modifies the adsorption rate
-						numtype n;   // The number of targets the phage has
+						// numtype s;   // The factor which modifies the adsorption rate
+						// numtype n;   // The number of targets the phage has
 												// Infectons
 
 
 												// KERNEL THIS
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-							if (clustering) {   // Check if clustering is enabled
-								s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-								n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-							} else {            // Else use mean field computation
-								s = 1.0;
-								n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-							}
-						}
+						// if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
+						// 	if (clustering) {   // Check if clustering is enabled
+						// 		s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+						// 		n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+						// 	} else {            // Else use mean field computation
+						// 		s = 1.0;
+						// 		n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						// 	}
+						// }
 
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
 							// Compute the number of hits
@@ -2102,20 +2075,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			 * remember to do them outside the nSamplings loop afterwards
 			 */
 
-			numtype accuOcc = 0.0;
-			numtype accuClusters = 0.0;
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-				}
-			}
-			cout << "accuOcc = " << accuOcc << endl;
-			cout << "accuClusters = " << accuClusters << endl;
-			accuOcc = 0.0;
-			accuClusters = 0.0;
 			if (GPU_NC){
 
 				// Copy to the device
@@ -2161,17 +2120,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					}
 				}
 			}
-
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-				}
-			}
-			cout << "accuOcc = " << accuOcc << endl;
-			cout << "accuClusters = " << accuClusters << endl << endl;
 
 			if (GPU_MAXOCCUPANCY) {
 
@@ -2550,21 +2498,21 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 							}
 
 							// PRIVATIZE BOTH OF THESE
-							numtype s;   // The factor which modifies the adsorption rate
-							numtype n;   // The number of targets the phage has
+							// numtype s;   // The factor which modifies the adsorption rate
+							// numtype n;   // The number of targets the phage has
 							// Infectons
 
 
 							// KERNEL THIS
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-								if (clustering) {   // Check if clustering is enabled
-									s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-									n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-								} else {            // Else use mean field computation
-									s = 1.0;
-									n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-								}
-							}
+							// if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
+							// 	if (clustering) {   // Check if clustering is enabled
+							// 		s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+							// 		n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+							// 	} else {            // Else use mean field computation
+							// 		s = 1.0;
+							// 		n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+							// 	}
+							// }
 
 							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
 								// Compute the number of hits
