@@ -2,17 +2,17 @@
 #include "colonies3D_kernels.cu.h"
 #include <chrono>
 
-#define GPU_NC false
-#define GPU_MAXOCCUPANCY false
-#define GPU_BIRTH false
-#define GPU_INFECTIONS false
-#define GPU_NEWINFECTIONS false
-#define GPU_PHAGEDECAY false
-#define GPU_MOVEMENT false
-#define GPU_SWAPZERO false
-#define GPU_UPDATEOCCUPANCY false
-#define GPU_NUTRIENTDIFFUSION false
-#define GPU_SWAPZERO2 false
+#define GPU_NC true
+#define GPU_MAXOCCUPANCY true
+#define GPU_BIRTH true
+#define GPU_INFECTIONS true
+#define GPU_NEWINFECTIONS true
+#define GPU_PHAGEDECAY true
+#define GPU_MOVEMENT true
+#define GPU_SWAPZERO false				// Does not work
+#define GPU_UPDATEOCCUPANCY false		// Does not work
+#define GPU_NUTRIENTDIFFUSION false		// Does not work
+#define GPU_SWAPZERO2 false				// Does not work
 
 #define GPU_KERNEL_TIMING true
 
@@ -2121,29 +2121,31 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				}
 			}
 
+
+			if (GPU_KERNEL_TIMING){
+				cudaDeviceSynchronize();
+				kernel_start = high_resolution_clock::now();
+			}
+
+			// set active flags
+			SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_P, d_arr_IsActive, totalElements);
+
+			if (GPU_KERNEL_TIMING){
+				cudaDeviceSynchronize();
+				kernel_elapsed = high_resolution_clock::now() - kernel_start;
+				f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+			}
+
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+
 			if (GPU_MAXOCCUPANCY) {
 
 				// Copy to the device
 				if(!GPU_NC) {
 					CopyAllToDevice();
 				}
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-				// set active flags
-				SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_P, d_arr_IsActive, totalElements);
-
-        		if (GPU_KERNEL_TIMING){
-          			cudaDeviceSynchronize();
-          			kernel_elapsed = high_resolution_clock::now() - kernel_start;
-          			f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-				}
-
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				if (GPU_KERNEL_TIMING){
 					cudaDeviceSynchronize();
