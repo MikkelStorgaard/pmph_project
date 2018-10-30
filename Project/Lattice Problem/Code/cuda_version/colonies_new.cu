@@ -2,7 +2,7 @@
 #include "colonies3D_kernels.cu.h"
 #include <chrono>
 
-#define CPU false
+#define GPU false
 
 
 
@@ -102,6 +102,9 @@ inline numtype cpu_exp(numtype x){
 #endif
 }
 
+int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {return 1;}
+int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {return 1;}
+
 int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	std::string filename_suffix = "loopDistributedGPU";
 
@@ -112,8 +115,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	time(&tic);
 
 	// Get start time
-	high_resolution_clock::time_point kernel_start;
-	high_resolution_clock::duration kernel_elapsed;
+	// high_resolution_clock::time_point kernel_start;
+	// high_resolution_clock::duration kernel_elapsed;
 
 	// Generate a path
 	path = GeneratePath();
@@ -136,11 +139,23 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	cudaError_t err = cudaSuccess;
 
 	// Allocate on GPU
+	numtype *arr_maxOccupancy = new numtype[gridSize]();
+	numtype *d_arr_maxOccupancy;
+
+	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
 	err = cudaMalloc((void**)&d_arr_Occ, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_Occ on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	err = cudaMalloc((void**)&d_arr_IsActive, blockSize*gridSize*sizeof(bool));
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_IsActive on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(numtype)*gridSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_maxOccupancy on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, sizeof(numtype)*gridSize, cudaMemcpyHostToDevice);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	err = cudaMalloc((void**)&d_rng_state, sizeof(curandState)*totalElements);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate d_rng_state on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -157,17 +172,116 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	err = cudaMalloc((void**)&d_arr_P, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
+	err = cudaMalloc((void**)&d_arr_P_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I0, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I0 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I0_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I0_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I1, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I1 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I1_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I1_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I2, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I2 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I2_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I2_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I3, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I3 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I3_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I3_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I4, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I4 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I4_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I4_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I5, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I5 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I5_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I5_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I6, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I6 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I6_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I6_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I7, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I7 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I7_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I7_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I8, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I8 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I8_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I8_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I9, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I9 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I9_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I9_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_M, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_M on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_p, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_p to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
 	err = cudaMalloc((void**)&d_arr_nutrient, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nutrient on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
+	err = cudaMalloc((void**)&d_arr_nutrient_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nutrient_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
 	err = cudaMalloc((void**)&d_arr_GrowthModifier, totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_GrowthModifier to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_0, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_0 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_u, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_u to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_d, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_d to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_l, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_l to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_r, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_f, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_f to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_b, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_b to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	err = cudaMalloc((void**)&d_Warn_g, sizeof(bool));
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_g on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	err = cudaMalloc((void**)&d_Warn_fastGrowth, sizeof(bool));
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate d_Warn_fastGrowth on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_Warn_r, sizeof(bool));
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_Warn_delta, sizeof(bool));
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	numtype *d_N;
 	err = cudaMalloc((void**)&d_N,sizeof(numtype));
@@ -294,6 +408,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 								Warn_g = true;
 							}
 
+							numtype* tmp = new numtype;
 							int index = i*nGridXY*nGridZ + j*nGridZ + k;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[index], p, d_rng_state, index);
 							err = cudaGetLastError();
@@ -797,11 +912,11 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			}
 		}
 
-		if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
-			cout << "\tWarning: Maximum Density Large!" << "\n";
-			f_log  << "Warning: Maximum Density Large!" << "\n";
-			Warn_density = true;
-		}
+		// if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
+		// 	cout << "\tWarning: Maximum Density Large!" << "\n";
+		// 	f_log  << "Warning: Maximum Density Large!" << "\n";
+		// 	Warn_density = true;
+		// }
 
 
         /////////////////////////////

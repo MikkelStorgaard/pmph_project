@@ -6,13 +6,13 @@ CC=nvcc
 CFLAGS= -std=c++11 -lcurand
 
 
-all : example3D growthCurve3D
+all : example3D test growthCurve3D
 
 example3D : example3D.cu colonies3D.o
 	$(CC) $(CFLAGS) -o example3D example3D.cu colonies3D.o $(CLINKS)
 
-example3D_new : example3D.cu colonies3D_new.o
-	$(CC) $(CFLAGS) -o example3D_new example3D.cu colonies3D_new.o $(CLINKS)
+test : example3D.cu colonies_new.o
+	$(CC) $(CFLAGS) -o test example3D.cu colonies_new.o $(CLINKS)
 
 growthCurve3D : growthCurve3D.cpp colonies3D.o
 	$(CC) $(CFLAGS) -o growthCurve3D growthCurve3D.cpp colonies3D.o $(CLINKS)
@@ -20,8 +20,8 @@ growthCurve3D : growthCurve3D.cpp colonies3D.o
 colonies3D.o : colonies3D.cu colonies3D.hpp
 	$(CC) $(CFLAGS) -c colonies3D.cu
 
-colonies3D_new.o : colonies3D_new.cu colonies3D.hpp
-	$(CC) $(CFLAGS) -c colonies3D_new.cu
+colonies_new.o : colonies_new.cu colonies3D.hpp
+	$(CC) $(CFLAGS) -c colonies_new.cu
 
 
 clean :
