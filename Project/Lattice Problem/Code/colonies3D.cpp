@@ -162,8 +162,8 @@ int Colonies3D::Run_Original(double T_end) {
                             }
 
                             // DETERMINITIC CHANGE
-                            N = round( nutrient(i, j, k) );
-                            // N = nutrient(i, j, k);
+                            // N = round( nutrient(i, j, k) );
+                            N = nutrient(i, j, k);
                         }
 
                         // Update count
@@ -184,10 +184,10 @@ int Colonies3D::Run_Original(double T_end) {
                             I9(i, j, k)    = max(0.0, I9(i, j, k) - N);
                             Occ(i, j, k)   = max(0.0, Occ(i, j, k) - N);
                             // DETERMINITIC CHANGE
-                            P_new(i, j, k) += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-                            M = round(alpha * Beta * N);                        // Phages which reinfect the colony
-                            // P_new(i, j, k) += (1 - alpha) * Beta * N;   // Phages which escape the colony
-                            // M = alpha * Beta * N;                        // Phages which reinfect the colony
+                            // P_new(i, j, k) += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+                            // M = round(alpha * Beta * N);                        // Phages which reinfect the colony
+                            P_new(i, j, k) += (1 - alpha) * Beta * N;   // Phages which escape the colony
+                            M = alpha * Beta * N;                        // Phages which reinfect the colony
 
                             // Non-bursting events
                             N = ComputeEvents(I8(i, j, k), p, 2, i, j, k); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
@@ -215,16 +215,16 @@ int Colonies3D::Run_Original(double T_end) {
                             }
 
                             // Compute the number of hits
-                            if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+                            // if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
                                 N = P(i, j, k);
-                            } else {
-                                p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(P(i, j, k), p, 4, i, j, k);     // Number of targets hit
-                            }
+                            // } else {
+                            //     p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+                            //     N = ComputeEvents(P(i, j, k), p, 4, i, j, k);     // Number of targets hit
+                            // }
 
                             // If bacteria were hit, update events
                             // DETERMINITIC CHANGE
-                            if ((N + M) >= 1) {
+                            // if ((N + M) >= 1) {
 
                                 P(i, j, k)    = max(0.0, P(i, j, k) - N);     // Update count
 
@@ -251,7 +251,7 @@ int Colonies3D::Run_Original(double T_end) {
                                 } else {
                                     P_new(i, j, k) += N * (1 - alpha) * Beta;
                                 }
-                            }
+                            // }
                         }
 
                         // Phage Decay ////////////////////////////////////////////////////////////////
@@ -613,8 +613,8 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                             }
 
                             // DETERMINITIC CHANGE
-                            N = round( nutrient(i, j, k) );
-                            // N = nutrient(i, j, k);
+                            // N = round( nutrient(i, j, k) );
+                            N = nutrient(i, j, k);
                         }
 
                         // Update count
@@ -635,10 +635,10 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                             I9(i, j, k)    = max(0.0, I9(i, j, k) - N);
                             Occ(i, j, k)   = max(0.0, Occ(i, j, k) - N);
                             // DETERMINITIC CHANGE
-                            P_new(i, j, k) += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-                            M = round(alpha * Beta * N);                        // Phages which reinfect the colony
-                            // P_new(i, j, k) += (1 - alpha) * Beta * N;   // Phages which escape the colony
-                            // M = alpha * Beta * N;                         // Phages which reinfect the colony
+                            // P_new(i, j, k) += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+                            // M = round(alpha * Beta * N);                        // Phages which reinfect the colony
+                            P_new(i, j, k) += (1 - alpha) * Beta * N;   // Phages which escape the colony
+                            M = alpha * Beta * N;                         // Phages which reinfect the colony
 
                             // Non-bursting events
                             N = ComputeEvents(I8(i, j, k), p, 2, i, j, k); I8(i, j, k) = max(0.0, I8(i, j, k) - N); I9(i, j, k) += N;
@@ -666,16 +666,16 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                             }
 
                             // Compute the number of hits
-                            if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+                            // if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
                                 N = P(i, j, k);
-                            } else {
-                                p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(P(i, j, k), p, 4, i, j, k);     // Number of targets hit
-                            }
+                            // } else {
+                            //     p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+                            //     N = ComputeEvents(P(i, j, k), p, 4, i, j, k);     // Number of targets hit
+                            // }
 
                             // If bacteria were hit, update events
                             // DETERMINITIC CHANGE
-                            if ((N + M) >= 1) {
+                            // if ((N + M) >= 1) {
 
                                 P(i, j, k)    = max(0.0, P(i, j, k) - N);     // Update count
 
@@ -702,7 +702,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
                                 } else {
                                     P_new(i, k, k) += N * (1 - alpha) * Beta;
                                 }
-                            }
+                            // }
                         }
 
                         // Phage Decay ////////////////////////////////////////////////////////////////
@@ -1051,10 +1051,10 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                     for (int k = 0; k < nGridZ; k++ ) {
                         if (exit) break;
 
-                        // rng.seed(n*pow(nGridXY,2)*nStepsPerSample*nSamplings + t*pow(nGridXY,2)*nStepsPerSample +  i*pow(nGridXY,2) + j*nGridXY + k);
-
-                        // Ensure nC is updated
-                        if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]) arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						// Ensure nC is updated
+						if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]){
+						    arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						}
 
                         // Skip empty sites
                         if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
@@ -1096,8 +1096,8 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             }
 
                             // DETERMINITIC CHANGE
-                            N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
-                            // N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+                            // N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+                            N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
                         }
 
                         // Update count
@@ -1118,10 +1118,10 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             // DETERMINITIC CHANGE
-                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-                            M = round(alpha * Beta * N);                        // Phages which reinfect the colony
-                            // arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
-                            // M = alpha * Beta * N;                        // Phages which reinfect the colony
+                            // arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+                            // M = round(alpha * Beta * N);                        // Phages which reinfect the colony
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
+                            M = alpha * Beta * N;                        // Phages which reinfect the colony
 
                             // Non-bursting events
                             N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
@@ -1176,16 +1176,16 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                             }
 
                             // Compute the number of hits
-                            if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+                            // if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
                                 N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-                            } else {
-                                p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
-                            }
+                            // } else {
+                            //     p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+                            //     N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
+                            // }
 
                             // If bacteria were hit, update events
                             // DETERMINITIC CHANGE
-                            if ((N + M) >= 1) {
+                            // if ((N + M) >= 1) {
 
                                 arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
 
@@ -1212,7 +1212,7 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
                                 } else {
                                     arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
                                 }
-                            }
+                            // }
                         }
 
                         // Phage Decay ////////////////////////////////////////////////////////////////
@@ -1591,7 +1591,6 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
     }
 }
 
-
 int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
     std::string filename_suffix = "loopDistributedCPU";
 
@@ -1634,18 +1633,13 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
 			// Reset density counter
 			double maxOccupancy = 0.0;
-
-			/////////////////////////////////////////////////////
-			// Main loop start //////////////////////////////////
-			/////////////////////////////////////////////////////
-
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
-				for (int j = 0; j < nGridXY; j++) {
+				for (int j = 0; j < nGridXY; j++ ) {
 					if (exit) break;
 
-					for (int k = 0; k < nGridZ; k++) {
+					for (int k = 0; k < nGridZ; k++ ) {
 						if (exit) break;
 
 						// Ensure nC is updated
@@ -1654,7 +1648,12 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						}
 
 						// Skip empty sites
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
+                            skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
+                            continue;
+                        } else {
+                            skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
+                        }
 
 						// Record the maximum observed density
 						if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] > maxOccupancy) maxOccupancy = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
@@ -1673,7 +1672,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						if (exit) break;
 
                         // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+                        if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 						// Birth //////////////////////////////////////////////////////////////////////
 
@@ -1696,6 +1695,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                         }
 
                         N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
+
                         // Ensure there is enough nutrient
                         if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
                             if (!Warn_fastGrowth) {
@@ -1705,8 +1705,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             }
 
                             // DETERMINITIC CHANGE
-                            N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
-                            // N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+                            // N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+                            N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
                         }
 
                         // Update count
@@ -1726,7 +1726,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						if (exit) break;
 
                         // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+                        if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 						double p = 0; // privatize
 						double N = 0; // privatize
@@ -1754,10 +1754,10 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             // DETERMINITIC CHANGE
-                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-                            arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
-                            // arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
-                            // arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
+                            // arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+                            // arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
+                            arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
 
                             // Non-bursting events
                             N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
@@ -1796,10 +1796,8 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
 
-                            /* END tredje Map-kernel */
 
                         }
-
 					}
 				}
 			}
@@ -1814,7 +1812,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						if (exit) break;
 
                         // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+                        if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 						double p = 0; // privatize
 						double N = 0; // privatize
@@ -1840,41 +1838,38 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                                 s = 1.0;
                                 n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
                             }
-                        }
 
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
                             // Compute the number of hits
-                            if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+                            // if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
                                 N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-                            } else {
-                                p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-                                N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
-                            }
+                            // } else {
+                            //     p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+                            //     N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
+                            // }
 
                             // If bacteria were hit, update events
                             // DETERMINITIC CHANGE
-                            if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
+                            // if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
 
                                 arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
 
                                 double S;
                                 if (shielding) {
                                     // Absorbing medium model
-                                    double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
-                                               pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-                                    S = exp(-zeta * d); // Probability of hitting succebtible target
+                                    double d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) - pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+                                    S = exp(-zeta*d); // Probability of hitting succebtible target
 
                                 } else {
                                     // Well mixed model
                                     S = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
                                 }
 
-                                p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
-                                                 S)); // Probability of hitting succebtible target
+                                p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k], S)); // Probability of hitting succebtible target
                                 N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
 
-                                if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
+                                if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k]) {
                                     N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
+                                }
 
                                 // Update the counts
                                 arr_B[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_B[i*nGridXY*nGridZ + j*nGridZ + k] - N);
@@ -1883,7 +1878,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                                 } else {
                                     arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
                                 }
-                            }
+                            // }
                         }
 
 
@@ -1902,7 +1897,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						if (exit) break;
 
                         // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+                        if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 						double p = 0; // privatize
 						double N = 0; // privatize
@@ -1936,14 +1931,14 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 						if (exit) break;
 
                         // Skip empty sites
-                        if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+                        if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 
                         if (nGridXY > 1) {
                             // Update positions
 
                             // Skip empty sites
-                            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+                            if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
                             int ip, jp, kp, im, jm, km;
 
@@ -2034,7 +2029,7 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
                             // KERNEL BEGIN
                             // CELLS
                             // Skip empty sites
-                            if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+                            if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
                             arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
 
@@ -2409,6 +2404,8 @@ void Colonies3D::Initialize() {
 
     arr_M = new double[nGridXY*nGridXY*nGridZ]();
     arr_GrowthModifier = new double[nGridXY*nGridXY*nGridZ]();
+
+    skipArray = new bool[nGridXY*nGridXY*nGridZ];
 
     for (int i = 0; i < nGridXY; i++) {
         for (int j = 0; j < nGridXY; j++) {
@@ -2838,18 +2835,19 @@ void Colonies3D::ComputeTimeStep() {
 
 }
 
-// Returns the number of events ocurring for given n and p
+// Returns the number o./f events ocurring for given n and p
 double Colonies3D::ComputeEvents(double n, double p, int flag, int i, int j, int k) {
 
     // Trivial cases
-    if (p == 1) return n;
-    if (p == 0) return 0.0;
+    // if (p >= 1) return n;
+    // if (p == 0) return 0.0;
 
     // DETERMINITIC CHANGE
-    if (n < 1)  return 0.0;
-    double N = RandP(n*p, i, j, k);
-    return round(N);
-    // return n*min(1.0,p);
+    // if (n < 1)  return 0.0;
+    // double N = RandP(n*p, i, j, k);
+    // return round(N);
+
+    return n*min(1.0,p);
 }
 
 // Computes how many particles has moved to neighbouing points
@@ -2866,7 +2864,7 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
 
     // Trivial case
     // DETERMINITIC CHANGE
-    if (n < 1) return;
+    // if (n < 1) return;
 
     // Check if diffusion should occur
     if ((lambda == 0) or (nGridXY == 1)) {
@@ -2875,52 +2873,52 @@ void Colonies3D::ComputeDiffusion(double n, double lambda, double* n_0, double* 
     }
 
     // DETERMINITIC CHANGE
-    if (lambda*n < 5) {   // Compute all movement individually
+    // if (lambda*n < 5) {   // Compute all movement individually
 
-        for (int l = 0; l < round(n); l++) {
+    //     for (int l = 0; l < round(n); l++) {
 
-            double r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
+    //         double r = Rand(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
 
-            if       (r <    lambda)                     (*n_u)++;  // Up movement
-            else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
-            else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
-            else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
-            else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
-            else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
-            else                                         (*n_0)++;  // No movement
+    //         if       (r <    lambda)                     (*n_u)++;  // Up movement
+    //         else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
+    //         else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
+    //         else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
+    //         else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
+    //         else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
+    //         else                                         (*n_0)++;  // No movement
 
-        }
+    //     }
 
 
-    } else {
+    // } else {
 
-        // Compute the number of agents which move
-        double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
+    //     // Compute the number of agents which move
+    //     double N = RandP(3*lambda*n, i, j, k); // Factor of 3 comes from 3D
 
-        *n_u = RandP(N/6, i, j, k);
-        *n_d = RandP(N/6, i, j, k);
-        *n_l = RandP(N/6, i, j, k);
-        *n_r = RandP(N/6, i, j, k);
-        *n_f = RandP(N/6, i, j, k);
-        *n_b = RandP(N/6, i, j, k);
-        *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-    }
+    //     *n_u = RandP(N/6, i, j, k);
+    //     *n_d = RandP(N/6, i, j, k);
+    //     *n_l = RandP(N/6, i, j, k);
+    //     *n_r = RandP(N/6, i, j, k);
+    //     *n_f = RandP(N/6, i, j, k);
+    //     *n_b = RandP(N/6, i, j, k);
+    //     *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+    // }
 
-    *n_u = round(*n_u);
-    *n_d = round(*n_d);
-    *n_l = round(*n_l);
-    *n_r = round(*n_r);
-    *n_f = round(*n_f);
-    *n_b = round(*n_b);
-    *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-
-    // *n_u = 0.5*lambda*n;
-    // *n_d = 0.5*lambda*n;
-    // *n_l = 0.5*lambda*n;
-    // *n_r = 0.5*lambda*n;
-    // *n_f = 0.5*lambda*n;
-    // *n_b = 0.5*lambda*n;
+    // *n_u = round(*n_u);
+    // *n_d = round(*n_d);
+    // *n_l = round(*n_l);
+    // *n_r = round(*n_r);
+    // *n_f = round(*n_f);
+    // *n_b = round(*n_b);
     // *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
+
+    *n_u = 0.5*lambda*n;
+    *n_d = 0.5*lambda*n;
+    *n_l = 0.5*lambda*n;
+    *n_r = 0.5*lambda*n;
+    *n_f = 0.5*lambda*n;
+    *n_b = 0.5*lambda*n;
+    *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
 
 
     assert(*n_0 >= 0);
@@ -3024,6 +3022,8 @@ double Colonies3D::RandP(double l, int i, int j, int k) {
         p *= u;
     }
     return n - 1;
+
+    // return l;
 
 }
 
@@ -3540,4 +3540,6 @@ Colonies3D::~Colonies3D() {
 
 	delete[] arr_M;
     delete[] arr_GrowthModifier;
+
+    delete[] skipArray;
 }

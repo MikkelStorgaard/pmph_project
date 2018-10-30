@@ -183,6 +183,8 @@ class Colonies3D {
     // Occupancy of grid
     double* arr_Occ;
 
+    bool* skipArray;
+
  public:
     // Constructers
     explicit    Colonies3D(double B_0, double P_0);                           // Direct constructer

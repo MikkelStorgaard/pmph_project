@@ -19,7 +19,6 @@
 // Different optimization tests
 #define GPU_SKIP_PASSIVE true	// TODO: IMPLEMENT
 #define GPU_REDUCE_ARRAYS true 	// TODO: IMPLEMENT
-#define NUMTYPE_IS_FLOAT false
 
 using namespace std;
 using namespace std::chrono;
@@ -99,19 +98,19 @@ Colonies3D::Colonies3D(numtype B_0, numtype P_0){
 //////////////////////////////////////////////////////////////////////
 
 inline int cpu_round(numtype x){
-#if NUMTYPE_IS_FLOAT
-  return static_cast<int>(roundf(x));
-#else
-  return static_cast<int>(round(x));
-#endif
+	#if NUMTYPE_IS_FLOAT
+		return static_cast<int>(roundf(x));
+	#else
+		return static_cast<int>(round(x));
+	#endif
 }
 
 inline numtype cpu_exp(numtype x){
-#if NUMTYPE_IS_FLOAT
-  return expf(x);
-#else
-  return exp(x);
-#endif
+	#if NUMTYPE_IS_FLOAT
+		return expf(x);
+	#else
+		return exp(x);
+	#endif
 }
 
 int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
@@ -209,7 +208,12 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						if (exit) break;
 
 						// Skip empty sites
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
+							skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
+							continue;
+						} else {
+							skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
+						}
 
 						numtype p = 0; // privatize
 						numtype N = 0; // privatize
@@ -263,7 +267,7 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						if (exit) break;
 
 						// Skip empty sites
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+						if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 						numtype p = 0; // privatize
 						numtype N = 0; // privatize
@@ -351,7 +355,7 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						if (exit) break;
 
 						// Skip empty sites
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+						if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 
 						numtype p = 0; // privatize
@@ -383,12 +387,12 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 
 						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
 							// Compute the number of hits
-							if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+							// if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
 								N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-							} else {
-								p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-								N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
-							}
+							// } else {
+							// 	p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+							// 	N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
+							// }
 
 							// If bacteria were hit, update events
 							// DETERMINITIC CHANGE
@@ -439,7 +443,7 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						if (exit) break;
 
 						// Skip empty sites
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+						if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 
 						numtype p = 0; // privatize
@@ -474,14 +478,14 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						if (exit) break;
 
 						// Skip empty sites
-						if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+						if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 
 						if (nGridXY > 1) {
 							// Update positions
 
 							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
 
 							int ip, jp, kp, im, jm, km;
 
@@ -3514,6 +3518,8 @@ void Colonies3D::Initialize() {
 		arr_GrowthModifier = new numtype[nGridXY*nGridXY*nGridZ]();
 		arr_p = new numtype[nGridXY*nGridXY*nGridZ]();
 
+		skipArray = new bool[nGridXY*nGridXY*nGridZ];
+
 		// Initialize arrays
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++) {
@@ -3849,16 +3855,16 @@ void Colonies3D::ComputeTimeStep() {
 // Returns the number of events ocurring for given n and p
 numtype Colonies3D::ComputeEvents(numtype n, numtype p, int flag, int i, int j, int k) {
 
-		// Trivial cases
-		if (p == 1) return n;
-		if (p == 0) return 0.0;
+	// Trivial cases
+    // if (p >= 1) return n;
+    // if (p == 0) return 0.0;
 
-		// DETERMINITIC CHANGE
-		if (n < 1)  return 0.0;
+    // DETERMINITIC CHANGE
+    // if (n < 1)  return 0.0;
+    // double N = RandP(n*p, i, j, k);
+    // return round(N);
 
-		return RandP(n*p, i, j, k);
-
-		// return n*min(1.0,p);
+    return n*min(1.0,p);
 }
 
 // Returns the number of events ocurring for given n and p, flat array
@@ -4033,8 +4039,6 @@ numtype Colonies3D::RandP(numtype l, int i, int j, int k) {
 		// poisson_distribution <long long> distr(l);
 
 		// return distr(arr_rng[i*nGridXY*nGridZ + j*nGridZ + k]);
-
-		return l;
 
 		double L = exp(-l);
 		double p = 1.0;
@@ -4552,4 +4556,6 @@ Colonies3D::~Colonies3D() {
 
 		 delete[] arr_M;
 		 delete[] arr_GrowthModifier;
+
+		 delete[] skipArray;
 }
