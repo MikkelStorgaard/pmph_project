@@ -992,7 +992,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 						/* BEGIN anden Map-kernel */
 						if (GPU_BIRTH) {
 							numtype *tmp = new numtype;
-							int index = i*nGridXY*nGridZ + j*nGridZ + k
+							int index = i*nGridXY*nGridZ + j*nGridZ + k;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_B[index], p, d_rng_state, index);
 							err = cudaGetLastError();
 							if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1384,7 +1384,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 						if (GPU_PHAGEDECAY) {
 							N = -1;
 							numtype *tmp = new numtype;
-							int index = i*nGridXY*nGridZ + j*nGridZ + k
+							int index = i*nGridXY*nGridZ + j*nGridZ + k;
 							ComputeEvents_seq<<<gridSize,blockSize>>>(d_N, arr_P[index], p, d_rng_state, index);
 							err = cudaGetLastError();
 							if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in cuRandKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
