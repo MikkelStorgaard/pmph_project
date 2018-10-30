@@ -277,7 +277,7 @@ __global__ void SetIsActive(numtype* arr_Occ, numtype* arr_P, bool* arr_IsActive
 
   numtype Occ = insideBounds ? arr_Occ[i] : 0.0;
   numtype P   = insideBounds ? arr_P[i]   : 0.0;
-  arr_IsActive[i] = insideBounds && ((P >= 1.0) && (Occ >= 1.0));
+  arr_IsActive[i] = insideBounds && ((P >= 1.0) || (Occ >= 1.0));
 
 }
 
