@@ -161,6 +161,19 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 			// Main loop start //////////////////////////////////
 			/////////////////////////////////////////////////////
 
+			numtype accuOcc = 0.0;
+			numtype accuClusters = 0.0;
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+					}
+				}
+			}
+			cout << "accuOcc = " << accuOcc << endl;
+			cout << "accuClusters = " << accuClusters << endl;
+
 			// Kernel 1-2: nC update and maxOccupancy //////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
@@ -175,9 +188,22 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]){
 								arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
+
 					}
 				}
 			}
+
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+					}
+				}
+			}
+			cout << "accuOcc = " << accuOcc << endl;
+			cout << "accuClusters = " << accuClusters << endl << endl;
+
 
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
@@ -2074,6 +2100,19 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			 * remember to do them outside the nSamplings loop afterwards
 			 */
 
+			numtype accuOcc = 0.0;
+			numtype accuClusters = 0.0;
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+					}
+				}
+			}
+			cout << "accuOcc = " << accuOcc << endl;
+			cout << "accuClusters = " << accuClusters << endl;
+
 			if (GPU_NC){
 
 				// Copy to the device
@@ -2119,6 +2158,17 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					}
 				}
 			}
+
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+					}
+				}
+			}
+			cout << "accuOcc = " << accuOcc << endl;
+			cout << "accuClusters = " << accuClusters << endl << endl;
 
 			if (GPU_MAXOCCUPANCY) {
 

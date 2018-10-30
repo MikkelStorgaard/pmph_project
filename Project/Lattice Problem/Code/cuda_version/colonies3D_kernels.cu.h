@@ -259,12 +259,12 @@ __global__ void FirstKernel(numtype* arr_Occ, numtype* arr_nC, int N){
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
   // Out of bounds check
-  if (i>= N){
+  if (i >= N){
     return;
   }
 
-  if (arr_Occ[i] < arr_nC[i]){
-      arr_nC[i] = arr_Occ[i];
+  if (arr_Occ[i] < arr_nC[i]) {
+    arr_nC[i] = arr_Occ[i];
   }
   // arr_nC[i] = min(arr_nC[i],arr_Occ[i]);
 }
