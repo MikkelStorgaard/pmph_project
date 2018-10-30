@@ -3102,14 +3102,14 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
     // Writes the time, number of cells, number of infected cells, number of phages
     f_N << fixed    << setprecision(2);
     f_N << setw(6)  << t       << "\t";
-    f_N << setw(12) << (int)(accu(B))    << "\t";
-    f_N << setw(12) << (int)(accu(I0) + accu(I1) + accu(I2) + accu(I3) + accu(I4) + accu(I5) + accu(I6) + accu(I7) + accu(I8) + accu(I9))    << "\t";
-    f_N << setw(12) << (int)(accu(P))    << "\t";
+    f_N << setw(12) << round(accu(B))    << "\t";
+    f_N << setw(12) << round(accu(I0) + accu(I1) + accu(I2) + accu(I3) + accu(I4) + accu(I5) + accu(I6) + accu(I7) + accu(I8) + accu(I9))    << "\t";
+    f_N << setw(12) << round(accu(P))    << "\t";
 
     uvec nz = find(B);
     f_N << setw(12) << static_cast<double>(nz.n_elem) / initialOccupancy << "\t";
-    f_N << setw(12) << (int)(n_0 / 1e12 * pow(L, 2) * H - accu(nutrient)) << "\t";
-    f_N << setw(12) << (int)accu(nC) << endl;
+    f_N << setw(12) << round(n_0 / 1e12 * pow(L, 2) * H - accu(nutrient)) << "\t";
+    f_N << setw(12) << roundaccu(nC) << endl;
 
     if (exportAll) {
         // Save the position data
@@ -3148,17 +3148,17 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
 
                     f_B << setw(6) << B(x,y,z) << "\t";
                     f_P << setw(6) << P(x,y,z) << "\t";
-                    double nI = (int)(I0(x,y,z) + I1(x,y,z) + I2(x,y,z) + I3(x,y,z) + I4(x,y,z) + I5(x,y,z) + I6(x,y,z) + I7(x,y,z) + I8(x,y,z) + I9(x,y,z));
+                    double nI = round(I0(x,y,z) + I1(x,y,z) + I2(x,y,z) + I3(x,y,z) + I4(x,y,z) + I5(x,y,z) + I6(x,y,z) + I7(x,y,z) + I8(x,y,z) + I9(x,y,z));
                     f_I << setw(6) << nI       << "\t";
                     f_n << setw(6) << nutrient(x,y,z) << "\t";
                 }
 
                 // Write last line ("\n" instead of tab)
-                f_B << setw(6) << (int)(B(x,nGridXY - 1,z)) << "\n";
-                f_P << setw(6) << (int)(P(x,nGridXY - 1,z)) << "\n";
-                double nI = (int)(I0(x,nGridXY - 1,z) + I1(x,nGridXY - 1,z) + I2(x,nGridXY - 1,z) + I3(x,nGridXY - 1,z) + I4(x,nGridXY - 1,z) + I5(x,nGridXY - 1,z) + I6(x,nGridXY - 1,z) + I7(x,nGridXY - 1,z) + I8(x,nGridXY - 1,z) + I9(x,nGridXY - 1,z));
+                f_B << setw(6) << round(B(x,nGridXY - 1,z)) << "\n";
+                f_P << setw(6) << round(P(x,nGridXY - 1,z)) << "\n";
+                double nI = round(I0(x,nGridXY - 1,z) + I1(x,nGridXY - 1,z) + I2(x,nGridXY - 1,z) + I3(x,nGridXY - 1,z) + I4(x,nGridXY - 1,z) + I5(x,nGridXY - 1,z) + I6(x,nGridXY - 1,z) + I7(x,nGridXY - 1,z) + I8(x,nGridXY - 1,z) + I9(x,nGridXY - 1,z));
                 f_I << setw(6) << nI                        << "\n";
-                f_n << setw(6) << (int)(nutrient(x,nGridXY - 1,z)) << "\n";
+                f_n << setw(6) << round(nutrient(x,nGridXY - 1,z)) << "\n";
             }
         }
     }

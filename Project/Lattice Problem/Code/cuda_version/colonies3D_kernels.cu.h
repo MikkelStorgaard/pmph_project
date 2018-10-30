@@ -266,7 +266,7 @@ __global__ void FirstKernel(numtype* arr_Occ, numtype* arr_nC, int N){
   if (arr_Occ[i] < arr_nC[i]){
       arr_nC[i] = arr_Occ[i];
   }
-  arr_nC[i] = min(arr_nC[i],arr_Occ[i]);
+  // arr_nC[i] = min(arr_nC[i],arr_Occ[i]);
 }
 
 __global__ void SetIsActive(numtype* arr_Occ, numtype* arr_P, bool* arr_IsActive, int N){

@@ -4234,13 +4234,13 @@ void Colonies3D::ExportData_arr(numtype t, std::string filename_suffix){
 	// Writes the time, number of cells, number of infected cells, number of phages
 	f_N << fixed    << setprecision(2);
 	f_N << setw(6)  << t       << "\t";
-	f_N << setw(12) << (int)(accuB)    << "\t";
-	f_N << setw(12) << (int)(accuI)    << "\t";
-	f_N << setw(12) << (int)(accuP)    << "\t";
+	f_N << setw(12) << cpu_round(accuB)    << "\t";
+	f_N << setw(12) << cpu_round(accuI)    << "\t";
+	f_N << setw(12) << cpu_round(accuP)    << "\t";
 
 	f_N << setw(12) << nz / initialOccupancy << "\t";
-	f_N << setw(12) << (int)(n_0 / 1e12 * pow(L, 2) * H - accuNutrient) << "\t";
-	f_N << setw(12) << (int)(accuClusters) << endl;
+	f_N << setw(12) << cpu_round(n_0 / 1e12 * pow(L, 2) * H - accuNutrient) << "\t";
+	f_N << setw(12) << cpu_round(accuClusters) << endl;
 
 	if (exportAll) {
 		// Save the position data
@@ -4280,18 +4280,18 @@ void Colonies3D::ExportData_arr(numtype t, std::string filename_suffix){
 
 					f_B << setw(6) << arr_B[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
 					f_P << setw(6) << arr_P[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
-					numtype nI = (int)(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
+					numtype nI = cpu_round(arr_I0[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + y*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + y*nGridZ + z]);
 					f_I << setw(6) << nI       << "\t";
 					f_n << setw(6) << arr_nutrient[x*nGridXY*nGridZ + y*nGridZ + z] << "\t";
 				}
 
 				#define XnGridXYZ x*nGridXY*nGridZ+(nGridXY-1)*nGridZ+z
 				// Write last line ("\n" instead of tab)
-				f_B << setw(6) << (int)(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-				f_P << setw(6) << (int)(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
-				numtype nI = (int)(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
+				f_B << setw(6) << cpu_round(arr_B[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+				f_P << setw(6) << cpu_round(arr_P[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+				numtype nI = cpu_round(arr_I0[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I1[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I2[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I3[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I4[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I5[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I6[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I7[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I8[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z] + arr_I9[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]);
 				f_I << setw(6) << nI                        << "\n";
-				f_n << setw(6) << (int)(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
+				f_n << setw(6) << cpu_round(arr_nutrient[x*nGridXY*nGridZ + (nGridXY - 1)*nGridZ + z]) << "\n";
 			}
 		}
 	}
