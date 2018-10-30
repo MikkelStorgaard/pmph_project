@@ -12,7 +12,7 @@
 #define GPU_SWAPZERO true
 #define GPU_UPDATEOCCUPANCY true
 #define GPU_NUTRIENTDIFFUSION false		// Does not work
-#define GPU_SWAPZERO2 true				// Does not work
+#define GPU_SWAPZERO2 true
 
 #define GPU_KERNEL_TIMING true
 
