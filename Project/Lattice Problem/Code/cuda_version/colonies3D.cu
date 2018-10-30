@@ -2748,10 +2748,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 							if (nGridXY > 1) {
 								// KERNEL BEGIN
 								// Update positions
-
-								// Skip empty sites
-								if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
-
 								int ip, jp, kp, im, jm, km;
 
 								if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
@@ -2850,11 +2846,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 
 							} else {
-								// KERNEL BEGIN
-								// CELLS
-								// Skip empty sites
-								if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
 								arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
 
 								if (r > 0.0) {
@@ -2894,18 +2885,31 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					kernel_start = high_resolution_clock::now();
 				}
 
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, volume);
-                SwapArrays<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, volume);
+                std::swap(d_arr_B, d_arr_B_new);
+                std::swap(d_arr_I0, d_arr_I0_new);
+                std::swap(d_arr_I1, d_arr_I1_new);
+                std::swap(d_arr_I2, d_arr_I2_new);
+                std::swap(d_arr_I3, d_arr_I3_new);
+                std::swap(d_arr_I4, d_arr_I4_new);
+                std::swap(d_arr_I5, d_arr_I5_new);
+                std::swap(d_arr_I6, d_arr_I6_new);
+                std::swap(d_arr_I7, d_arr_I7_new);
+                std::swap(d_arr_I8, d_arr_I8_new);
+                std::swap(d_arr_I9, d_arr_I9_new);
+                std::swap(d_arr_P, d_arr_P_new);
+
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, volume);
+                // SwapArrays<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, volume);
 
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, volume);
