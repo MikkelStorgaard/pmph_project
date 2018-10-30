@@ -45,17 +45,19 @@ __global__ void ComputeEvents_seq(numtype *N, numtype n, numtype p, curandState*
 
     if (i == index) {
 
-      *N = n;
-      if (p == 1) return;
 
-      *N = 0.0;
-      if (p == 0) return;
+      if (p == 1) {
+        *N = n;
+      } else if (p == 0) {
+        *N = 0.0;
+      } else if (n < 1) {
+        *N = 0.0;
+      } else {
+        *N = gpu_round(RandP(rng_state[i], n*p));
+        // *N = n*min(1.0,p);
+      }
 
-      // DETERMINITIC CHANGE
-      if (n < 1)  return;
 
-      *N = gpu_round(RandP(rng_state[i], n*p));
-      // *N = n*min(1.0,p);
 
     }
 }
