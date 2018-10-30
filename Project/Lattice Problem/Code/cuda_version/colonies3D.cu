@@ -173,6 +173,8 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 			}
 			cout << "accuOcc = " << accuOcc << endl;
 			cout << "accuClusters = " << accuClusters << endl;
+			accuOcc = 0.0;
+			accuClusters = 0.0;
 
 			// Kernel 1-2: nC update and maxOccupancy //////////////////////////////////////////////////////////////////////
 			for (int i = 0; i < nGridXY; i++) {
@@ -2112,7 +2114,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			}
 			cout << "accuOcc = " << accuOcc << endl;
 			cout << "accuClusters = " << accuClusters << endl;
-
+			accuOcc = 0.0;
+			accuClusters = 0.0;
 			if (GPU_NC){
 
 				// Copy to the device
