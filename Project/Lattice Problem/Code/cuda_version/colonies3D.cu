@@ -2645,41 +2645,53 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				}
 
 				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+				cudaDeviceSynchronize();
 				ApplyMovement<<<gridSize,blockSize>>>(d_arr_B_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 				if (r > 0) {
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I0_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I1_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I2_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I3_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I4_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I5_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I6_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I7_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I8_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+					cudaDeviceSynchronize();
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I9_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 				}
 
 				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, lambdaP, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive);
+				cudaDeviceSynchronize();
 				ApplyMovement<<<gridSize,blockSize>>>(d_arr_P_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 
 				if (GPU_KERNEL_TIMING){
