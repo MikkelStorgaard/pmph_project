@@ -2885,31 +2885,19 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					kernel_start = high_resolution_clock::now();
 				}
 
-                std::swap(d_arr_B, d_arr_B_new);
-                std::swap(d_arr_I0, d_arr_I0_new);
-                std::swap(d_arr_I1, d_arr_I1_new);
-                std::swap(d_arr_I2, d_arr_I2_new);
-                std::swap(d_arr_I3, d_arr_I3_new);
-                std::swap(d_arr_I4, d_arr_I4_new);
-                std::swap(d_arr_I5, d_arr_I5_new);
-                std::swap(d_arr_I6, d_arr_I6_new);
-                std::swap(d_arr_I7, d_arr_I7_new);
-                std::swap(d_arr_I8, d_arr_I8_new);
-                std::swap(d_arr_I9, d_arr_I9_new);
-                std::swap(d_arr_P, d_arr_P_new);
 
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, volume);
-                // SwapArrays<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, volume);
+                SwapArrays<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, volume);
 
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, volume);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, volume);
