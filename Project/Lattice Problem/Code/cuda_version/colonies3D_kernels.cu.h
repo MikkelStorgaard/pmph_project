@@ -750,7 +750,7 @@ __global__ void NutrientDiffusion(numtype* arr_nutrient,
 
     int k = tid % nGridZ;
     int j = ( (tid - k) / nGridZ ) % nGridXY;
-    int i = (((ind - k) / nGridZ) - jj) / nGridXY
+    int i = (((tid - k) / nGridZ ) - j) / nGridXY;
 
     // Update positions
     int ip, jp, kp, im, jm, km;

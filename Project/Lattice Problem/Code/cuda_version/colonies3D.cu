@@ -1887,8 +1887,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 	/* Allocate arrays on the device */
 	int totalElements = nGridXY * nGridXY * nGridZ;
-}
-int totalMemSize = totalElements * sizeof(numtype);
+	int totalMemSize = totalElements * sizeof(numtype);
 	int blockSize = 256;
 	// int gridSize = (totalElements + blockSize - 1) / blockSize;
 	int gridSize = ceil(totalElements / blockSize);
