@@ -5,7 +5,7 @@ using namespace std;
 int main(int argc, char** argv){
 
     // Default parameters
-    int nGrid 	 = 8;
+    int nGrid 	 = 25;
     int beta  	 = 100;
     double delta = 1.0/10.0;
     double eta   = 1e4;
