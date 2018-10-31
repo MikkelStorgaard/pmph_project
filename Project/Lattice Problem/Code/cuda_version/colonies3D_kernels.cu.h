@@ -784,13 +784,27 @@ __global__ void NutrientDiffusion(numtype* arr_nutrient,
       else km = k - 1;
     }
 
-    numtype tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-    arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k ] += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
-    arr_nutrient_new[ip*nGridXY*nGridZ + j *nGridZ + k ] += alphaXY * tmp;
-    arr_nutrient_new[im*nGridXY*nGridZ + j *nGridZ + k ] += alphaXY * tmp;
-    arr_nutrient_new[i *nGridXY*nGridZ + jp*nGridZ + k ] += alphaXY * tmp;
-    arr_nutrient_new[i *nGridXY*nGridZ + jm*nGridZ + k ] += alphaXY * tmp;
-    arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + kp] += alphaZ  * tmp;
-    arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + km] += alphaZ  * tmp;
+    // Writing order has been reversed compared with non-CUDA version
+    numtype inflow = 0.0;
+    inflow += alphaXY * arr_nutrient[ip*nGridXY*nGridZ + j *nGridZ + k ];
+    inflow += alphaXY * arr_nutrient[im*nGridXY*nGridZ + j *nGridZ + k ];
+    inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jp*nGridZ + k ];
+    inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jm*nGridZ + k ];
+    inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + kp];
+    inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + km];
+
+    numtype tmp = arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + k];
+    numtype outflow = (4 * alphaXY + 2 * alphaZ) * tmp;
+
+    arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k] = tmp + inflow - outflow;
+
+
+    // arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k ] += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
+    // arr_nutrient_new[ip*nGridXY*nGridZ + j *nGridZ + k ] += alphaXY * tmp;
+    // arr_nutrient_new[im*nGridXY*nGridZ + j *nGridZ + k ] += alphaXY * tmp;
+    // arr_nutrient_new[i *nGridXY*nGridZ + jp*nGridZ + k ] += alphaXY * tmp;
+    // arr_nutrient_new[i *nGridXY*nGridZ + jm*nGridZ + k ] += alphaXY * tmp;
+    // arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + kp] += alphaZ  * tmp;
+    // arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + km] += alphaZ  * tmp;
   }
 }
