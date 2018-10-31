@@ -2,17 +2,17 @@
 #include "colonies3D_kernels.cu.h"
 #include <chrono>
 
-#define GPU_NC true                 // Works for nGrid > 8
-#define GPU_MAXOCCUPANCY true       // Works for nGrid > 8
-#define GPU_BIRTH true              // Works for nGrid > 8
-#define GPU_INFECTIONS true         // Works for nGrid > 8
-#define GPU_NEWINFECTIONS true	    // Works for nGrid > 8
-#define GPU_PHAGEDECAY true         // Works for nGrid > 8
-#define GPU_MOVEMENT false          // DOES NOT WORK WHEN nGrid > 11
-#define GPU_SWAPZERO true           // Works for nGrid > 8
-#define GPU_UPDATEOCCUPANCY true    // Works for nGrid > 8
-#define GPU_NUTRIENTDIFFUSION true  // Works for nGrid > 8
-#define GPU_SWAPZERO2 true          // Works for nGrid > 8
+#define GPU_NC true                 // Works
+#define GPU_MAXOCCUPANCY true       // Works
+#define GPU_BIRTH true              // Works
+#define GPU_INFECTIONS true         // Works
+#define GPU_NEWINFECTIONS true	    // Works
+#define GPU_PHAGEDECAY true         // Works
+#define GPU_MOVEMENT false          // Works
+#define GPU_SWAPZERO true           // Works
+#define GPU_UPDATEOCCUPANCY true    // Works
+#define GPU_NUTRIENTDIFFUSION true  // Works
+#define GPU_SWAPZERO2 true          // Works
 
 #define GPU_KERNEL_TIMING true
 
