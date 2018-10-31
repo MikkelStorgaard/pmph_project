@@ -744,6 +744,7 @@ __global__ void NutrientDiffusion(numtype* arr_nutrient,
                                   int nGridZ,
                                   bool experimentalConditions,
                                   int vol) {
+
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
   if (tid < vol) {
@@ -784,12 +785,12 @@ __global__ void NutrientDiffusion(numtype* arr_nutrient,
     }
 
     numtype tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-    arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
-    arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-    arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-    arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
-    arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
-    arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
-    arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
+    arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k ] += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
+    arr_nutrient_new[ip*nGridXY*nGridZ + j *nGridZ + k ] += alphaXY * tmp;
+    arr_nutrient_new[im*nGridXY*nGridZ + j *nGridZ + k ] += alphaXY * tmp;
+    arr_nutrient_new[i *nGridXY*nGridZ + jp*nGridZ + k ] += alphaXY * tmp;
+    arr_nutrient_new[i *nGridXY*nGridZ + jm*nGridZ + k ] += alphaXY * tmp;
+    arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + kp] += alphaZ  * tmp;
+    arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + km] += alphaZ  * tmp;
   }
 }

@@ -1889,8 +1889,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	int totalElements = nGridXY * nGridXY * nGridZ;
 	int totalMemSize = totalElements * sizeof(numtype);
 	int blockSize = 256;
-	// int gridSize = (totalElements + blockSize - 1) / blockSize;
-	int gridSize = ceil(totalElements / blockSize);
+	int gridSize = ceil((double)totalElements / (double)blockSize);
 	cudaError_t err = cudaSuccess;
 
 	// Allocate on GPU
@@ -2896,8 +2895,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                 std::swap(d_arr_I8, d_arr_I8_new);
                 std::swap(d_arr_I9, d_arr_I9_new);
                 std::swap(d_arr_P, d_arr_P_new);
-
                 cudaDeviceSynchronize();
+
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, totalElements);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, totalElements);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, totalElements);
