@@ -40,7 +40,7 @@ Colonies3D::Colonies3D(numtype B_0, numtype P_0){
 	H                       = L;        // [µm]     Height of the simulation array
 	nGridXY                 = 100000;       //          Number of gridpoints
 	nGridZ                  = nGridXY;  //          Number of gridpoints
-  volume                  = nGridXY*nGridXY*nGridZ;
+ 	volume                  = nGridXY*nGridXY*nGridZ;
 
 	nSamp                   = 1000;       //          Number of samples to save per simulation hour
 
@@ -1887,7 +1887,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 	/* Allocate arrays on the device */
 	int totalElements = nGridXY * nGridXY * nGridZ;
-	int totalMemSize = totalElements * sizeof(numtype);
+}
+int totalMemSize = totalElements * sizeof(numtype);
 	int blockSize = 256;
 	// int gridSize = (totalElements + blockSize - 1) / blockSize;
 	int gridSize = ceil(totalElements / blockSize);
@@ -2042,6 +2043,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 
 	// cudaMemCpy to device
+	//CopyAllToDevice();
 
 	// Loop over samplings
 	for (int n = 0; n < nSamplings; n++) {
@@ -2049,8 +2051,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 		// Determine the number of timesteps between sampings
 		int nStepsPerSample = static_cast<int>(cpu_round(1 / (nSamp *  dT)));
-
-        //CopyAllToDevice();
 
 		for (int t = 0; t < nStepsPerSample; t++) {
 			if (exit) break;
@@ -2274,7 +2274,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 								cout << "\tWarning: Birth Probability Large!" << "\n";
 								f_log  << "Warning: Birth Probability Large!" << "\n";
 								Warn_g = true;
-						 }
+							}
 
 							/* BEGIN anden Map-kernel */
 							N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
@@ -2728,7 +2728,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				// }
 
 				// Copy data back from device
-        if(!GPU_SWAPZERO) {
+				if(!GPU_SWAPZERO) {
 					CopyAllToHost();
 				}
 

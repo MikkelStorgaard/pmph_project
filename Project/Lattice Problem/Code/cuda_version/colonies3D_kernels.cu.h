@@ -735,6 +735,7 @@ __global__ void UpdateOccupancy(numtype* arr_Occ,
     }
 
 }
+
 __global__ void NutrientDiffusion(numtype* arr_nutrient,
                                   numtype* arr_nutrient_new,
                                   numtype alphaXY,
@@ -745,13 +746,11 @@ __global__ void NutrientDiffusion(numtype* arr_nutrient,
                                   int vol) {
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
-  if(tid < vol) {
+  if (tid < vol) {
 
-
-    int k = tid%nGridZ;
-    int j = ((tid - k)/nGridZ)%nGridXY;
-    int i = ((tid -k) /nGridZ)/nGridXY;
-
+    int k = tid % nGridZ;
+    int j = ( (tid - k) / nGridZ ) % nGridXY;
+    int i = (((ind - k) / nGridZ) - jj) / nGridXY
 
     // Update positions
     int ip, jp, kp, im, jm, km;
