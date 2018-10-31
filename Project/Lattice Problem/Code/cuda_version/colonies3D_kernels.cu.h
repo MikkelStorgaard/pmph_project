@@ -160,11 +160,24 @@ __device__ void ComputeDiffusion(curandState state, numtype n, numtype lambda, n
 
 }
 
-__global__ void ComputeDiffusionWeights(curandState* state, numtype* arr, numtype lambda, numtype* arr_n_0, numtype* arr_n_u, numtype* arr_n_d, numtype* arr_n_l, numtype* arr_n_r, numtype* arr_n_f, numtype* arr_n_b, int nGridXY, bool* arr_IsActive) {
+__global__ void ComputeDiffusionWeights(curandState* state, numtype* arr, numtype lambda, numtype* arr_n_0, numtype* arr_n_u, numtype* arr_n_d, numtype* arr_n_l, numtype* arr_n_r, numtype* arr_n_f, numtype* arr_n_b, int nGridXY, bool* arr_IsActive, int totalElements) {
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
+
   if (!(arr_IsActive[i])){
+
+    // If thread is inside of bounds, reset the arrays, the return.
+    if (i < totalElements){
+      arr_n_0[i] = 0.0;
+      arr_n_u[i] = 0.0;
+      arr_n_d[i] = 0.0;
+      arr_n_l[i] = 0.0;
+      arr_n_r[i] = 0.0;
+      arr_n_f[i] = 0.0;
+      arr_n_b[i] = 0.0;
+    }
+
     return;
   }
 
