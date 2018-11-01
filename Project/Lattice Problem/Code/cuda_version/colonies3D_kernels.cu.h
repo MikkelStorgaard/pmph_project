@@ -236,6 +236,16 @@ __global__ void SecondKernel(numtype* arr_Occ, numtype* arr_nC, numtype* maxOcc,
   }
 }
 
+__global__ void MaxOccupancyOpt(numtype* arr_Occ, bool* Warn_density, numtype threshold, bool* arr_IsActive){
+    int i = blockIdx.x*blockDim.x + threadIdx.x;
+    if ((!(arr_IsActive[i])) || *Warn_density){
+        return;
+    }
+    if(arr_Occ[i] > threshold) *Warn_density = true;
+}
+
+
+
 __global__ void PartialMax(numtype* arr, numtype* partialMax, int N){
 
   extern __shared__ numtype shared[];
