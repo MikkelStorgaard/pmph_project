@@ -2080,7 +2080,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			if (GPU_NC){
 
 				// Copy to the device
-				CopyAllToDevice();
+				if (((t == 0) && (n == 0)) || !GPU_SWAPZERO2) {
+					CopyAllToDevice();
+				}
 
 				if (GPU_KERNEL_TIMING){
 					cudaDeviceSynchronize();
@@ -3124,8 +3126,10 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                   f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count();
                 }
 
-                // Copy data back from device
-				CopyAllToHost();
+				// Copy data back from device
+				if(!GPU_NC) {
+					CopyAllToHost();
+				}
 
             } else {
                 std::swap(arr_nutrient, arr_nutrient_new);
@@ -3142,7 +3146,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 
 
-                f_kerneltimings << "\n";
+			f_kerneltimings << "\n";
 			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
 				cout << "\tWarning: Maximum Density Large!" << "\n";
 				f_log  << "Warning: Maximum Density Large!" << "\n";
@@ -3239,7 +3243,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		}
 
 		// cudaMemCpy to host
-
+		CopyAllToHost();
 
 		// Store the state
 		ExportData_arr(T,filename_suffix);
