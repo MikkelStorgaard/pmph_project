@@ -8,7 +8,7 @@
 #define GPU_INFECTIONS true         // Works
 #define GPU_NEWINFECTIONS true	    // Works
 #define GPU_PHAGEDECAY true         // Works
-#define GPU_MOVEMENT false          // Works
+#define GPU_MOVEMENT true           // Works
 #define GPU_SWAPZERO true           // Works
 #define GPU_UPDATEOCCUPANCY true    // Works
 #define GPU_NUTRIENTDIFFUSION true  // Works
@@ -19,6 +19,9 @@
 // Different optimization tests
 #define GPU_SKIP_PASSIVE true	// TODO: IMPLEMENT
 #define GPU_REDUCE_ARRAYS true 	// TODO: IMPLEMENT
+
+#define GPU_COPY_TO_SHARED false
+
 
 using namespace std;
 using namespace std::chrono;
