@@ -733,12 +733,14 @@ __global__ void NutrientDiffusion(numtype* arr_nutrient,
     // Writing order has been reversed compared with non-CUDA version
     #if GPU_COPY_TO_SHARED
 
-      // 1D abstraction
-      int T = blockDim.x+2; // Tile length
-      int memSize = 5*T;    // Number of tiles
-      int thr = threadIdx.x;
+      // // 1D abstraction
+      // int T = blockDim.x+2; // Tile length
+      // int memSize = 5*T;    // Number of tiles
 
-      extern __shared__ numtype shared[memSize];
+      // extern __shared__ numtype shared[memSize];
+      extern __shared__ numtype shared[];
+
+      int thr = threadIdx.x;
 
       // Copy to shared
       // Compute the neighbour indicies
