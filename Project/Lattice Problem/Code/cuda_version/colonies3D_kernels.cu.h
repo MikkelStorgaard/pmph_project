@@ -578,83 +578,9 @@ __global__ void ApplyMovement(numtype* arr_new,
         return;
     }
 
-    if (lambda > 0) {
-      int k = tid % nGridZ;
-      int j = ( (tid - k) / nGridZ ) % nGridXY;
-      int i = (((tid - k) / nGridZ ) - j) / nGridXY;
-
-      int ip, jp, kp, im, jm, km;
-
-      if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-      else ip = i + 1;
-
-      if (i == 0) im = nGridXY - 1;
-      else im = i - 1;
-
-      if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-      else jp = j + 1;
-
-      if (j == 0) jm = nGridXY - 1;
-      else jm = j - 1;
-
-      if (not experimentalConditions) {   // Periodic boundaries in Z direction
-
-        if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-        else kp = k + 1;
-
-        if (k == 0) km = nGridZ - 1;
-        else km = k - 1;
-
-      } else {    // Reflective boundaries in Z direction
-        if (k + 1 >= nGridZ) kp = k - 1;
-        else kp = k + 1;
-
-        if (k == 0) km = k + 1;
-        else km = k - 1;
-
-      }
-
-
-      // Update counts
-      numtype tmp;
-      if(zero) tmp = 0.0;
-      else tmp = arr_new[tid];
-      tmp += arr_n_0[ i*nGridXY*nGridZ +  j*nGridZ + k ];
-      tmp += arr_n_u[ip*nGridXY*nGridZ +  j*nGridZ + k ];
-      tmp += arr_n_d[im*nGridXY*nGridZ +  j*nGridZ + k ];
-      tmp += arr_n_r[ i*nGridXY*nGridZ + jp*nGridZ + k ];
-      tmp += arr_n_l[ i*nGridXY*nGridZ + jm*nGridZ + k ];
-      tmp += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
-      tmp += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
-      arr_new[tid] = tmp;
-
-    } else {
-      arr_new[tid] = arr_n_0[tid];
-    }
-
-}
-
-
-// first movement kernel (if nGridXY > 1)
-__global__ void Movement1(curandState *rng_state,
-                          numtype* arr,
-                          numtype* arr_new,
-                          bool* arr_IsActive,
-                          int nGridZ,
-                          int nGridXY,
-                          bool experimentalConditions,
-                          numtype lambda){
-
-    int tid = blockIdx.x*blockDim.x + threadIdx.x;
-
-    // Skip empty sites
-    if (!arr_IsActive[tid]){
-        return;
-    }
-
-    int k = tid%nGridZ;
-    int j = ((tid - k)/nGridZ)%nGridXY;
-    int i = ((tid -k) /nGridZ)/nGridXY;
+    int k = tid % nGridZ;
+    int j = ( (tid - k) / nGridZ ) % nGridXY;
+    int i = (((tid - k) / nGridZ ) - j) / nGridXY;
 
     int ip, jp, kp, im, jm, km;
 
@@ -687,41 +613,25 @@ __global__ void Movement1(curandState *rng_state,
 
     }
 
+
     // Update counts
-    numtype n_0; // No movement
-    numtype n_u; // Up
-    numtype n_d; // Down
-    numtype n_l; // Left
-    numtype n_r; // Right
-    numtype n_f; // Front
-    numtype n_b; // Back
+    numtype tmp;
+    if(zero) tmp = 0.0;
+    else tmp = arr_new[tid];
+    tmp += arr_n_0[ i*nGridXY*nGridZ +  j*nGridZ + k ];
 
-    ComputeDiffusion(rng_state[tid], arr[i*nGridXY*nGridZ + j*nGridZ + k], lambda, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, i, j, k, nGridXY);
-        arr_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
-        arr_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u;
-        arr_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d;
-        arr_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r;
-        arr_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l;
-        arr_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f;
-        arr_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-}
-
-__global__ void Movement2(numtype* arr,
-                          numtype* arr_new,
-                          bool* arr_IsActive){
-
-    int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    // CELLS
-	// Skip empty sites
-    if (!arr_IsActive[tid]){
-        return;
+    if (lambda > 0) {
+      tmp += arr_n_u[ip*nGridXY*nGridZ +  j*nGridZ + k ];
+      tmp += arr_n_d[im*nGridXY*nGridZ +  j*nGridZ + k ];
+      tmp += arr_n_r[ i*nGridXY*nGridZ + jp*nGridZ + k ];
+      tmp += arr_n_l[ i*nGridXY*nGridZ + jm*nGridZ + k ];
+      tmp += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
+      tmp += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
     }
-
-    arr_new[tid] += arr[tid];
-
+    arr_new[tid] = tmp;
 
 }
+
 
 ///////////////////////////////
 // Simple end of loop kernels.
