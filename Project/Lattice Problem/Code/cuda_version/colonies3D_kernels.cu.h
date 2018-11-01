@@ -578,7 +578,7 @@ __global__ void ApplyMovement(numtype* arr_new,
         return;
     }
 
-    if (lambda > 0) {
+    if (true) {
       int k = tid % nGridZ;
       int j = ( (tid - k) / nGridZ ) % nGridXY;
       int i = (((tid - k) / nGridZ ) - j) / nGridXY;
@@ -627,8 +627,11 @@ __global__ void ApplyMovement(numtype* arr_new,
       tmp += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
       tmp += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
 	    arr_new[tid] = tmp;
+
     } else {
+
       arr_new[tid] += arr_n_0[tid];
+
     }
 }
 
