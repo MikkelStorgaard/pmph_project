@@ -378,11 +378,12 @@ __global__ void ComputeBirthEvents(numtype* arr_B, numtype* arr_B_new, numtype* 
 
 }
 
-__global__ void BurstingEvents(numtype* arr_I9, numtype* arr_P_new, numtype* arr_Occ, numtype* arr_GrowthModifier, numtype* arr_M, numtype* arr_p, numtype alpha, numtype beta, numtype r, numtype dT, bool reducedBeta, bool* Warn_r, curandState *rng_state, bool* arr_IsActive){
+__global__ void BurstingEvents(numtype* arr_I9, numtype* arr_P_new, numtype* arr_Occ, numtype* arr_GrowthModifier, numtype* arr_M, numtype* arr_p, numtype alpha, numtype beta, numtype r, numtype dT, bool reducedBeta, bool* Warn_r, curandState *rng_state, bool* arr_IsActive, int totalElements){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
 
   if (!(arr_IsActive[i])){
+	  if(i < totalElements) arr_P_new[i] = 0.0;
     return;
   }
 
@@ -409,7 +410,7 @@ __global__ void BurstingEvents(numtype* arr_I9, numtype* arr_P_new, numtype* arr
   // DETERMINITIC CHANGE
   // arr_P_new[i] += round( (1 - alpha) * beta * N);
   // arr_M[i]     = round(alpha * beta * N);
-  arr_P_new[i] += (1 - alpha) * beta * N;
+  arr_P_new[i] = (1 - alpha) * beta * N;
   arr_M[i]     = alpha * beta * N;
   arr_p[i]     = p;
 }
@@ -564,12 +565,15 @@ __global__ void ApplyMovement(numtype* arr_new,
                               int nGridZ,
                               int nGridXY,
                               bool experimentalConditions,
-                              bool* arr_IsActive) {
+                              bool* arr_IsActive,
+							  bool zero,
+							  int totalElements) {
 
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
     // Skip empty sites
     if (!arr_IsActive[tid]){
+		if (tid < totalElements)  arr_new[tid] = 0.0;
         return;
     }
 
@@ -659,6 +663,21 @@ __global__ void ApplyMovement(numtype* arr_new,
     #else
 
       // Update counts
+	  
+	  numtype tmp;
+	  if(zero) tmp = 0.0;
+	  else tmp = arr_new[tid]; 
+	  tmp += arr_n_0[ i*nGridXY*nGridZ +  j*nGridZ + k ];
+      tmp += arr_n_u[ip*nGridXY*nGridZ +  j*nGridZ + k ];
+      tmp += arr_n_d[im*nGridXY*nGridZ +  j*nGridZ + k ];
+      tmp += arr_n_r[ i*nGridXY*nGridZ + jp*nGridZ + k ];
+      tmp += arr_n_l[ i*nGridXY*nGridZ + jm*nGridZ + k ];
+      tmp += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
+      tmp += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
+	  arr_new[tid] = tmp;
+	  
+	  
+/*
       arr_new[tid] += arr_n_0[ i*nGridXY*nGridZ +  j*nGridZ + k ];
       arr_new[tid] += arr_n_u[ip*nGridXY*nGridZ +  j*nGridZ + k ];
       arr_new[tid] += arr_n_d[im*nGridXY*nGridZ +  j*nGridZ + k ];
@@ -666,7 +685,7 @@ __global__ void ApplyMovement(numtype* arr_new,
       arr_new[tid] += arr_n_l[ i*nGridXY*nGridZ + jm*nGridZ + k ];
       arr_new[tid] += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
       arr_new[tid] += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
-
+*/	
     #endif
 }
 
