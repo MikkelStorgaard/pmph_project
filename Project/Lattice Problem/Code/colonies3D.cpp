@@ -315,43 +315,79 @@ int Colonies3D::Run_Original(double T_end) {
 
                             // CELLS
                             ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
-                            B_new(i, j, k) += n_0; B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
+                            B_new(i, j, k) += n_0;
+                            if (lambdaB > 0) {
+                                    B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
+                            }
 
                             if (r > 0.0) {
                                 ComputeDiffusion(I0(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I0_new(i, j, k) += n_0; I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
+                                I0_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I1(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I1_new(i, j, k) += n_0; I1_new(ip, j, k) += n_u; I1_new(im, j, k) += n_d; I1_new(i, jp, k) += n_r; I1_new(i, jm, k) += n_l; I1_new(i, j, kp) += n_f; I1_new(i, j, km) += n_b;
+                                I1_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I1_new(ip, j, k) += n_u; I1_new(im, j, k) += n_d; I1_new(i, jp, k) += n_r; I1_new(i, jm, k) += n_l; I1_new(i, j, kp) += n_f; I1_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I2(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I2_new(i, j, k) += n_0; I2_new(ip, j, k) += n_u; I2_new(im, j, k) += n_d; I2_new(i, jp, k) += n_r; I2_new(i, jm, k) += n_l; I2_new(i, j, kp) += n_f; I2_new(i, j, km) += n_b;
+                                I2_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I2_new(ip, j, k) += n_u; I2_new(im, j, k) += n_d; I2_new(i, jp, k) += n_r; I2_new(i, jm, k) += n_l; I2_new(i, j, kp) += n_f; I2_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I3(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I3_new(i, j, k) += n_0; I3_new(ip, j, k) += n_u; I3_new(im, j, k) += n_d; I3_new(i, jp, k) += n_r; I3_new(i, jm, k) += n_l; I3_new(i, j, kp) += n_f; I3_new(i, j, km) += n_b;
+                                I3_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I3_new(ip, j, k) += n_u; I3_new(im, j, k) += n_d; I3_new(i, jp, k) += n_r; I3_new(i, jm, k) += n_l; I3_new(i, j, kp) += n_f; I3_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I4(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I4_new(i, j, k) += n_0; I4_new(ip, j, k) += n_u; I4_new(im, j, k) += n_d; I4_new(i, jp, k) += n_r; I4_new(i, jm, k) += n_l; I4_new(i, j, kp) += n_f; I4_new(i, j, km) += n_b;
+                                I4_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I4_new(ip, j, k) += n_u; I4_new(im, j, k) += n_d; I4_new(i, jp, k) += n_r; I4_new(i, jm, k) += n_l; I4_new(i, j, kp) += n_f; I4_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I5(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I5_new(i, j, k) += n_0; I5_new(ip, j, k) += n_u; I5_new(im, j, k) += n_d; I5_new(i, jp, k) += n_r; I5_new(i, jm, k) += n_l; I5_new(i, j, kp) += n_f; I5_new(i, j, km) += n_b;
+                                I5_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I5_new(ip, j, k) += n_u; I5_new(im, j, k) += n_d; I5_new(i, jp, k) += n_r; I5_new(i, jm, k) += n_l; I5_new(i, j, kp) += n_f; I5_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I6(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I6_new(i, j, k) += n_0; I6_new(ip, j, k) += n_u; I6_new(im, j, k) += n_d; I6_new(i, jp, k) += n_r; I6_new(i, jm, k) += n_l; I6_new(i, j, kp) += n_f; I6_new(i, j, km) += n_b;
+                                I6_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I6_new(ip, j, k) += n_u; I6_new(im, j, k) += n_d; I6_new(i, jp, k) += n_r; I6_new(i, jm, k) += n_l; I6_new(i, j, kp) += n_f; I6_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I7(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I7_new(i, j, k) += n_0; I7_new(ip, j, k) += n_u; I7_new(im, j, k) += n_d; I7_new(i, jp, k) += n_r; I7_new(i, jm, k) += n_l; I7_new(i, j, kp) += n_f; I7_new(i, j, km) += n_b;
+                                I7_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I7_new(ip, j, k) += n_u; I7_new(im, j, k) += n_d; I7_new(i, jp, k) += n_r; I7_new(i, jm, k) += n_l; I7_new(i, j, kp) += n_f; I7_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I8(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I8_new(i, j, k) += n_0; I8_new(ip, j, k) += n_u; I8_new(im, j, k) += n_d; I8_new(i, jp, k) += n_r; I8_new(i, jm, k) += n_l; I8_new(i, j, kp) += n_f; I8_new(i, j, km) += n_b;
+                                I8_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I8_new(ip, j, k) += n_u; I8_new(im, j, k) += n_d; I8_new(i, jp, k) += n_r; I8_new(i, jm, k) += n_l; I8_new(i, j, kp) += n_f; I8_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I9_new(i, j, k) += n_0; I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
+                                I9_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
+                                }
                             }
 
                             // PHAGES
                             ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
-                            P_new(i, j, k) += n_0; P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
+                            P_new(i, j, k) += n_0;
+                            if (lambdaP > 0) {
+                                P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
+                            }
 
 
 
@@ -766,43 +802,79 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication_with_arma(double T_end) {
 
                             // CELLS
                             ComputeDiffusion(B(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
-                            B_new(i, j, k) += n_0; B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
+                            B_new(i, j, k) += n_0;
+                            if (lambdaB > 0) {
+                                B_new(ip, j, k) += n_u; B_new(im, j, k) += n_d; B_new(i, jp, k) += n_r; B_new(i, jm, k) += n_l; B_new(i, j, kp) += n_f; B_new(i, j, km) += n_b;
+                            }
 
                             if (r > 0.0) {
                                 ComputeDiffusion(I0(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I0_new(i, j, k) += n_0; I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
+                                I0_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I0_new(ip, j, k) += n_u; I0_new(im, j, k) += n_d; I0_new(i, jp, k) += n_r; I0_new(i, jm, k) += n_l; I0_new(i, j, kp) += n_f; I0_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I1(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I1_new(i, j, k) += n_0; I1_new(ip, j, k) += n_u; I1_new(im, j, k) += n_d; I1_new(i, jp, k) += n_r; I1_new(i, jm, k) += n_l; I1_new(i, j, kp) += n_f; I1_new(i, j, km) += n_b;
+                                I1_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I1_new(ip, j, k) += n_u; I1_new(im, j, k) += n_d; I1_new(i, jp, k) += n_r; I1_new(i, jm, k) += n_l; I1_new(i, j, kp) += n_f; I1_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I2(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I2_new(i, j, k) += n_0; I2_new(ip, j, k) += n_u; I2_new(im, j, k) += n_d; I2_new(i, jp, k) += n_r; I2_new(i, jm, k) += n_l; I2_new(i, j, kp) += n_f; I2_new(i, j, km) += n_b;
+                                I2_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I2_new(ip, j, k) += n_u; I2_new(im, j, k) += n_d; I2_new(i, jp, k) += n_r; I2_new(i, jm, k) += n_l; I2_new(i, j, kp) += n_f; I2_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I3(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I3_new(i, j, k) += n_0; I3_new(ip, j, k) += n_u; I3_new(im, j, k) += n_d; I3_new(i, jp, k) += n_r; I3_new(i, jm, k) += n_l; I3_new(i, j, kp) += n_f; I3_new(i, j, km) += n_b;
+                                I3_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I3_new(ip, j, k) += n_u; I3_new(im, j, k) += n_d; I3_new(i, jp, k) += n_r; I3_new(i, jm, k) += n_l; I3_new(i, j, kp) += n_f; I3_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I4(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I4_new(i, j, k) += n_0; I4_new(ip, j, k) += n_u; I4_new(im, j, k) += n_d; I4_new(i, jp, k) += n_r; I4_new(i, jm, k) += n_l; I4_new(i, j, kp) += n_f; I4_new(i, j, km) += n_b;
+                                I4_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I4_new(ip, j, k) += n_u; I4_new(im, j, k) += n_d; I4_new(i, jp, k) += n_r; I4_new(i, jm, k) += n_l; I4_new(i, j, kp) += n_f; I4_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I5(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I5_new(i, j, k) += n_0; I5_new(ip, j, k) += n_u; I5_new(im, j, k) += n_d; I5_new(i, jp, k) += n_r; I5_new(i, jm, k) += n_l; I5_new(i, j, kp) += n_f; I5_new(i, j, km) += n_b;
+                                I5_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I5_new(ip, j, k) += n_u; I5_new(im, j, k) += n_d; I5_new(i, jp, k) += n_r; I5_new(i, jm, k) += n_l; I5_new(i, j, kp) += n_f; I5_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I6(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I6_new(i, j, k) += n_0; I6_new(ip, j, k) += n_u; I6_new(im, j, k) += n_d; I6_new(i, jp, k) += n_r; I6_new(i, jm, k) += n_l; I6_new(i, j, kp) += n_f; I6_new(i, j, km) += n_b;
+                                I6_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I6_new(ip, j, k) += n_u; I6_new(im, j, k) += n_d; I6_new(i, jp, k) += n_r; I6_new(i, jm, k) += n_l; I6_new(i, j, kp) += n_f; I6_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I7(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I7_new(i, j, k) += n_0; I7_new(ip, j, k) += n_u; I7_new(im, j, k) += n_d; I7_new(i, jp, k) += n_r; I7_new(i, jm, k) += n_l; I7_new(i, j, kp) += n_f; I7_new(i, j, km) += n_b;
+                                I7_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I7_new(ip, j, k) += n_u; I7_new(im, j, k) += n_d; I7_new(i, jp, k) += n_r; I7_new(i, jm, k) += n_l; I7_new(i, j, kp) += n_f; I7_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I8(i, j, k),  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I8_new(i, j, k) += n_0; I8_new(ip, j, k) += n_u; I8_new(im, j, k) += n_d; I8_new(i, jp, k) += n_r; I8_new(i, jm, k) += n_l; I8_new(i, j, kp) += n_f; I8_new(i, j, km) += n_b;
+                                I8_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I8_new(ip, j, k) += n_u; I8_new(im, j, k) += n_d; I8_new(i, jp, k) += n_r; I8_new(i, jm, k) += n_l; I8_new(i, j, kp) += n_f; I8_new(i, j, km) += n_b;
+                                }
 
                                 ComputeDiffusion(I9(i, j, k), lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                I9_new(i, j, k) += n_0; I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
+                                I9_new(i, j, k) += n_0;
+                                if (lambdaB > 0) {
+                                    I9_new(ip, j, k) += n_u; I9_new(im, j, k) += n_d; I9_new(i, jp, k) += n_r; I9_new(i, jm, k) += n_l; I9_new(i, j, kp) += n_f; I9_new(i, j, km) += n_b;
+                                }
                             }
 
                             // PHAGES
                             ComputeDiffusion(P(i, j, k), lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
-                            P_new(i, j, k) += n_0; P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
+                            P_new(i, j, k) += n_0;
+                            if (lambdaP > 0) {
+                                P_new(ip, j, k) += n_u; P_new(im, j, k) += n_d; P_new(i, jp, k) += n_r; P_new(i, jm, k) += n_l; P_new(i, j, kp) += n_f; P_new(i, j, km) += n_b;
+                            }
 
 
 
@@ -1275,43 +1347,79 @@ int Colonies3D::Run_NoMatrixMatrixMultiplication(double T_end) {
 
                             // CELLS
                             ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
-                            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                            if (lambdaB > 0) {
+                                arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                            }
 
                             if (r > 0.0) {
                                 ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
                             }
 
                             // PHAGES
                             ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
-                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                            if (lambdaP > 0) {
+                                arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                            }
 
 
 
@@ -1983,43 +2091,79 @@ int Colonies3D::Run_LoopDistributed_CPU(double T_end) {
 
                             // CELLS
                             ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
-                            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                            if (lambdaB > 0) {
+                                arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                            }
 
                             if (r > 0.0) {
                                 ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
 
                                 ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                if (lambdaB > 0) {
+                                    arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                                }
                             }
 
                             // PHAGES
                             ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
-                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                            if (lambdaP > 0) {
+                                arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+                            }
 
                             // KERNEL END
 
@@ -3109,7 +3253,7 @@ void Colonies3D::ExportData(double t, std::string filename_suffix){
     uvec nz = find(B);
     f_N << setw(12) << static_cast<double>(nz.n_elem) / initialOccupancy << "\t";
     f_N << setw(12) << round(n_0 / 1e12 * pow(L, 2) * H - accu(nutrient)) << "\t";
-    f_N << setw(12) << roundaccu(nC) << endl;
+    f_N << setw(12) << round(accu(nC)) << endl;
 
     if (exportAll) {
         // Save the position data

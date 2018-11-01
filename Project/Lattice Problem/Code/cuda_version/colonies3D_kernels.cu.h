@@ -555,6 +555,7 @@ __global__ void PhageDecay(numtype* arr_P, numtype p,
 }
 
 __global__ void ApplyMovement(numtype* arr_new,
+                              numtype lambda,
                               numtype* arr_n_0,
                               numtype* arr_n_u,
                               numtype* arr_n_d,
@@ -569,7 +570,10 @@ __global__ void ApplyMovement(numtype* arr_new,
 							  bool zero,
 							  int totalElements) {
 
-    int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    int index = blockIdx.x*blockDim.x + threadIdx.x;
+    #if false
+    int tid = threadIdx.x;
+    #endif
 
     // Skip empty sites
     if (!arr_IsActive[tid]){
@@ -577,90 +581,91 @@ __global__ void ApplyMovement(numtype* arr_new,
         return;
     }
 
-    int k = tid % nGridZ;
-    int j = ( (tid - k) / nGridZ ) % nGridXY;
-    int i = ( (tid - k) / nGridZ ) / nGridXY;
+    if (lambda > 0) {
+      int k = index % nGridZ;
+      int j = ( (index - k) / nGridZ ) % nGridXY;
+      int i = ( (index - k) / nGridZ ) / nGridXY;
 
-    int ip, jp, kp, im, jm, km;
+      int ip, jp, kp, im, jm, km;
 
-    if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-    else ip = i + 1;
+      if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+      else ip = i + 1;
 
-    if (i == 0) im = nGridXY - 1;
-    else im = i - 1;
+      if (i == 0) im = nGridXY - 1;
+      else im = i - 1;
 
-    if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-    else jp = j + 1;
+      if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+      else jp = j + 1;
 
-    if (j == 0) jm = nGridXY - 1;
-    else jm = j - 1;
+      if (j == 0) jm = nGridXY - 1;
+      else jm = j - 1;
 
-    if (not experimentalConditions) {   // Periodic boundaries in Z direction
+      if (not experimentalConditions) {   // Periodic boundaries in Z direction
 
-      if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-      else kp = k + 1;
+        if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+        else kp = k + 1;
 
-      if (k == 0) km = nGridZ - 1;
-      else km = k - 1;
+        if (k == 0) km = nGridZ - 1;
+        else km = k - 1;
 
-    } else {    // Reflective boundaries in Z direction
-      if (k + 1 >= nGridZ) kp = k - 1;
-      else kp = k + 1;
+      } else {    // Reflective boundaries in Z direction
+        if (k + 1 >= nGridZ) kp = k - 1;
+        else kp = k + 1;
 
-      if (k == 0) km = k + 1;
-      else km = k - 1;
+        if (k == 0) km = k + 1;
+        else km = k - 1;
 
-    }
+      }
 
-    #if GPU_COPY_TO_SHARED
+      #if false // GPU_COPY_TO_SHARED
 
-      // 1D abstraction
-      int T = blockDim.x; // Tile length
-      int memSize = 5*T;    // Number of tiles
+        // 1D abstraction
+        int T = blockDim.x; // Tile length
+        int memSize = 5*T;    // Number of tiles
 
-      extern __shared__ numtype shared_n_0[blockDim.x];
-      extern __shared__ numtype shared_n_u[blockDim.x];
-      extern __shared__ numtype shared_n_d[blockDim.x];
-      extern __shared__ numtype shared_n_r[blockDim.x];
-      extern __shared__ numtype shared_n_l[blockDim.x];
-      extern __shared__ numtype shared_n_f[blockDim.x];
-      extern __shared__ numtype shared_n_b[blockDim.x];
+        extern __shared__ numtype shared_n_0[blockDim.x];
+        extern __shared__ numtype shared_n_u[blockDim.x];
+        extern __shared__ numtype shared_n_d[blockDim.x];
+        extern __shared__ numtype shared_n_r[blockDim.x];
+        extern __shared__ numtype shared_n_l[blockDim.x];
+        extern __shared__ numtype shared_n_f[blockDim.x];
+        extern __shared__ numtype shared_n_b[blockDim.x];
 
-      // Copy to shared
-      // Compute the neighbour indicies
-      int ind_0 =  i*nGridXY*nGridZ +  j*nGridZ + k ;
-      int ind_u = ip*nGridXY*nGridZ +  j*nGridZ + k ;
-      int ind_d = im*nGridXY*nGridZ +  j*nGridZ + k ;
-      int ind_r =  i*nGridXY*nGridZ + jp*nGridZ + k ;
-      int ind_l =  i*nGridXY*nGridZ + jm*nGridZ + k ;
-      int ind_f =  i*nGridXY*nGridZ +  j*nGridZ + kp;
-      int ind_b =  i*nGridXY*nGridZ +  j*nGridZ + km;
+        // Copy to shared
+        // Compute the neighbour indicies
+        int ind_0 =  tid;
+        int ind_u = ip*nGridXY*nGridZ +  j*nGridZ + k ;
+        int ind_d = im*nGridXY*nGridZ +  j*nGridZ + k ;
+        int ind_r =  i*nGridXY*nGridZ + jp*nGridZ + k ;
+        int ind_l =  i*nGridXY*nGridZ + jm*nGridZ + k ;
+        int ind_f =  i*nGridXY*nGridZ +  j*nGridZ + kp;
+        int ind_b =  i*nGridXY*nGridZ +  j*nGridZ + km;
 
-      // Copy valies
-      shared_n_0[tid] = arr_n_0[ind_0];
-      shared_n_u[tid] = arr_n_u[ind_u];
-      shared_n_d[tid] = arr_n_d[ind_d];
-      shared_n_r[tid] = arr_n_r[ind_r];
-      shared_n_l[tid] = arr_n_l[ind_l];
-      shared_n_f[tid] = arr_n_f[ind_f];
-      shared_n_b[tid] = arr_n_b[ind_b];
-      __syncthreads();
+        // Copy valies
+        shared_n_0[tid] = arr_n_0[ind_0];
+        shared_n_u[tid] = arr_n_u[ind_u];
+        shared_n_d[tid] = arr_n_d[ind_d];
+        shared_n_r[tid] = arr_n_r[ind_r];
+        shared_n_l[tid] = arr_n_l[ind_l];
+        shared_n_f[tid] = arr_n_f[ind_f];
+        shared_n_b[tid] = arr_n_b[ind_b];
+        __syncthreads();
 
-      // Update counts
-      numtype tmp = 0.0;
-      tmp += shared_n_0[tid];
-      tmp += shared_n_u[tid];
-      tmp += shared_n_d[tid];
-      tmp += shared_n_r[tid];
-      tmp += shared_n_l[tid];
-      tmp += shared_n_f[tid];
-      tmp += shared_n_b[tid];
-      arr_new[tid] = tmp;
+        // Update counts
+        numtype tmp = 0.0;
+        tmp += shared_n_0[tid];
+        tmp += shared_n_u[tid];
+        tmp += shared_n_d[tid];
+        tmp += shared_n_r[tid];
+        tmp += shared_n_l[tid];
+        tmp += shared_n_f[tid];
+        tmp += shared_n_b[tid];
+        arr_new[tid] = tmp;
 
-      __syncthreads();
-      // Copy back
+        __syncthreads();
+        // Copy back
 
-    #else
+      #else
 
       // Update counts
 	  
@@ -869,27 +874,66 @@ __global__ void NutrientDiffusion(numtype* arr_nutrient,
       else km = k - 1;
     }
 
+
+
     // Writing order has been reversed compared with non-CUDA version
-    numtype inflow = 0.0;
-    inflow += alphaXY * arr_nutrient[ip*nGridXY*nGridZ + j *nGridZ + k ];
-    inflow += alphaXY * arr_nutrient[im*nGridXY*nGridZ + j *nGridZ + k ];
-    inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jp*nGridZ + k ];
-    inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jm*nGridZ + k ];
-    inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + kp];
-    inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + km];
+    #if GPU_COPY_TO_SHARED
 
-    numtype tmp = arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + k];
-    numtype outflow = (4 * alphaXY + 2 * alphaZ) * tmp;
+      // 1D abstraction
+      int T = blockDim.x+2; // Tile length
+      int memSize = 5*T;    // Number of tiles
 
-    arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k] = tmp + inflow - outflow;
+      extern __shared__ numtype shared[memSize];
+
+      // Copy to shared
+      // Compute the neighbour indicies
+      int ind_0 =  i*nGridXY*nGridZ +  j*nGridZ + k ;
+      int ind_u = ip*nGridXY*nGridZ +  j*nGridZ + k ;
+      int ind_d = im*nGridXY*nGridZ +  j*nGridZ + k ;
+      int ind_r =  i*nGridXY*nGridZ + jp*nGridZ + k ;
+      int ind_l =  i*nGridXY*nGridZ + jm*nGridZ + k ;
+      int ind_f =  i*nGridXY*nGridZ +  j*nGridZ + kp;
+      int ind_b =  i*nGridXY*nGridZ +  j*nGridZ + km;
+
+      // Copy valies
+      shared[tid + 1]       = arr_nutrient[ind_0]; // Own value
+      shared[tid + 1 +   T] = arr_nutrient[ind_u]; // Upper neighbour
+      shared[tid + 1 + 2*T] = arr_nutrient[ind_d]; // Upper neighbour
+      shared[tid + 1 + 3*T] = arr_nutrient[ind_r]; // Upper neighbour
+      shared[tid + 1 + 4*T] = arr_nutrient[ind_l]; // Upper neighbour
+      if (tid == 0)           shared[tid]   = arr_nutrient[ind_b];
+      if (tid == blockDim.x)  shared[tid+1] = arr_nutrient[ind_f];
+      __syncthreads();
+
+      numtype inflow = 0.0;
+      inflow += alphaXY * shared[tid + 1 + T];
+      inflow += alphaXY * shared[tid + 1 + 2*T];
+      inflow += alphaXY * shared[tid + 1 + 3*T];
+      inflow += alphaXY * shared[tid + 1 + 4*T];
+      inflow += alphaZ  * shared[tid + 2];
+      inflow += alphaZ  * shared[tid];
+
+      numtype tmp = shared[tid + 1];
+      numtype outflow = (4 * alphaXY + 2 * alphaZ) * tmp;
+
+      arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k] = tmp + inflow - outflow;
 
 
-    // arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k ] += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
-    // arr_nutrient_new[ip*nGridXY*nGridZ + j *nGridZ + k ] += alphaXY * tmp;
-    // arr_nutrient_new[im*nGridXY*nGridZ + j *nGridZ + k ] += alphaXY * tmp;
-    // arr_nutrient_new[i *nGridXY*nGridZ + jp*nGridZ + k ] += alphaXY * tmp;
-    // arr_nutrient_new[i *nGridXY*nGridZ + jm*nGridZ + k ] += alphaXY * tmp;
-    // arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + kp] += alphaZ  * tmp;
-    // arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + km] += alphaZ  * tmp;
+    #else
+
+      numtype inflow = 0.0;
+      inflow += alphaXY * arr_nutrient[ip*nGridXY*nGridZ + j *nGridZ + k ];
+      inflow += alphaXY * arr_nutrient[im*nGridXY*nGridZ + j *nGridZ + k ];
+      inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jp*nGridZ + k ];
+      inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jm*nGridZ + k ];
+      inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + kp];
+      inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + km];
+
+      numtype tmp = arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + k];
+      numtype outflow = (4 * alphaXY + 2 * alphaZ) * tmp;
+
+      arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k] = tmp + inflow - outflow;
+
+    #endif
   }
 }
