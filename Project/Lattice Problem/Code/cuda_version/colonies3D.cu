@@ -1342,7 +1342,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                   kernel_start = high_resolution_clock::now();
 				}
 
-				NutrientDiffusion<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, alphaXY, alphaZ, nGridXY, nGridZ, experimentalConditions, totalElements);
+      			int sharedMemSize = 5*(blockSize+2);
+				NutrientDiffusion<<<gridSize,blockSize,sharedMemSize>>>(d_arr_nutrient, d_arr_nutrient_new, alphaXY, alphaZ, nGridXY, nGridZ, experimentalConditions, totalElements);
 
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
@@ -1804,9 +1805,9 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						// Ensure there is enough nutrient
 						if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
 								if (!Warn_fastGrowth) {
-										cout << "\tWarning: Colonies growing too fast!" << "\n";
-										f_log  << "Warning: Colonies growing too fast!" << "\n";
-										Warn_fastGrowth = true;
+									cout << "\tWarning: Colonies growing too fast!" << "\n";
+									f_log  << "Warning: Colonies growing too fast!" << "\n";
+									Warn_fastGrowth = true;
 								}
 
 								// DETERMINITIC CHANGE
