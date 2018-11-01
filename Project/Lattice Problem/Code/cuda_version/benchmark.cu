@@ -21,7 +21,6 @@ int main(int argc, char** argv){
     std::vector<int> timer;
     timer.reserve(NumberOfGridSizes * NumberOfVersions * NumberOfRepeats);
 
-
     // Allocate iteration vectors
     std::vector<int> nGrid;
     nGrid.reserve(NumberOfGridSizes * NumberOfVersions * NumberOfRepeats);
@@ -57,9 +56,9 @@ int main(int argc, char** argv){
     double delta = 1.0/10.0;
     double eta   = 1e4;
     double tau   = 0.5;
-    double B_0 = pow(10,4);
-    double P_0 = pow(10,5);
-    double T   = 5;
+    double B_0   = pow(10,4);
+    double P_0   = pow(10,5);
+    double T     = 5;
 
 
     ofstream f_benchmark;
@@ -106,7 +105,7 @@ int main(int argc, char** argv){
 
         if (version[n] == 0) {
             f_benchmark << "LoopDistributedCPU;";
-            s.Run_LoopDistributed_CPU(T);  // Uses Armadillo
+            s.Run_LoopDistributed_CPU(T);
         } else if (version[n] == 1) {
             f_benchmark << "LoopDistributedGPU;";
             s.Run_LoopDistributed_GPU(T);
