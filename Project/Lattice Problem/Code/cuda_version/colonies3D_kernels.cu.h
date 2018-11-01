@@ -614,16 +614,7 @@ __global__ void ApplyMovement(numtype* arr_new,
 
       }
 
-      // Update counts
-      arr_new[tid] += arr_n_0[ tid ];
-      arr_new[tid] += arr_n_u[ip*nGridXY*nGridZ +  j*nGridZ + k ];
-      arr_new[tid] += arr_n_d[im*nGridXY*nGridZ +  j*nGridZ + k ];
-      arr_new[tid] += arr_n_r[ i*nGridXY*nGridZ + jp*nGridZ + k ];
-      arr_new[tid] += arr_n_l[ i*nGridXY*nGridZ + jm*nGridZ + k ];
-      arr_new[tid] += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
-      arr_new[tid] += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
-
-	  numtype tmp;
+ 	  numtype tmp;
 	  if(zero) tmp = 0.0;
 	  else tmp = arr_new[tid]; 
 	  tmp += arr_n_0[ i*nGridXY*nGridZ +  j*nGridZ + k ];
