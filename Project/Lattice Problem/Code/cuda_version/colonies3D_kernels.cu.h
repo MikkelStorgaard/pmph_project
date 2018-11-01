@@ -567,21 +567,22 @@ __global__ void ApplyMovement(numtype* arr_new,
                               int nGridXY,
                               bool experimentalConditions,
                               bool* arr_IsActive,
-							  bool zero,
-							  int totalElements) {
+							                bool zero,
+							                int totalElements) {
 
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
     // Skip empty sites
     if (!arr_IsActive[tid]){
-		if (tid < totalElements)  arr_new[tid] = 0.0;
+	    	if (tid < totalElements)  arr_new[tid] = 0.0;
         return;
     }
 
     if (lambda > 0) {
       int k = tid % nGridZ;
       int j = ( (tid - k) / nGridZ ) % nGridXY;
-      int i = ( (tid - k) / nGridZ ) / nGridXY;
+      int i = (((tid - k) / nGridZ ) - j) / nGridXY;
+
 
       int ip, jp, kp, im, jm, km;
 
@@ -615,7 +616,7 @@ __global__ void ApplyMovement(numtype* arr_new,
       }
 
       numtype tmp;
-      if(zero) tmp = 0.0;
+      if (zero) tmp = 0.0;
       else tmp = arr_new[tid];
 
 	    tmp += arr_n_0[ i*nGridXY*nGridZ +  j*nGridZ + k ];
