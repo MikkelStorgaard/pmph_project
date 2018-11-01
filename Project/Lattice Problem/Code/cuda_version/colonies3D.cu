@@ -2630,7 +2630,7 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 							}
 
 							// DETERMINITIC CHANGE
-							N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+							N = cpu_round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
 							// N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 						}
 
@@ -2695,8 +2695,8 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 							arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
 							arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
                             // DETERMINITIC CHANGE
-                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-                            arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += cpu_round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+                            arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = cpu_round(alpha * Beta * N);                        // Phages which reinfect the colony
                             // arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
                             // arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
 

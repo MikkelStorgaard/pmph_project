@@ -657,6 +657,7 @@ __global__ void ZeroArray(numtype* arr, int size){
         arr[tid] = 0.0;
     }
 }
+
 __global__ void UpdateOccupancy(numtype* arr_Occ,
                                 numtype* arr_B,
                                 numtype* arr_I0,
