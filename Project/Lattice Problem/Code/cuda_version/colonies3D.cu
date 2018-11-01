@@ -116,6 +116,1568 @@ inline numtype cpu_exp(numtype x){
 	#endif
 }
 
+
+////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  Just a separator between CPU and GPU to make it easier to spot when scrolling
+///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+
+
+
+int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
+	std::string filename_suffix = "loopDistributedGPU";
+
+	this->T_end = T_end;
+
+	// Get start time
+	time_t  tic;
+	time(&tic);
+
+	// Get start time
+	high_resolution_clock::time_point kernel_start;
+	high_resolution_clock::duration kernel_elapsed;
+
+
+	// Generate a path
+	path = GeneratePath();
+
+	// Initilize th e simulation matrices
+	Initialize();
+
+	// Export data
+	ExportData_arr(T,filename_suffix);
+
+  	if (GPU_KERNEL_TIMING){
+		std::string s = "kernel_timings";
+		OpenFileStream(f_kerneltimings, s);
+    	if (GPU_NC) {
+      		f_kerneltimings << "FirstKernel \t";
+		}
+		if (GPU_MAXOCCUPANCY) {
+			f_kerneltimings << "SetIsActive \t SecondKernel \t SequentialReduce \t";
+		}
+		if (GPU_BIRTH) {
+			f_kerneltimings << "ComputeBirthEvents \t";
+		}
+		if (GPU_INFECTIONS) {
+			f_kerneltimings << "Bursting/NonBurstingEvents \t";
+		}
+		if (GPU_NEWINFECTIONS) {
+			f_kerneltimings << "NewInfectionsKernel \t";
+		}
+		if (GPU_PHAGEDECAY) {
+			f_kerneltimings << "PhageDecay \t";
+		}
+		if (GPU_MOVEMENT) {
+			f_kerneltimings << "DiffusionAndApplyMovement \t";
+		}
+		if (GPU_SWAPZERO) {
+			f_kerneltimings << "SwapAndZeroArrays \t";
+		}
+		if (GPU_UPDATEOCCUPANCY) {
+			f_kerneltimings << "UpdateOccupancy \t";
+		}
+		if (GPU_NUTRIENTDIFFUSION) {
+			f_kerneltimings << "NutrientDiffusion \t";
+		}
+		if (GPU_SWAPZERO2) {
+			f_kerneltimings << "SwapZero";
+		}
+		f_kerneltimings << "\n";
+	}
+
+	// Determine the number of samples to take
+	int nSamplings = nSamp*T_end;
+
+	/* Allocate arrays on the device */
+	int totalElements = nGridXY * nGridXY * nGridZ;
+	int totalMemSize = totalElements * sizeof(numtype);
+	int blockSize = 256;
+	int gridSize = (totalElements + blockSize - 1) / blockSize;
+	//int gridSize = ceil((double)totalElements / (double)blockSize);
+	cudaError_t err = cudaSuccess;
+
+	// Allocate on GPU
+	numtype *arr_maxOccupancy = new numtype[gridSize]();
+	numtype *d_arr_maxOccupancy;
+
+	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_Occ, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_Occ on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_IsActive, blockSize*gridSize*sizeof(bool));
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_IsActive on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(numtype)*gridSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_maxOccupancy on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, sizeof(numtype)*gridSize, cudaMemcpyHostToDevice);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_rng_state, sizeof(curandState)*totalElements);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate d_rng_state on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMemcpy(d_rng_state, rng_state, sizeof(curandState)*totalElements, cudaMemcpyHostToDevice);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy rng_state to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_B, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_B on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_B_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_B_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_P, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_P_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I0, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I0 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I0_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I0_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I1, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I1 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I1_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I1_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I2, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I2 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I2_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I2_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I3, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I3 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I3_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I3_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I4, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I4 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I4_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I4_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I5, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I5 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I5_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I5_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I6, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I6 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I6_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I6_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I7, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I7 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I7_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I7_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I8, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I8 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I8_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I8_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I9, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I9 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_I9_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I9_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_M, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_M on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_p, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_p to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_nutrient, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nutrient on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_nutrient_new, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nutrient_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_GrowthModifier, totalMemSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_GrowthModifier to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_0, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_0 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_u, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_u to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_d, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_d to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_l, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_l to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_r, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_f, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_f to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_arr_n_b, totalMemSize);
+	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_b to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_Warn_g, sizeof(bool));
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_g on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_Warn_fastGrowth, sizeof(bool));
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate d_Warn_fastGrowth on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_Warn_r, sizeof(bool));
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMalloc((void**)&d_Warn_delta, sizeof(bool));
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
+
+
+	// cudaMemCpy to device
+	//CopyAllToDevice();
+
+	// Loop over samplings
+	for (int n = 0; n < nSamplings; n++) {
+		if (exit) break;
+
+		// Determine the number of timesteps between sampings
+		int nStepsPerSample = static_cast<int>(cpu_round(1 / (nSamp *  dT)));
+
+		for (int t = 0; t < nStepsPerSample; t++) {
+			if (exit) break;
+
+			// Increase time
+			T += dT;
+
+			// Spawn phages
+			if ((T_i >= 0) and (abs(T - T_i) < dT / 2)) {
+				spawnPhages();
+				T_i = -1;
+			}
+
+			// Reset density counter
+			numtype maxOccupancy = 0.0;
+
+			// /////////////////////////////////////////////////////
+			// // Main loop start //////////////////////////////////
+			// /////////////////////////////////////////////////////
+
+			/* Do all the allocations and other CUDA device stuff here
+			 * remember to do them outside the nSamplings loop afterwards
+			 */
+
+			if (GPU_NC){
+
+				// Copy to the device
+				if (((t == 0) && (n == 0)) || !GPU_SWAPZERO2) {
+					CopyAllToDevice();
+				}
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_start = high_resolution_clock::now();
+				}
+
+				// Run first Kernel
+				FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_elapsed = high_resolution_clock::now() - kernel_start;
+					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
+
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in FirstKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				// Copy data back from device
+				if(!GPU_MAXOCCUPANCY) {
+					CopyAllToHost();
+				}
+
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
+					if (exit) break;
+
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
+
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Ensure nC is updated
+							if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]){
+								arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+							}
+						}
+					}
+				}
+			}
+
+
+			if (GPU_KERNEL_TIMING){
+				cudaDeviceSynchronize();
+				kernel_start = high_resolution_clock::now();
+			}
+
+			// set active flags
+			SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_P, d_arr_IsActive, totalElements);
+
+			if (GPU_KERNEL_TIMING){
+				cudaDeviceSynchronize();
+				kernel_elapsed = high_resolution_clock::now() - kernel_start;
+				f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+			}
+
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+
+			if (GPU_MAXOCCUPANCY) {
+
+				// Copy to the device
+				if(!GPU_NC) {
+					CopyAllToDevice();
+				}
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_start = high_resolution_clock::now();
+				}
+
+				// Run second Kernel
+				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, blockSize);
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_elapsed = high_resolution_clock::now() - kernel_start;
+					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
+
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				// This places the maximum occupancy in d_arr_maxOccupancy[0]
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_start = high_resolution_clock::now();
+				}
+
+				SequentialReduce<<<1,1>>>(d_arr_maxOccupancy, gridSize);
+
+				if (GPU_KERNEL_TIMING){
+          			cudaDeviceSynchronize();
+          			kernel_elapsed = high_resolution_clock::now() - kernel_start;
+          			f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        		}
+
+				// Copy data back from device
+				if(!GPU_BIRTH) {
+					CopyAllToHost();
+				}
+
+				err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(numtype)*gridSize, cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
+					errC--; }
+
+
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
+					if (exit) break;
+
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
+
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Skip empty sites
+							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
+
+							// Record the maximum observed density
+							if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] > maxOccupancy) maxOccupancy = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+
+						}
+					}
+				}
+			}
+
+
+			// Birth //////////////////////////////////////////////////////////////////////
+			if (GPU_BIRTH){
+
+				// Copy to the device
+				if(!GPU_MAXOCCUPANCY) {
+					CopyAllToDevice();
+				}
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_start = high_resolution_clock::now();
+				}
+
+				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_rng_state, d_arr_IsActive);
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_elapsed = high_resolution_clock::now() - kernel_start;
+					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
+
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in ComputeBirthEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				// Copy data back from device
+				if(!GPU_INFECTIONS) {
+					CopyAllToHost();
+				}
+
+
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
+					if (exit) break;
+
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
+
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Skip empty sites
+							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
+								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
+								continue;
+							} else {
+								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
+							}
+
+							numtype p = 0; // privatize
+							numtype N = 0; // privatize
+
+							// Compute the growth modifier
+							numtype growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
+							arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
+
+							p = g * growthModifier*dT;
+							if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
+								p = 0;
+							}
+
+							if ((p > 0.1) and (!Warn_g)) {
+								cout << "\tWarning: Birth Probability Large!" << "\n";
+								f_log  << "Warning: Birth Probability Large!" << "\n";
+								Warn_g = true;
+							}
+
+							/* BEGIN anden Map-kernel */
+							N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
+							// Ensure there is enough nutrient
+							if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
+								if (!Warn_fastGrowth) {
+									cout << "\tWarning: Colonies growing too fast!" << "\n";
+									f_log  << "Warning: Colonies growing too fast!" << "\n";
+									Warn_fastGrowth = true;
+								}
+
+								// DETERMINITIC CHANGE
+                            	// N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
+                            	N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+							}
+
+							// Update count
+							arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+							arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							/* END anden Map-kernel */
+						}
+					}
+				}
+			}
+			if (GPU_BIRTH) {	// We still need to compute the skip array
+				for (int i = 0; i < nGridXY; i++) {
+					for (int j = 0; j < nGridXY; j++) {
+						for (int k = 0; k < nGridZ; k++) {
+
+							// Skip empty sites
+							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
+								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
+								continue;
+							} else {
+								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
+							}
+						}
+					}
+				}
+			}
+
+			if (GPU_INFECTIONS){
+
+				// Copy to the device
+				if(!GPU_BIRTH) {
+					CopyAllToDevice();
+				}
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_start = high_resolution_clock::now();
+				}
+
+				// Infections kernels
+				BurstingEvents<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_Occ, d_arr_GrowthModifier, d_arr_M, d_arr_p, alpha, beta, r, dT, reducedBeta, d_Warn_r, d_rng_state, d_arr_IsActive, totalElements);
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I8, d_arr_I9, d_arr_p, d_rng_state, d_arr_IsActive);
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I7, d_arr_I8, d_arr_p, d_rng_state, d_arr_IsActive);
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I6, d_arr_I7, d_arr_p, d_rng_state, d_arr_IsActive);
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I5, d_arr_I6, d_arr_p, d_rng_state, d_arr_IsActive);
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I4, d_arr_I5, d_arr_p, d_rng_state, d_arr_IsActive);
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I3, d_arr_I4, d_arr_p, d_rng_state, d_arr_IsActive);
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I2, d_arr_I3, d_arr_p, d_rng_state, d_arr_IsActive);
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_rng_state, d_arr_IsActive);
+				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_rng_state, d_arr_IsActive);
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_elapsed = high_resolution_clock::now() - kernel_start;
+					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
+
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in BurstingEvents or NonBurstingEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+				// Copy data back from device
+				if(!GPU_NEWINFECTIONS) {
+					CopyAllToHost();
+				}
+
+			} else {
+
+				for (int i = 0; i < nGridXY; i++) {
+					if (exit) break;
+
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
+
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Skip empty sites
+							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
+
+							numtype p = 0; // privatize
+							numtype N = 0; // privatize
+
+							// Compute the growth modifier
+							numtype growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+
+							// Compute beta
+							numtype Beta = beta;
+
+							if (reducedBeta) {
+								Beta *= growthModifier;
+							}
+
+							if (r > 0.0){
+
+								p = r*growthModifier*dT;
+								if ((p > 0.25) and (!Warn_r)) {
+									cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+									f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+									Warn_r = true;
+								}
+								N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
+
+								// Update count
+								arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								// DETERMINITIC CHANGE
+								// arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
+								// arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
+								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
+								arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
+
+								// Non-bursting events
+								N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
+								arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+								arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+
+								/* END tredje Map-kernel */
+
+							}
+						}
+					}
+				}
+			}
+
+			if (GPU_NEWINFECTIONS) {
+
+				// Copy to the device
+				if (!GPU_INFECTIONS) {
+					CopyAllToDevice();
+				}
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_start = high_resolution_clock::now();
+				}
+
+				NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
+															d_arr_GrowthModifier, d_arr_B,
+															d_arr_M, d_arr_I0_new, d_arr_IsActive,
+															reducedBeta, clustering, shielding,
+															K, alpha, beta, eta, zeta, dT, r, d_rng_state, totalElements);
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_elapsed = high_resolution_clock::now() - kernel_start;
+					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
+
+				// Copy data back from device
+				if (!GPU_PHAGEDECAY) {
+					CopyAllToHost();
+				}
+
+			} else {
+				// Kernel 5: New infections ///////////////////////////////////////////////////////////////////
+				for (int i = 0; i < nGridXY; i++) {
+					if (exit) break;
+
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
+
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Skip empty sites
+							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
+
+
+							numtype p = 0; // privatize
+							numtype N = 0; // privatize
+							// double M = 0; // privatize
+
+							// Compute beta
+							numtype Beta = beta;
+							if (reducedBeta) {
+								Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
+							}
+
+							// PRIVATIZE BOTH OF THESE
+							// numtype s;   // The factor which modifies the adsorption rate
+							// numtype n;   // The number of targets the phage has
+							// Infectons
+
+
+							// KERNEL THIS
+							// if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
+							// 	if (clustering) {   // Check if clustering is enabled
+							// 		s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+							// 		n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+							// 	} else {            // Else use mean field computation
+							// 		s = 1.0;
+							// 		n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+							// 	}
+							// }
+
+							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
+								// Compute the number of hits
+								// if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
+									N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
+								// } else {
+									// p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
+									// N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
+								// }
+
+
+								// If bacteria were hit, update events
+								// DETERMINITIC CHANGE
+								// if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
+
+									arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
+
+									numtype S;
+									if (shielding) {
+										// Absorbing medium model
+										numtype d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
+											pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
+										S = cpu_exp(-zeta * d); // Probability of hitting succebtible target
+
+									} else {
+										// Well mixed model
+										S = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+									}
+
+									p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
+																	 S)); // Probability of hitting succebtible target
+									N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
+
+									if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
+										N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
+
+									// Update the counts
+									arr_B[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_B[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+									if (r > 0.0) {
+										arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
+									} else {
+										arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
+									}
+								// }
+							}
+						}
+					}
+				}
+			}
+
+
+			// Phage decay ///////////////////////////////////////////////////////////////////
+			if (GPU_PHAGEDECAY) {
+
+				// Copy to the device
+                if(!GPU_NEWINFECTIONS){
+                    CopyAllToDevice();
+                }
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_start = high_resolution_clock::now();
+				}
+
+				PhageDecay<<<gridSize, blockSize>>>(d_arr_P, delta*dT,
+                                            d_Warn_delta, d_rng_state,
+                                            d_arr_IsActive);
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_elapsed = high_resolution_clock::now() - kernel_start;
+					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
+
+				// Copy data back from device
+                if(!GPU_MOVEMENT){
+                    CopyAllToHost();
+				}
+
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
+					if (exit) break;
+
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
+
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Skip empty sites
+							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
+
+
+							numtype p = 0; // privatize
+							numtype N = 0; // privatize
+
+							// KERNEL BEGIN
+							p = delta*dT;
+
+							if ((p > 0.1) and (!Warn_delta)) {
+								cout << "\tWarning: Decay Probability Large!" << "\n";
+								f_log  << "Warning: Decay Probability Large!" << "\n";
+								Warn_delta = true;
+							}
+
+
+							N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5, i, j, k);
+
+							// Update count
+							arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
+							// KERNEL END
+
+						}
+					}
+				}
+			}
+
+
+			// Movement ///////////////////////////////////////////////////////////////////
+			if (GPU_MOVEMENT) {
+
+				// Copy to the device
+                if(!GPU_PHAGEDECAY){
+                    CopyAllToDevice();
+                }
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_start = high_resolution_clock::now();
+				}
+
+				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+				cudaDeviceSynchronize();
+				ApplyMovement<<<gridSize,blockSize>>>(d_arr_B_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, false,totalElements);
+				cudaDeviceSynchronize();
+
+				if (r > 0) {
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I0_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, false, totalElements);
+					cudaDeviceSynchronize();
+
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I1_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
+					cudaDeviceSynchronize();
+
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I2_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
+					cudaDeviceSynchronize();
+
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I3_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
+					cudaDeviceSynchronize();
+
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I4_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
+					cudaDeviceSynchronize();
+
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I5_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
+					cudaDeviceSynchronize();
+
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I6_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
+					cudaDeviceSynchronize();
+
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I7_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
+					cudaDeviceSynchronize();
+
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I8_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
+					cudaDeviceSynchronize();
+
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+					cudaDeviceSynchronize();
+					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I9_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
+					cudaDeviceSynchronize();
+				}
+
+				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, lambdaP, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+				cudaDeviceSynchronize();
+				ApplyMovement<<<gridSize,blockSize>>>(d_arr_P_new, lambdaP, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, false,totalElements);
+				cudaDeviceSynchronize();
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_elapsed = high_resolution_clock::now() - kernel_start;
+					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
+
+                // if (nGridXY > 1) {
+                //     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, d_arr_B_new,d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //     if (r > 0.0){
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, d_arr_I0_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, d_arr_I1_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, d_arr_I2_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, d_arr_I3_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, d_arr_I4_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, d_arr_I5_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, d_arr_I6_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, d_arr_I7_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, d_arr_I8_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, d_arr_I9_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
+                //     }
+                //     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, d_arr_P_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaP);
+                // }
+                // else {
+                //     Movement2<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, d_arr_IsActive);
+
+                //     if(r>0.0){
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, d_arr_IsActive);
+                //         Movement2<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, d_arr_IsActive);
+
+                //     }
+                //     Movement2<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, d_arr_IsActive);
+
+
+				// }
+
+				// Copy data back from device
+				if(!GPU_SWAPZERO) {
+					CopyAllToHost();
+				}
+
+			} else {
+				for (int i = 0; i < nGridXY; i++) {
+					if (exit) break;
+
+					for (int j = 0; j < nGridXY; j++) {
+						if (exit) break;
+
+						for (int k = 0; k < nGridZ; k++) {
+							if (exit) break;
+
+							// Skip empty sites
+							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
+
+							if (nGridXY > 1) {
+								// KERNEL BEGIN
+								// Update positions
+								int ip, jp, kp, im, jm, km;
+
+								if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+								else ip = i + 1;
+
+								if (i == 0) im = nGridXY - 1;
+								else im = i - 1;
+
+								if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+								else jp = j + 1;
+
+								if (j == 0) jm = nGridXY - 1;
+								else jm = j - 1;
+
+								if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+									if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+									else kp = k + 1;
+
+									if (k == 0) km = nGridZ - 1;
+									else km = k - 1;
+
+								} else {    // Reflective boundaries in Z direction
+
+									if (k + 1 >= nGridZ) kp = k - 1;
+									else kp = k + 1;
+
+									if (k == 0) km = k + 1;
+									else km = k - 1;
+
+								}
+
+								// Update counts
+								numtype n_0; // No movement
+								numtype n_u; // Up
+								numtype n_d; // Down
+								numtype n_l; // Left
+								numtype n_r; // Right
+								numtype n_f; // Front
+								numtype n_b; // Back
+
+								// CELLS
+								ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
+                                    arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                    arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u;
+                                    arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d;
+                                    arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r;
+                                    arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l;
+                                    arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f;
+                                    arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+								if (r > 0.0) {
+									ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+                                        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
+                                        arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u;
+                                        arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d;
+                                        arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r;
+                                        arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l;
+                                        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f;
+                                        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+									ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
+									arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+								}
+
+								// PHAGES
+								ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
+								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
+
+								// KERNEL END
+
+
+
+							} else {
+								arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+
+								if (r > 0.0) {
+									arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I1[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I2[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I3[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I4[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I5[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I6[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I7[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I8[i*nGridXY*nGridZ + j*nGridZ + k];
+									arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
+								}
+
+								// PHAGES
+								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
+								// KERNEL END
+							}
+						}
+					}
+				}
+			}
+
+            /////////////////////////////////////
+            // Simple end of loop kernels
+
+			if(GPU_SWAPZERO){
+
+				// Copy to the device
+				if(!GPU_MOVEMENT) {
+					CopyAllToDevice();
+				}
+
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_start = high_resolution_clock::now();
+				}
+
+                std::swap(d_arr_B, d_arr_B_new);
+                std::swap(d_arr_I0, d_arr_I0_new);
+                std::swap(d_arr_I1, d_arr_I1_new);
+                std::swap(d_arr_I2, d_arr_I2_new);
+                std::swap(d_arr_I3, d_arr_I3_new);
+                std::swap(d_arr_I4, d_arr_I4_new);
+                std::swap(d_arr_I5, d_arr_I5_new);
+                std::swap(d_arr_I6, d_arr_I6_new);
+                std::swap(d_arr_I7, d_arr_I7_new);
+                std::swap(d_arr_I8, d_arr_I8_new);
+                std::swap(d_arr_I9, d_arr_I9_new);
+                std::swap(d_arr_P, d_arr_P_new);
+                cudaDeviceSynchronize();
+
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, totalElements);
+//				ZeroArray<<<gridSize,blockSize>>>(d_arr_I2_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I3_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I4_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I5_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I6_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I7_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I8_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, totalElements);
+//                ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, totalElements);
+//                cudaDeviceSynchronize();
+
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
+                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+                }
+
+				// Copy data back from device
+                if(!GPU_UPDATEOCCUPANCY) {
+					CopyAllToHost();
+				}
+
+            } else {
+				// Swap pointers
+                std::swap(arr_B, arr_B_new);
+                std::swap(arr_I0, arr_I0_new);
+                std::swap(arr_I1, arr_I1_new);
+                std::swap(arr_I2, arr_I2_new);
+                std::swap(arr_I3, arr_I3_new);
+                std::swap(arr_I4, arr_I4_new);
+                std::swap(arr_I5, arr_I5_new);
+                std::swap(arr_I6, arr_I6_new);
+                std::swap(arr_I7, arr_I7_new);
+                std::swap(arr_I8, arr_I8_new);
+                std::swap(arr_I9, arr_I9_new);
+                std::swap(arr_P, arr_P_new);
+
+                // Zero the _new arrays
+                for (int i = 0; i < nGridXY; i++) {
+                    for (int j = 0; j < nGridXY; j++ ) {
+                        for (int k = 0; k < nGridZ; k++ ) {
+                            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+                            arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+                        }
+                    }
+                }
+            }
+
+
+            if(GPU_UPDATEOCCUPANCY){
+
+				// Copy data back from device
+                if(!GPU_SWAPZERO) {
+					CopyAllToDevice();
+				}
+
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_start = high_resolution_clock::now();
+				}
+
+				UpdateOccupancy<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_B, d_arr_I0, d_arr_I1, d_arr_I2, d_arr_I3, d_arr_I4, d_arr_I5, d_arr_I6, d_arr_I7, d_arr_I8, d_arr_I9, totalElements);
+
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
+                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+                }
+
+				// Copy data back from device
+                if(!GPU_NUTRIENTDIFFUSION) CopyAllToHost();
+
+            } else {
+				// Update occupancy
+                for (int i = 0; i < nGridXY; i++) {
+                    for (int j = 0; j < nGridXY; j++ ) {
+                        for (int k = 0; k < nGridZ; k++ ) {
+                            arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
+                        }
+                    }
+                }
+            }
+
+
+			// NUTRIENT DIFFUSION
+			numtype alphaXY = D_n * dT / pow(L / (numtype)nGridXY, 2);
+			numtype alphaZ  = D_n * dT / pow(H / (numtype)nGridZ, 2);
+
+            if(GPU_NUTRIENTDIFFUSION){
+
+				// Copy data back from device
+                if(!GPU_UPDATEOCCUPANCY) {
+					 CopyAllToDevice();
+				}
+
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_start = high_resolution_clock::now();
+				}
+
+				NutrientDiffusion<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, alphaXY, alphaZ, nGridXY, nGridZ, experimentalConditions, totalElements);
+
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
+                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
+
+				// Copy data back from device
+                if(!GPU_SWAPZERO2) {
+					CopyAllToHost();
+				}
+
+            } else {
+                for (int i = 0; i < nGridXY; i++) {
+                    for (int j = 0; j < nGridXY; j++ ) {
+                        for (int k = 0; k < nGridZ; k++ ) {
+
+                            // Update positions
+                            int ip, jp, kp, im, jm, km;
+
+                            if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
+                            else ip = i + 1;
+
+                            if (i == 0) im = nGridXY - 1;
+                            else im = i - 1;
+
+                            if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
+                            else jp = j + 1;
+
+                            if (j == 0) jm = nGridXY - 1;
+                            else jm = j - 1;
+
+                            if (not experimentalConditions) {   // Periodic boundaries in Z direction
+
+                                if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
+                                else kp = k + 1;
+
+                                if (k == 0) km = nGridZ - 1;
+                                else km = k - 1;
+
+                            } else {    // Reflective boundaries in Z direction
+
+                                if (k + 1 >= nGridZ) kp = k - 1;
+                                else kp = k + 1;
+
+                                if (k == 0) km = k + 1;
+                                else km = k - 1;
+
+                            }
+
+                            numtype tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
+                            arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+                            arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
+                            arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
+                            arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
+                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
+                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
+                        }
+                    }
+                }
+			}
+
+            if(GPU_SWAPZERO2){
+
+				// Copy data back from device
+                if(!GPU_NUTRIENTDIFFUSION) {
+					CopyAllToDevice();
+				}
+
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_start = high_resolution_clock::now();
+				}
+
+                std::swap(d_arr_nutrient, d_arr_nutrient_new);
+ //               ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, totalElements);
+
+                if (GPU_KERNEL_TIMING){
+                  cudaDeviceSynchronize();
+                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
+                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count();
+                }
+
+				// Copy data back from device
+				if(!GPU_NC) {
+					CopyAllToHost();
+				}
+
+            } else {
+                std::swap(arr_nutrient, arr_nutrient_new);
+
+                // Zero the _new arrays
+                for (int i = 0; i < nGridXY; i++) {
+                    for (int j = 0; j < nGridXY; j++ ) {
+                        for (int k = 0; k < nGridZ; k++ ) {
+                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
+                        }
+                    }
+                }
+            }
+
+
+
+			f_kerneltimings << "\n";
+			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
+				cout << "\tWarning: Maximum Density Large!" << "\n";
+				f_log  << "Warning: Maximum Density Large!" << "\n";
+				Warn_density = true;
+			}
+		}
+
+        /////////////////////////////
+        //Sample loop ends...
+        ////////////////////////////
+
+		//CopyAllToHost();
+
+		// Fast exit conditions
+		// 1) There are no more sucebtible cells
+		// -> Convert all infected cells to phages and stop simulation
+		numtype accuB = 0.0;
+		for (int i = 0; i < nGridXY; i++) {
+			for (int j = 0; j < nGridXY; j++ ) {
+				for (int k = 0; k < nGridZ; k++ ) {
+					accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+				}
+			}
+		}
+		if ((fastExit) and (accuB < 1)) {
+			// Update the P array
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						arr_P[i*nGridXY*nGridZ + j*nGridZ + k] += (1-alpha)*beta * (arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]);
+					}
+				}
+			}
+
+
+			// Zero the I arrays
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+					}
+				}
+			}
+			exit = true;
+		}
+
+		// 2) There are no more alive cells
+		// -> Stop simulation
+
+		numtype accuOcc = 0.0;
+		for (int i = 0; i < nGridXY; i++) {
+			for (int j = 0; j < nGridXY; j++ ) {
+				for (int k = 0; k < nGridZ; k++ ) {
+					accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
+				}
+			}
+		}
+
+		if ((fastExit) and (accuOcc < 1)) {
+			exit = true;
+		}
+
+		// 3) The food is on average less than one per gridpoint
+		// and the maximal nutrient at any point in space is less than 1
+
+		numtype accuNutrient = 0.0;
+		numtype maxNutrient  = 0.0;
+		for (int i = 0; i < nGridXY; i++) {
+			for (int j = 0; j < nGridXY; j++ ) {
+				for (int k = 0; k < nGridZ; k++ ) {
+					numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+					accuNutrient += tmpN;
+
+					if (tmpN > maxNutrient) {
+						maxNutrient = tmpN;
+					}
+				}
+			}
+		}
+
+		if (fastExit) {
+			if  ((accuNutrient < nGridZ*pow(nGridXY,2)) && (maxNutrient < 0.5)) {
+				exit = true;
+			}
+		}
+
+		// cudaMemCpy to host
+		CopyAllToHost();
+
+		// Store the state
+		ExportData_arr(T,filename_suffix);
+
+		// Check for nutrient stability
+		assert(accuNutrient >= 0);
+		assert(accuNutrient <= n_0 * L * L * H);
+	}
+
+	/////////////////////////////////////////////////////
+	// Main loop end ////////////////////////////////////
+	/////////////////////////////////////////////////////
+
+	if(Warn_delta) {
+	cout << "\tWarning: Decay Probability Large!" << "\n";
+	f_log  << "Warning: Decay Probability Large!" << "\n";
+	}
+	if(Warn_g) {
+		cout << "\tWarning: Birth Probability Large!" << "\n";
+		f_log  << "Warning: Birth Probability Large!" << "\n";
+	}
+	if(Warn_fastGrowth){
+		cout << "\tWarning: Colonies growing too fast!" << "\n";
+		f_log  << "Warning: Colonies growing too fast!" << "\n";
+	}
+
+	if(Warn_r){
+		cout << "\tWarning: Infection Increase Probability Large!" << "\n";
+		f_log  << "Warning: Infection Increase Probability Large!" << "\n";
+	}
+
+	// Get stop time
+	time_t  toc;
+	time(&toc);
+
+	// Calculate time difference
+	float seconds = difftime(toc, tic);
+	float hours   = floor(seconds/3600);
+	float minutes = floor(seconds/60);
+	minutes -= hours*60;
+	seconds -= minutes*60 + hours*3600;
+
+	cout << "\n";
+	cout << "\tSimulation complete after ";
+	if (hours > 0.0)   cout << hours   << " hours and ";
+	if (minutes > 0.0) cout << minutes << " minutes and ";
+	cout  << seconds << " seconds." << "\n";
+
+	std::ofstream f_out;
+	f_out.open(GetPath() + "/Completed_LOOP_DISTRIBUTED.txt",fstream::trunc);
+	f_out << "\tSimulation complete after ";
+	if (hours > 0.0)   f_out << hours   << " hours and ";
+	if (minutes > 0.0) f_out << minutes << " minutes and ";
+	f_out  << seconds << " seconds." << "\n";
+	f_out.flush();
+	f_out.close();
+
+	// Write sucess to log
+	if (exit) {
+		f_log << ">>Simulation completed with exit flag<<" << "\n";
+	} else {
+		f_log << ">>Simulation completed without exit flag<<" << "\n";
+	}
+
+	std::ofstream f_timing;
+	f_timing << "\t"       << setw(3) << difftime(toc, tic) << " s of total time" << "\n";
+
+	f_timing.flush();
+	f_timing.close();
+
+	// cudaFree here!!
+	cudaFree(d_arr_nC );
+	cudaFree(d_arr_Occ);
+	cudaFree(d_arr_IsActive);
+	cudaFree(d_arr_maxOccupancy);
+	cudaFree(d_rng_state);
+	cudaFree(d_arr_B);
+	cudaFree(d_arr_B_new);
+	cudaFree(d_arr_P);
+	cudaFree(d_arr_P_new);
+	cudaFree(d_arr_I0);
+	cudaFree(d_arr_I0_new);
+	cudaFree(d_arr_I1);
+	cudaFree(d_arr_I1_new);
+	cudaFree(d_arr_I2);
+	cudaFree(d_arr_I2_new);
+	cudaFree(d_arr_I3);
+	cudaFree(d_arr_I3_new);
+	cudaFree(d_arr_I4);
+	cudaFree(d_arr_I4_new);
+	cudaFree(d_arr_I5);
+	cudaFree(d_arr_I5_new);
+	cudaFree(d_arr_I6);
+	cudaFree(d_arr_I6_new);
+	cudaFree(d_arr_I7);
+	cudaFree(d_arr_I7_new);
+	cudaFree(d_arr_I8);
+	cudaFree(d_arr_I8_new);
+	cudaFree(d_arr_I9);
+	cudaFree(d_arr_I9_new);
+
+	cudaFree(d_arr_M);
+	cudaFree(d_arr_p);
+	cudaFree(d_arr_nutrient);
+	cudaFree(d_arr_nutrient_new);
+	cudaFree(d_arr_GrowthModifier);
+	cudaFree(d_Warn_g);
+	cudaFree(d_Warn_fastGrowth);
+	cudaFree(d_Warn_r);
+	cudaFree(d_Warn_delta);
+
+	numtype accuB = 0.0;
+	numtype accuI = 0.0;
+	numtype accuP = 0.0;
+	numtype accuClusters = 0.0;
+	for (int i = 0; i < nGridXY; i++) {
+		for (int j = 0; j < nGridXY; j++ ) {
+			for (int k = 0; k < nGridZ; k++ ) {
+				accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+				accuI += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
+				accuP += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
+				accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
+			}
+		}
+	}
+	return (int)(accuB+accuI+accuI+accuClusters);
+}
+
+/////////////////////////////////////////////////////////////////////
+// GPU loop end
+/////////////////////////////////////////////////////////////////////
+
+
 int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 	std::string filename_suffix = "loopDistributedCPU";
 
@@ -1851,1565 +3413,6 @@ int Colonies3D::Run_LoopDistributed_CPU_cuRand(numtype T_end) {
 	}
 }
 
-////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//  Just a separator between CPU and GPU to make it easier to spot when scrolling
-///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
-
-
-
-int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
-	std::string filename_suffix = "loopDistributedGPU";
-
-	this->T_end = T_end;
-
-	// Get start time
-	time_t  tic;
-	time(&tic);
-
-	// Get start time
-	high_resolution_clock::time_point kernel_start;
-	high_resolution_clock::duration kernel_elapsed;
-
-
-	// Generate a path
-	path = GeneratePath();
-
-	// Initilize th e simulation matrices
-	Initialize();
-
-	// Export data
-	ExportData_arr(T,filename_suffix);
-
-  	if (GPU_KERNEL_TIMING){
-		std::string s = "kernel_timings";
-		OpenFileStream(f_kerneltimings, s);
-    	if (GPU_NC) {
-      		f_kerneltimings << "FirstKernel \t";
-		}
-		if (GPU_MAXOCCUPANCY) {
-			f_kerneltimings << "SetIsActive \t SecondKernel \t SequentialReduce \t";
-		}
-		if (GPU_BIRTH) {
-			f_kerneltimings << "ComputeBirthEvents \t";
-		}
-		if (GPU_INFECTIONS) {
-			f_kerneltimings << "Bursting/NonBurstingEvents \t";
-		}
-		if (GPU_NEWINFECTIONS) {
-			f_kerneltimings << "NewInfectionsKernel \t";
-		}
-		if (GPU_PHAGEDECAY) {
-			f_kerneltimings << "PhageDecay \t";
-		}
-		if (GPU_MOVEMENT) {
-			f_kerneltimings << "DiffusionAndApplyMovement \t";
-		}
-		if (GPU_SWAPZERO) {
-			f_kerneltimings << "SwapAndZeroArrays \t";
-		}
-		if (GPU_UPDATEOCCUPANCY) {
-			f_kerneltimings << "UpdateOccupancy \t";
-		}
-		if (GPU_NUTRIENTDIFFUSION) {
-			f_kerneltimings << "NutrientDiffusion \t";
-		}
-		if (GPU_SWAPZERO2) {
-			f_kerneltimings << "SwapZero";
-		}
-		f_kerneltimings << "\n";
-	}
-
-	// Determine the number of samples to take
-	int nSamplings = nSamp*T_end;
-
-	/* Allocate arrays on the device */
-	int totalElements = nGridXY * nGridXY * nGridZ;
-	int totalMemSize = totalElements * sizeof(numtype);
-	int blockSize = 256;
-	int gridSize = (totalElements + blockSize - 1) / blockSize;
-	//int gridSize = ceil((double)totalElements / (double)blockSize);
-	cudaError_t err = cudaSuccess;
-
-	// Allocate on GPU
-	numtype *arr_maxOccupancy = new numtype[gridSize]();
-	numtype *d_arr_maxOccupancy;
-
-	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_Occ, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_Occ on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_IsActive, blockSize*gridSize*sizeof(bool));
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_IsActive on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(numtype)*gridSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_maxOccupancy on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, sizeof(numtype)*gridSize, cudaMemcpyHostToDevice);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_rng_state, sizeof(curandState)*totalElements);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate d_rng_state on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMemcpy(d_rng_state, rng_state, sizeof(curandState)*totalElements, cudaMemcpyHostToDevice);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy rng_state to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_B, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_B on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_B_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_B_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_P, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_P_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_P_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I0, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I0 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I0_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I0_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I1, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I1 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I1_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I1_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I2, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I2 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I2_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I2_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I3, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I3 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I3_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I3_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I4, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I4 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I4_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I4_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I5, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I5 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I5_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I5_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I6, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I6 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I6_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I6_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I7, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I7 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I7_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I7_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I8, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I8 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I8_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I8_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I9, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I9 on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_I9_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_I9_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_M, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_M on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_p, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_p to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_nutrient, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nutrient on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_nutrient_new, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nutrient_new on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_GrowthModifier, totalMemSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_GrowthModifier to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_n_0, totalMemSize);
-	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_0 to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_n_u, totalMemSize);
-	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_u to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_n_d, totalMemSize);
-	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_d to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_n_l, totalMemSize);
-	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_l to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_n_r, totalMemSize);
-	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_r to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_n_f, totalMemSize);
-	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_f to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_arr_n_b, totalMemSize);
-	if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failed to allocate arr_n_b to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_Warn_g, sizeof(bool));
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_g on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_Warn_fastGrowth, sizeof(bool));
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate d_Warn_fastGrowth on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_Warn_r, sizeof(bool));
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	err = cudaMalloc((void**)&d_Warn_delta, sizeof(bool));
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-	initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
-
-
-	// cudaMemCpy to device
-	//CopyAllToDevice();
-
-	// Loop over samplings
-	for (int n = 0; n < nSamplings; n++) {
-		if (exit) break;
-
-		// Determine the number of timesteps between sampings
-		int nStepsPerSample = static_cast<int>(cpu_round(1 / (nSamp *  dT)));
-
-		for (int t = 0; t < nStepsPerSample; t++) {
-			if (exit) break;
-
-			// Increase time
-			T += dT;
-
-			// Spawn phages
-			if ((T_i >= 0) and (abs(T - T_i) < dT / 2)) {
-				spawnPhages();
-				T_i = -1;
-			}
-
-			// Reset density counter
-			numtype maxOccupancy = 0.0;
-
-			// /////////////////////////////////////////////////////
-			// // Main loop start //////////////////////////////////
-			// /////////////////////////////////////////////////////
-
-			/* Do all the allocations and other CUDA device stuff here
-			 * remember to do them outside the nSamplings loop afterwards
-			 */
-
-			if (GPU_NC){
-
-				// Copy to the device
-				if (((t == 0) && (n == 0)) || !GPU_SWAPZERO2) {
-					CopyAllToDevice();
-				}
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-				// Run first Kernel
-				FirstKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, totalElements);
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_elapsed = high_resolution_clock::now() - kernel_start;
-					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-				}
-
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in FirstKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				// Copy data back from device
-				if(!GPU_MAXOCCUPANCY) {
-					CopyAllToHost();
-				}
-
-			} else {
-				for (int i = 0; i < nGridXY; i++) {
-					if (exit) break;
-
-					for (int j = 0; j < nGridXY; j++) {
-						if (exit) break;
-
-						for (int k = 0; k < nGridZ; k++) {
-							if (exit) break;
-
-							// Ensure nC is updated
-							if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < arr_nC[i*nGridXY*nGridZ + j*nGridZ + k]){
-								arr_nC[i*nGridXY*nGridZ + j*nGridZ + k] = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-							}
-						}
-					}
-				}
-			}
-
-
-			if (GPU_KERNEL_TIMING){
-				cudaDeviceSynchronize();
-				kernel_start = high_resolution_clock::now();
-			}
-
-			// set active flags
-			SetIsActive<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_P, d_arr_IsActive, totalElements);
-
-			if (GPU_KERNEL_TIMING){
-				cudaDeviceSynchronize();
-				kernel_elapsed = high_resolution_clock::now() - kernel_start;
-				f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-			}
-
-			err = cudaGetLastError();
-			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in SetIsActive! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-
-			if (GPU_MAXOCCUPANCY) {
-
-				// Copy to the device
-				if(!GPU_NC) {
-					CopyAllToDevice();
-				}
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-				// Run second Kernel
-				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, blockSize);
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_elapsed = high_resolution_clock::now() - kernel_start;
-					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-				}
-
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				// This places the maximum occupancy in d_arr_maxOccupancy[0]
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-				SequentialReduce<<<1,1>>>(d_arr_maxOccupancy, gridSize);
-
-				if (GPU_KERNEL_TIMING){
-          			cudaDeviceSynchronize();
-          			kernel_elapsed = high_resolution_clock::now() - kernel_start;
-          			f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-        		}
-
-				// Copy data back from device
-				if(!GPU_BIRTH) {
-					CopyAllToHost();
-				}
-
-				err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(numtype)*gridSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
-					errC--; }
-
-
-			} else {
-				for (int i = 0; i < nGridXY; i++) {
-					if (exit) break;
-
-					for (int j = 0; j < nGridXY; j++) {
-						if (exit) break;
-
-						for (int k = 0; k < nGridZ; k++) {
-							if (exit) break;
-
-							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) continue;
-
-							// Record the maximum observed density
-							if (arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] > maxOccupancy) maxOccupancy = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-
-						}
-					}
-				}
-			}
-
-
-			// Birth //////////////////////////////////////////////////////////////////////
-			if (GPU_BIRTH){
-
-				// Copy to the device
-				if(!GPU_MAXOCCUPANCY) {
-					CopyAllToDevice();
-				}
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-				ComputeBirthEvents<<<gridSize, blockSize>>>(d_arr_B, d_arr_B_new, d_arr_nutrient, d_arr_GrowthModifier, K, g, dT, d_Warn_g, d_Warn_fastGrowth, d_rng_state, d_arr_IsActive);
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_elapsed = high_resolution_clock::now() - kernel_start;
-					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-				}
-
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in ComputeBirthEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				// Copy data back from device
-				if(!GPU_INFECTIONS) {
-					CopyAllToHost();
-				}
-
-
-			} else {
-				for (int i = 0; i < nGridXY; i++) {
-					if (exit) break;
-
-					for (int j = 0; j < nGridXY; j++) {
-						if (exit) break;
-
-						for (int k = 0; k < nGridZ; k++) {
-							if (exit) break;
-
-							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
-								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
-								continue;
-							} else {
-								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
-							}
-
-							numtype p = 0; // privatize
-							numtype N = 0; // privatize
-
-							// Compute the growth modifier
-							numtype growthModifier = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] / (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] + K);
-							arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k] = growthModifier;
-
-							p = g * growthModifier*dT;
-							if (arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] < 1) {		//
-								p = 0;
-							}
-
-							if ((p > 0.1) and (!Warn_g)) {
-								cout << "\tWarning: Birth Probability Large!" << "\n";
-								f_log  << "Warning: Birth Probability Large!" << "\n";
-								Warn_g = true;
-							}
-
-							/* BEGIN anden Map-kernel */
-							N = ComputeEvents(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], p, 1, i, j, k);
-							// Ensure there is enough nutrient
-							if ( N > arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] ) {
-								if (!Warn_fastGrowth) {
-									cout << "\tWarning: Colonies growing too fast!" << "\n";
-									f_log  << "Warning: Colonies growing too fast!" << "\n";
-									Warn_fastGrowth = true;
-								}
-
-								// DETERMINITIC CHANGE
-                            	// N = round( arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] );
-                            	N = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-							}
-
-							// Update count
-							arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-							arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-							/* END anden Map-kernel */
-						}
-					}
-				}
-			}
-			if (GPU_BIRTH) {	// We still need to compute the skip array
-				for (int i = 0; i < nGridXY; i++) {
-					for (int j = 0; j < nGridXY; j++) {
-						for (int k = 0; k < nGridZ; k++) {
-
-							// Skip empty sites
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] < 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] < 1)) {
-								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = true;
-								continue;
-							} else {
-								skipArray[i*nGridXY*nGridZ + j*nGridZ + k] = false;
-							}
-						}
-					}
-				}
-			}
-
-			if (GPU_INFECTIONS){
-
-				// Copy to the device
-				if(!GPU_BIRTH) {
-					CopyAllToDevice();
-				}
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-				// Infections kernels
-				BurstingEvents<<<gridSize, blockSize>>>(d_arr_I9, d_arr_P_new, d_arr_Occ, d_arr_GrowthModifier, d_arr_M, d_arr_p, alpha, beta, r, dT, reducedBeta, d_Warn_r, d_rng_state, d_arr_IsActive, totalElements);
-				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I8, d_arr_I9, d_arr_p, d_rng_state, d_arr_IsActive);
-				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I7, d_arr_I8, d_arr_p, d_rng_state, d_arr_IsActive);
-				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I6, d_arr_I7, d_arr_p, d_rng_state, d_arr_IsActive);
-				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I5, d_arr_I6, d_arr_p, d_rng_state, d_arr_IsActive);
-				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I4, d_arr_I5, d_arr_p, d_rng_state, d_arr_IsActive);
-				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I3, d_arr_I4, d_arr_p, d_rng_state, d_arr_IsActive);
-				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I2, d_arr_I3, d_arr_p, d_rng_state, d_arr_IsActive);
-				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I1, d_arr_I2, d_arr_p, d_rng_state, d_arr_IsActive);
-				NonBurstingEvents<<<gridSize, blockSize>>>(d_arr_I0, d_arr_I1, d_arr_p, d_rng_state, d_arr_IsActive);
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_elapsed = high_resolution_clock::now() - kernel_start;
-					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-				}
-
-				err = cudaGetLastError();
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failure in BurstingEvents or NonBurstingEvents! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-				// Copy data back from device
-				if(!GPU_NEWINFECTIONS) {
-					CopyAllToHost();
-				}
-
-			} else {
-
-				for (int i = 0; i < nGridXY; i++) {
-					if (exit) break;
-
-					for (int j = 0; j < nGridXY; j++) {
-						if (exit) break;
-
-						for (int k = 0; k < nGridZ; k++) {
-							if (exit) break;
-
-							// Skip empty sites
-							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
-
-							numtype p = 0; // privatize
-							numtype N = 0; // privatize
-
-							// Compute the growth modifier
-							numtype growthModifier = arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
-
-							// Compute beta
-							numtype Beta = beta;
-
-							if (reducedBeta) {
-								Beta *= growthModifier;
-							}
-
-							if (r > 0.0){
-
-								p = r*growthModifier*dT;
-								if ((p > 0.25) and (!Warn_r)) {
-									cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-									f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-									Warn_r = true;
-								}
-								N = ComputeEvents(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);  // Bursting events
-
-								// Update count
-								arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k]   = max(0.0, arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								// DETERMINITIC CHANGE
-								// arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += round( (1 - alpha) * Beta * N);   // Phages which escape the colony
-								// arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = round(alpha * Beta * N);                        // Phages which reinfect the colony
-								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += (1 - alpha) * Beta * N;   // Phages which escape the colony
-								arr_M[i*nGridXY*nGridZ + j*nGridZ + k] = alpha * Beta * N;
-
-								// Non-bursting events
-								N = ComputeEvents(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-								arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-								N = ComputeEvents(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-								arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-								N = ComputeEvents(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-								arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-								N = ComputeEvents(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-								arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-								N = ComputeEvents(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-								arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-								N = ComputeEvents(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-								arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-								N = ComputeEvents(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-								arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-								N = ComputeEvents(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-								arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-								N = ComputeEvents(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k], p, 2, i, j, k);
-								arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-								arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-
-								/* END tredje Map-kernel */
-
-							}
-						}
-					}
-				}
-			}
-
-			if (GPU_NEWINFECTIONS) {
-
-				// Copy to the device
-				if (!GPU_INFECTIONS) {
-					CopyAllToDevice();
-				}
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-				NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
-															d_arr_GrowthModifier, d_arr_B,
-															d_arr_M, d_arr_I0_new, d_arr_IsActive,
-															reducedBeta, clustering, shielding,
-															K, alpha, beta, eta, zeta, dT, r, d_rng_state, totalElements);
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_elapsed = high_resolution_clock::now() - kernel_start;
-					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-				}
-
-				// Copy data back from device
-				if (!GPU_PHAGEDECAY) {
-					CopyAllToHost();
-				}
-
-			} else {
-				// Kernel 5: New infections ///////////////////////////////////////////////////////////////////
-				for (int i = 0; i < nGridXY; i++) {
-					if (exit) break;
-
-					for (int j = 0; j < nGridXY; j++) {
-						if (exit) break;
-
-						for (int k = 0; k < nGridZ; k++) {
-							if (exit) break;
-
-							// Skip empty sites
-							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
-
-
-							numtype p = 0; // privatize
-							numtype N = 0; // privatize
-							// double M = 0; // privatize
-
-							// Compute beta
-							numtype Beta = beta;
-							if (reducedBeta) {
-								Beta *= arr_GrowthModifier[i*nGridXY*nGridZ + j*nGridZ + k];
-							}
-
-							// PRIVATIZE BOTH OF THESE
-							// numtype s;   // The factor which modifies the adsorption rate
-							// numtype n;   // The number of targets the phage has
-							// Infectons
-
-
-							// KERNEL THIS
-							// if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-							// 	if (clustering) {   // Check if clustering is enabled
-							// 		s = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-							// 		n = arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-							// 	} else {            // Else use mean field computation
-							// 		s = 1.0;
-							// 		n = arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-							// 	}
-							// }
-
-							if ((arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) and (arr_P[i*nGridXY*nGridZ + j*nGridZ + k] >= 1)) {
-								// Compute the number of hits
-								// if (eta * s * dT >= 1) { // In the diffusion limited case every phage hits a target
-									N = arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-								// } else {
-									// p = 1 - pow(1 - eta * s * dT, n);        // Probability hitting any target
-									// N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);     // Number of targets hit
-								// }
-
-
-								// If bacteria were hit, update events
-								// DETERMINITIC CHANGE
-								// if (N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k] >= 1) {
-
-									arr_P[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);     // Update count
-
-									numtype S;
-									if (shielding) {
-										// Absorbing medium model
-										numtype d = pow(arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0) -
-											pow(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_nC[i*nGridXY*nGridZ + j*nGridZ + k], 1.0 / 3.0);
-										S = cpu_exp(-zeta * d); // Probability of hitting succebtible target
-
-									} else {
-										// Well mixed model
-										S = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-									}
-
-									p = max(0.0, min(arr_B[i*nGridXY*nGridZ + j*nGridZ + k] / arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k],
-																	 S)); // Probability of hitting succebtible target
-									N = ComputeEvents(N + arr_M[i*nGridXY*nGridZ + j*nGridZ + k], p, 4, i, j, k);                  // Number of targets hit
-
-									if (N > arr_B[i*nGridXY*nGridZ + j*nGridZ + k])
-										N = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];              // If more bacteria than present are set to be infeced, round down
-
-									// Update the counts
-									arr_B[i*nGridXY*nGridZ + j*nGridZ + k] = max(0.0, arr_B[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-									if (r > 0.0) {
-										arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += N;
-									} else {
-										arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += N * (1 - alpha) * Beta;
-									}
-								// }
-							}
-						}
-					}
-				}
-			}
-
-
-			// Phage decay ///////////////////////////////////////////////////////////////////
-			if (GPU_PHAGEDECAY) {
-
-				// Copy to the device
-                if(!GPU_NEWINFECTIONS){
-                    CopyAllToDevice();
-                }
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-				PhageDecay<<<gridSize, blockSize>>>(d_arr_P, delta*dT,
-                                            d_Warn_delta, d_rng_state,
-                                            d_arr_IsActive);
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_elapsed = high_resolution_clock::now() - kernel_start;
-					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-				}
-
-				// Copy data back from device
-                if(!GPU_MOVEMENT){
-                    CopyAllToHost();
-				}
-
-			} else {
-				for (int i = 0; i < nGridXY; i++) {
-					if (exit) break;
-
-					for (int j = 0; j < nGridXY; j++) {
-						if (exit) break;
-
-						for (int k = 0; k < nGridZ; k++) {
-							if (exit) break;
-
-							// Skip empty sites
-							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
-
-
-							numtype p = 0; // privatize
-							numtype N = 0; // privatize
-
-							// KERNEL BEGIN
-							p = delta*dT;
-
-							if ((p > 0.1) and (!Warn_delta)) {
-								cout << "\tWarning: Decay Probability Large!" << "\n";
-								f_log  << "Warning: Decay Probability Large!" << "\n";
-								Warn_delta = true;
-							}
-
-
-							N = ComputeEvents(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], p, 5, i, j, k);
-
-							// Update count
-							arr_P[i*nGridXY*nGridZ + j*nGridZ + k]    = max(0.0, arr_P[i*nGridXY*nGridZ + j*nGridZ + k] - N);
-							// KERNEL END
-
-						}
-					}
-				}
-			}
-
-
-			// Movement ///////////////////////////////////////////////////////////////////
-			if (GPU_MOVEMENT) {
-
-				// Copy to the device
-                if(!GPU_PHAGEDECAY){
-                    CopyAllToDevice();
-                }
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-				cudaDeviceSynchronize();
-				ApplyMovement<<<gridSize,blockSize>>>(d_arr_B_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, false,totalElements);
-				cudaDeviceSynchronize();
-
-				if (r > 0) {
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I0_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, false, totalElements);
-					cudaDeviceSynchronize();
-
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I1_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
-					cudaDeviceSynchronize();
-
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I2_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
-					cudaDeviceSynchronize();
-
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I3_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
-					cudaDeviceSynchronize();
-
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I4_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
-					cudaDeviceSynchronize();
-
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I5_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
-					cudaDeviceSynchronize();
-
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I6_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
-					cudaDeviceSynchronize();
-
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I7_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
-					cudaDeviceSynchronize();
-
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I8_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
-					cudaDeviceSynchronize();
-
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-					cudaDeviceSynchronize();
-					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I9_new, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, true,totalElements);
-					cudaDeviceSynchronize();
-				}
-
-				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, lambdaP, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
-				cudaDeviceSynchronize();
-				ApplyMovement<<<gridSize,blockSize>>>(d_arr_P_new, lambdaP, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive, false,totalElements);
-				cudaDeviceSynchronize();
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_elapsed = high_resolution_clock::now() - kernel_start;
-					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-				}
-
-                // if (nGridXY > 1) {
-                //     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, d_arr_B_new,d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //     if (r > 0.0){
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, d_arr_I0_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, d_arr_I1_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, d_arr_I2_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, d_arr_I3_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, d_arr_I4_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, d_arr_I5_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, d_arr_I6_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, d_arr_I7_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, d_arr_I8_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, d_arr_I9_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //     }
-                //     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, d_arr_P_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaP);
-                // }
-                // else {
-                //     Movement2<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, d_arr_IsActive);
-
-                //     if(r>0.0){
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, d_arr_IsActive);
-
-                //     }
-                //     Movement2<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, d_arr_IsActive);
-
-
-				// }
-
-				// Copy data back from device
-				if(!GPU_SWAPZERO) {
-					CopyAllToHost();
-				}
-
-			} else {
-				for (int i = 0; i < nGridXY; i++) {
-					if (exit) break;
-
-					for (int j = 0; j < nGridXY; j++) {
-						if (exit) break;
-
-						for (int k = 0; k < nGridZ; k++) {
-							if (exit) break;
-
-							// Skip empty sites
-							if (skipArray[i*nGridXY*nGridZ + j*nGridZ + k]) continue;
-
-							if (nGridXY > 1) {
-								// KERNEL BEGIN
-								// Update positions
-								int ip, jp, kp, im, jm, km;
-
-								if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-								else ip = i + 1;
-
-								if (i == 0) im = nGridXY - 1;
-								else im = i - 1;
-
-								if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-								else jp = j + 1;
-
-								if (j == 0) jm = nGridXY - 1;
-								else jm = j - 1;
-
-								if (not experimentalConditions) {   // Periodic boundaries in Z direction
-
-									if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-									else kp = k + 1;
-
-									if (k == 0) km = nGridZ - 1;
-									else km = k - 1;
-
-								} else {    // Reflective boundaries in Z direction
-
-									if (k + 1 >= nGridZ) kp = k - 1;
-									else kp = k + 1;
-
-									if (k == 0) km = k + 1;
-									else km = k - 1;
-
-								}
-
-								// Update counts
-								numtype n_0; // No movement
-								numtype n_u; // Up
-								numtype n_d; // Down
-								numtype n_l; // Left
-								numtype n_r; // Right
-								numtype n_f; // Front
-								numtype n_b; // Back
-
-								// CELLS
-								ComputeDiffusion(arr_B[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b,1, i, j, k);
-                                    arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
-                                    arr_B_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u;
-                                    arr_B_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d;
-                                    arr_B_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r;
-                                    arr_B_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l;
-                                    arr_B_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f;
-                                    arr_B_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								if (r > 0.0) {
-									ComputeDiffusion(arr_I0[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-                                        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0;
-                                        arr_I0_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u;
-                                        arr_I0_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d;
-                                        arr_I0_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r;
-                                        arr_I0_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l;
-                                        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f;
-                                        arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-									ComputeDiffusion(arr_I1[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I1_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I1_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I1_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I1_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-									ComputeDiffusion(arr_I2[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I2_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I2_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I2_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I2_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-									ComputeDiffusion(arr_I3[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I3_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I3_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I3_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I3_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-									ComputeDiffusion(arr_I4[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I4_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I4_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I4_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I4_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-									ComputeDiffusion(arr_I5[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I5_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I5_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I5_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I5_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-									ComputeDiffusion(arr_I6[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I6_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I6_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I6_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I6_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-									ComputeDiffusion(arr_I7[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I7_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I7_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I7_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I7_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-									ComputeDiffusion(arr_I8[i*nGridXY*nGridZ + j*nGridZ + k],  lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I8_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I8_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I8_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I8_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-									ComputeDiffusion(arr_I9[i*nGridXY*nGridZ + j*nGridZ + k], lambdaB, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 2, i, j, k);
-									arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_I9_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_I9_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_I9_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_I9_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-								}
-
-								// PHAGES
-								ComputeDiffusion(arr_P[i*nGridXY*nGridZ + j*nGridZ + k], lambdaP, &n_0, &n_u, &n_d, &n_l, &n_r, &n_f, &n_b, 3, i, j, k);
-								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += n_0; arr_P_new[ip*nGridXY*nGridZ + j*nGridZ + k] += n_u; arr_P_new[im*nGridXY*nGridZ + j*nGridZ + k] += n_d; arr_P_new[i*nGridXY*nGridZ + jp*nGridZ + k] += n_r; arr_P_new[i*nGridXY*nGridZ + jm*nGridZ + k] += n_l; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + kp] += n_f; arr_P_new[i*nGridXY*nGridZ + j*nGridZ + km] += n_b;
-
-								// KERNEL END
-
-
-
-							} else {
-								arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-
-								if (r > 0.0) {
-									arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k];
-									arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I1[i*nGridXY*nGridZ + j*nGridZ + k];
-									arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I2[i*nGridXY*nGridZ + j*nGridZ + k];
-									arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I3[i*nGridXY*nGridZ + j*nGridZ + k];
-									arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I4[i*nGridXY*nGridZ + j*nGridZ + k];
-									arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I5[i*nGridXY*nGridZ + j*nGridZ + k];
-									arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I6[i*nGridXY*nGridZ + j*nGridZ + k];
-									arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I7[i*nGridXY*nGridZ + j*nGridZ + k];
-									arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I8[i*nGridXY*nGridZ + j*nGridZ + k];
-									arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
-								}
-
-								// PHAGES
-								arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-								// KERNEL END
-							}
-						}
-					}
-				}
-			}
-
-            /////////////////////////////////////
-            // Simple end of loop kernels
-
-			if(GPU_SWAPZERO){
-
-				// Copy to the device
-				if(!GPU_MOVEMENT) {
-					CopyAllToDevice();
-				}
-
-				if (GPU_KERNEL_TIMING){
-					cudaDeviceSynchronize();
-					kernel_start = high_resolution_clock::now();
-				}
-
-                std::swap(d_arr_B, d_arr_B_new);
-                std::swap(d_arr_I0, d_arr_I0_new);
-                std::swap(d_arr_I1, d_arr_I1_new);
-                std::swap(d_arr_I2, d_arr_I2_new);
-                std::swap(d_arr_I3, d_arr_I3_new);
-                std::swap(d_arr_I4, d_arr_I4_new);
-                std::swap(d_arr_I5, d_arr_I5_new);
-                std::swap(d_arr_I6, d_arr_I6_new);
-                std::swap(d_arr_I7, d_arr_I7_new);
-                std::swap(d_arr_I8, d_arr_I8_new);
-                std::swap(d_arr_I9, d_arr_I9_new);
-                std::swap(d_arr_P, d_arr_P_new);
-                cudaDeviceSynchronize();
-
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, totalElements);
-//				ZeroArray<<<gridSize,blockSize>>>(d_arr_I2_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I3_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I4_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I5_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I6_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I7_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I8_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, totalElements);
-//                cudaDeviceSynchronize();
-
-                if (GPU_KERNEL_TIMING){
-                  cudaDeviceSynchronize();
-                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
-                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-                }
-
-				// Copy data back from device
-                if(!GPU_UPDATEOCCUPANCY) {
-					CopyAllToHost();
-				}
-
-            } else {
-				// Swap pointers
-                std::swap(arr_B, arr_B_new);
-                std::swap(arr_I0, arr_I0_new);
-                std::swap(arr_I1, arr_I1_new);
-                std::swap(arr_I2, arr_I2_new);
-                std::swap(arr_I3, arr_I3_new);
-                std::swap(arr_I4, arr_I4_new);
-                std::swap(arr_I5, arr_I5_new);
-                std::swap(arr_I6, arr_I6_new);
-                std::swap(arr_I7, arr_I7_new);
-                std::swap(arr_I8, arr_I8_new);
-                std::swap(arr_I9, arr_I9_new);
-                std::swap(arr_P, arr_P_new);
-
-                // Zero the _new arrays
-                for (int i = 0; i < nGridXY; i++) {
-                    for (int j = 0; j < nGridXY; j++ ) {
-                        for (int k = 0; k < nGridZ; k++ ) {
-                            arr_B_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-                            arr_I0_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_I1_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_I2_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_I3_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_I4_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_I5_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_I6_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_I7_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_I8_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_I9_new[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-                            arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-                        }
-                    }
-                }
-            }
-
-
-            if(GPU_UPDATEOCCUPANCY){
-
-				// Copy data back from device
-                if(!GPU_SWAPZERO) {
-					CopyAllToDevice();
-				}
-
-                if (GPU_KERNEL_TIMING){
-                  cudaDeviceSynchronize();
-                  kernel_start = high_resolution_clock::now();
-				}
-
-				UpdateOccupancy<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_B, d_arr_I0, d_arr_I1, d_arr_I2, d_arr_I3, d_arr_I4, d_arr_I5, d_arr_I6, d_arr_I7, d_arr_I8, d_arr_I9, totalElements);
-
-                if (GPU_KERNEL_TIMING){
-                  cudaDeviceSynchronize();
-                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
-                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-                }
-
-				// Copy data back from device
-                if(!GPU_NUTRIENTDIFFUSION) CopyAllToHost();
-
-            } else {
-				// Update occupancy
-                for (int i = 0; i < nGridXY; i++) {
-                    for (int j = 0; j < nGridXY; j++ ) {
-                        for (int k = 0; k < nGridZ; k++ ) {
-                            arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k] = arr_B[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
-                        }
-                    }
-                }
-            }
-
-
-			// NUTRIENT DIFFUSION
-			numtype alphaXY = D_n * dT / pow(L / (numtype)nGridXY, 2);
-			numtype alphaZ  = D_n * dT / pow(H / (numtype)nGridZ, 2);
-
-            if(GPU_NUTRIENTDIFFUSION){
-
-				// Copy data back from device
-                if(!GPU_UPDATEOCCUPANCY) {
-					 CopyAllToDevice();
-				}
-
-                if (GPU_KERNEL_TIMING){
-                  cudaDeviceSynchronize();
-                  kernel_start = high_resolution_clock::now();
-				}
-
-				NutrientDiffusion<<<gridSize,blockSize>>>(d_arr_nutrient, d_arr_nutrient_new, alphaXY, alphaZ, nGridXY, nGridZ, experimentalConditions, totalElements);
-
-                if (GPU_KERNEL_TIMING){
-                  cudaDeviceSynchronize();
-                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
-                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
-				}
-
-				// Copy data back from device
-                if(!GPU_SWAPZERO2) {
-					CopyAllToHost();
-				}
-
-            } else {
-                for (int i = 0; i < nGridXY; i++) {
-                    for (int j = 0; j < nGridXY; j++ ) {
-                        for (int k = 0; k < nGridZ; k++ ) {
-
-                            // Update positions
-                            int ip, jp, kp, im, jm, km;
-
-                            if (i + 1 >= nGridXY) ip = i + 1 - nGridXY;
-                            else ip = i + 1;
-
-                            if (i == 0) im = nGridXY - 1;
-                            else im = i - 1;
-
-                            if (j + 1 >= nGridXY) jp = j + 1 - nGridXY;
-                            else jp = j + 1;
-
-                            if (j == 0) jm = nGridXY - 1;
-                            else jm = j - 1;
-
-                            if (not experimentalConditions) {   // Periodic boundaries in Z direction
-
-                                if (k + 1 >= nGridZ) kp = k + 1 - nGridZ;
-                                else kp = k + 1;
-
-                                if (k == 0) km = nGridZ - 1;
-                                else km = k - 1;
-
-                            } else {    // Reflective boundaries in Z direction
-
-                                if (k + 1 >= nGridZ) kp = k - 1;
-                                else kp = k + 1;
-
-                                if (k == 0) km = k + 1;
-                                else km = k - 1;
-
-                            }
-
-                            numtype tmp = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;
-                            arr_nutrient_new[ip*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-                            arr_nutrient_new[im*nGridXY*nGridZ + j*nGridZ + k] += alphaXY * tmp;
-                            arr_nutrient_new[i*nGridXY*nGridZ + jp*nGridZ + k] += alphaXY * tmp;
-                            arr_nutrient_new[i*nGridXY*nGridZ + jm*nGridZ + k] += alphaXY * tmp;
-                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + kp] += alphaZ  * tmp;
-                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + km] += alphaZ  * tmp;
-                        }
-                    }
-                }
-			}
-
-            if(GPU_SWAPZERO2){
-
-				// Copy data back from device
-                if(!GPU_NUTRIENTDIFFUSION) {
-					CopyAllToDevice();
-				}
-
-                if (GPU_KERNEL_TIMING){
-                  cudaDeviceSynchronize();
-                  kernel_start = high_resolution_clock::now();
-				}
-
-                std::swap(d_arr_nutrient, d_arr_nutrient_new);
- //               ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, totalElements);
-
-                if (GPU_KERNEL_TIMING){
-                  cudaDeviceSynchronize();
-                  kernel_elapsed = high_resolution_clock::now() - kernel_start;
-                  f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count();
-                }
-
-				// Copy data back from device
-				if(!GPU_NC) {
-					CopyAllToHost();
-				}
-
-            } else {
-                std::swap(arr_nutrient, arr_nutrient_new);
-
-                // Zero the _new arrays
-                for (int i = 0; i < nGridXY; i++) {
-                    for (int j = 0; j < nGridXY; j++ ) {
-                        for (int k = 0; k < nGridZ; k++ ) {
-                            arr_nutrient_new[i*nGridXY*nGridZ + j*nGridZ + k]  = 0.0;
-                        }
-                    }
-                }
-            }
-
-
-
-			f_kerneltimings << "\n";
-			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
-				cout << "\tWarning: Maximum Density Large!" << "\n";
-				f_log  << "Warning: Maximum Density Large!" << "\n";
-				Warn_density = true;
-			}
-		}
-
-        /////////////////////////////
-        //Sample loop ends...
-        ////////////////////////////
-
-		//CopyAllToHost();
-
-		// Fast exit conditions
-		// 1) There are no more sucebtible cells
-		// -> Convert all infected cells to phages and stop simulation
-		numtype accuB = 0.0;
-		for (int i = 0; i < nGridXY; i++) {
-			for (int j = 0; j < nGridXY; j++ ) {
-				for (int k = 0; k < nGridZ; k++ ) {
-					accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-				}
-			}
-		}
-		if ((fastExit) and (accuB < 1)) {
-			// Update the P array
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						arr_P[i*nGridXY*nGridZ + j*nGridZ + k] += (1-alpha)*beta * (arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k]);
-					}
-				}
-			}
-
-
-			// Zero the I arrays
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-					}
-				}
-			}
-			exit = true;
-		}
-
-		// 2) There are no more alive cells
-		// -> Stop simulation
-
-		numtype accuOcc = 0.0;
-		for (int i = 0; i < nGridXY; i++) {
-			for (int j = 0; j < nGridXY; j++ ) {
-				for (int k = 0; k < nGridZ; k++ ) {
-					accuOcc += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-				}
-			}
-		}
-
-		if ((fastExit) and (accuOcc < 1)) {
-			exit = true;
-		}
-
-		// 3) The food is on average less than one per gridpoint
-		// and the maximal nutrient at any point in space is less than 1
-
-		numtype accuNutrient = 0.0;
-		numtype maxNutrient  = 0.0;
-		for (int i = 0; i < nGridXY; i++) {
-			for (int j = 0; j < nGridXY; j++ ) {
-				for (int k = 0; k < nGridZ; k++ ) {
-					numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-					accuNutrient += tmpN;
-
-					if (tmpN > maxNutrient) {
-						maxNutrient = tmpN;
-					}
-				}
-			}
-		}
-
-		if (fastExit) {
-			if  ((accuNutrient < nGridZ*pow(nGridXY,2)) && (maxNutrient < 0.5)) {
-				exit = true;
-			}
-		}
-
-		// cudaMemCpy to host
-		CopyAllToHost();
-
-		// Store the state
-		ExportData_arr(T,filename_suffix);
-
-		// Check for nutrient stability
-		assert(accuNutrient >= 0);
-		assert(accuNutrient <= n_0 * L * L * H);
-	}
-
-	/////////////////////////////////////////////////////
-	// Main loop end ////////////////////////////////////
-	/////////////////////////////////////////////////////
-
-	if(Warn_delta) {
-	cout << "\tWarning: Decay Probability Large!" << "\n";
-	f_log  << "Warning: Decay Probability Large!" << "\n";
-	}
-	if(Warn_g) {
-		cout << "\tWarning: Birth Probability Large!" << "\n";
-		f_log  << "Warning: Birth Probability Large!" << "\n";
-	}
-	if(Warn_fastGrowth){
-		cout << "\tWarning: Colonies growing too fast!" << "\n";
-		f_log  << "Warning: Colonies growing too fast!" << "\n";
-	}
-
-	if(Warn_r){
-		cout << "\tWarning: Infection Increase Probability Large!" << "\n";
-		f_log  << "Warning: Infection Increase Probability Large!" << "\n";
-	}
-
-	// Get stop time
-	time_t  toc;
-	time(&toc);
-
-	// Calculate time difference
-	float seconds = difftime(toc, tic);
-	float hours   = floor(seconds/3600);
-	float minutes = floor(seconds/60);
-	minutes -= hours*60;
-	seconds -= minutes*60 + hours*3600;
-
-	cout << "\n";
-	cout << "\tSimulation complete after ";
-	if (hours > 0.0)   cout << hours   << " hours and ";
-	if (minutes > 0.0) cout << minutes << " minutes and ";
-	cout  << seconds << " seconds." << "\n";
-
-	std::ofstream f_out;
-	f_out.open(GetPath() + "/Completed_LOOP_DISTRIBUTED.txt",fstream::trunc);
-	f_out << "\tSimulation complete after ";
-	if (hours > 0.0)   f_out << hours   << " hours and ";
-	if (minutes > 0.0) f_out << minutes << " minutes and ";
-	f_out  << seconds << " seconds." << "\n";
-	f_out.flush();
-	f_out.close();
-
-	// Write sucess to log
-	if (exit) {
-		f_log << ">>Simulation completed with exit flag<<" << "\n";
-	} else {
-		f_log << ">>Simulation completed without exit flag<<" << "\n";
-	}
-
-	std::ofstream f_timing;
-	f_timing << "\t"       << setw(3) << difftime(toc, tic) << " s of total time" << "\n";
-
-	f_timing.flush();
-	f_timing.close();
-
-	// cudaFree here!!
-	cudaFree(d_arr_nC );
-	cudaFree(d_arr_Occ);
-	cudaFree(d_arr_IsActive);
-	cudaFree(d_arr_maxOccupancy);
-	cudaFree(d_rng_state);
-	cudaFree(d_arr_B);
-	cudaFree(d_arr_B_new);
-	cudaFree(d_arr_P);
-	cudaFree(d_arr_P_new);
-	cudaFree(d_arr_I0);
-	cudaFree(d_arr_I0_new);
-	cudaFree(d_arr_I1);
-	cudaFree(d_arr_I1_new);
-	cudaFree(d_arr_I2);
-	cudaFree(d_arr_I2_new);
-	cudaFree(d_arr_I3);
-	cudaFree(d_arr_I3_new);
-	cudaFree(d_arr_I4);
-	cudaFree(d_arr_I4_new);
-	cudaFree(d_arr_I5);
-	cudaFree(d_arr_I5_new);
-	cudaFree(d_arr_I6);
-	cudaFree(d_arr_I6_new);
-	cudaFree(d_arr_I7);
-	cudaFree(d_arr_I7_new);
-	cudaFree(d_arr_I8);
-	cudaFree(d_arr_I8_new);
-	cudaFree(d_arr_I9);
-	cudaFree(d_arr_I9_new);
-
-	cudaFree(d_arr_M);
-	cudaFree(d_arr_p);
-	cudaFree(d_arr_nutrient);
-	cudaFree(d_arr_nutrient_new);
-	cudaFree(d_arr_GrowthModifier);
-	cudaFree(d_Warn_g);
-	cudaFree(d_Warn_fastGrowth);
-	cudaFree(d_Warn_r);
-	cudaFree(d_Warn_delta);
-
-	numtype accuB = 0.0;
-	numtype accuI = 0.0;
-	numtype accuP = 0.0;
-	numtype accuClusters = 0.0;
-	for (int i = 0; i < nGridXY; i++) {
-		for (int j = 0; j < nGridXY; j++ ) {
-			for (int k = 0; k < nGridZ; k++ ) {
-				accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-				accuI += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] + arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
-				accuP += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-				accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-			}
-		}
-	}
-	return (int)(accuB+accuI+accuI+accuClusters);
-}
-
-/////////////////////////////////////////////////////////////////////
-// GPU loop end
-/////////////////////////////////////////////////////////////////////
 
 // GPU copy helper functions
 void Colonies3D::CopyToHost(numtype* hostArray, numtype* deviceArray, int failCode, int gridsz){

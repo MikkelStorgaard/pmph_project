@@ -581,7 +581,7 @@ __global__ void ApplyMovement(numtype* arr_new,
     if (lambda > 0) {
       int k = tid % nGridZ;
       int j = ( (tid - k) / nGridZ ) % nGridXY;
-      int i = ( (tid - k) / nGridZ ) / nGridXY;
+      int i = (((tid - k) / nGridZ ) - j) / nGridXY;
 
       int ip, jp, kp, im, jm, km;
 
