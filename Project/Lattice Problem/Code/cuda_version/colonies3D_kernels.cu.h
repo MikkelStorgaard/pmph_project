@@ -606,7 +606,7 @@ __global__ void ApplyMovement(numtype* arr_new,
 
     }
 
-    #if GPU_COPY_TO_SHARED
+    #if false // GPU_COPY_TO_SHARED
 
       // 1D abstraction
       int T = blockDim.x; // Tile length
@@ -848,19 +848,68 @@ __global__ void NutrientDiffusion(numtype* arr_nutrient,
       else km = k - 1;
     }
 
+
+
     // Writing order has been reversed compared with non-CUDA version
-    numtype inflow = 0.0;
-    inflow += alphaXY * arr_nutrient[ip*nGridXY*nGridZ + j *nGridZ + k ];
-    inflow += alphaXY * arr_nutrient[im*nGridXY*nGridZ + j *nGridZ + k ];
-    inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jp*nGridZ + k ];
-    inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jm*nGridZ + k ];
-    inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + kp];
-    inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + km];
+    #if GPU_COPY_TO_SHARED
 
-    numtype tmp = arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + k];
-    numtype outflow = (4 * alphaXY + 2 * alphaZ) * tmp;
+      // 1D abstraction
+      int T = blockDim.x+2; // Tile length
+      int memSize = 5*T;    // Number of tiles
 
-    arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k] = tmp + inflow - outflow;
+      extern __shared__ numtype shared[memSize];
+
+      // Copy to shared
+      // Compute the neighbour indicies
+      int ind_0 =  i*nGridXY*nGridZ +  j*nGridZ + k ;
+      int ind_u = ip*nGridXY*nGridZ +  j*nGridZ + k ;
+      int ind_d = im*nGridXY*nGridZ +  j*nGridZ + k ;
+      int ind_r =  i*nGridXY*nGridZ + jp*nGridZ + k ;
+      int ind_l =  i*nGridXY*nGridZ + jm*nGridZ + k ;
+      int ind_f =  i*nGridXY*nGridZ +  j*nGridZ + kp;
+      int ind_b =  i*nGridXY*nGridZ +  j*nGridZ + km;
+
+      // Copy valies
+      shared[tid + 1]       = arr_nutrient[ind_0]; // Own value
+      shared[tid + 1 +   T] = arr_nutrient[ind_u]; // Upper neighbour
+      shared[tid + 1 + 2*T] = arr_nutrient[ind_d]; // Upper neighbour
+      shared[tid + 1 + 3*T] = arr_nutrient[ind_r]; // Upper neighbour
+      shared[tid + 1 + 4*T] = arr_nutrient[ind_l]; // Upper neighbour
+      if (tid == 0)           shared[tid]   = arr_nutrient[ind_b];
+      if (tid == blockDim.x)  shared[tid+1] = arr_nutrient[ind_f];
+      __syncthreads();
+
+      numtype inflow = 0.0;
+      inflow += alphaXY * shared[tid + 1 + T];
+      inflow += alphaXY * shared[tid + 1 + 2*T];
+      inflow += alphaXY * shared[tid + 1 + 3*T];
+      inflow += alphaXY * shared[tid + 1 + 4*T];
+      inflow += alphaZ  * shared[tid + 2];
+      inflow += alphaZ  * shared[tid];
+
+      numtype tmp = shared[tid + 1];
+      numtype outflow = (4 * alphaXY + 2 * alphaZ) * tmp;
+
+      arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k] = tmp + inflow - outflow;
+
+
+    #else
+
+      numtype inflow = 0.0;
+      inflow += alphaXY * arr_nutrient[ip*nGridXY*nGridZ + j *nGridZ + k ];
+      inflow += alphaXY * arr_nutrient[im*nGridXY*nGridZ + j *nGridZ + k ];
+      inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jp*nGridZ + k ];
+      inflow += alphaXY * arr_nutrient[i *nGridXY*nGridZ + jm*nGridZ + k ];
+      inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + kp];
+      inflow += alphaZ  * arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + km];
+
+      numtype tmp = arr_nutrient[i *nGridXY*nGridZ + j *nGridZ + k];
+      numtype outflow = (4 * alphaXY + 2 * alphaZ) * tmp;
+
+      arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k] = tmp + inflow - outflow;
+
+    #endif
+
 
 
     // arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k ] += tmp - (4 * alphaXY + 2 * alphaZ) * tmp;

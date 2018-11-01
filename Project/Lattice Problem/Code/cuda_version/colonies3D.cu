@@ -599,10 +599,10 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 
 							// PHAGES
 							arr_P_new[i*nGridXY*nGridZ + j*nGridZ + k] += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
+						}
 					}
 				}
 			}
-		}
 
 			// Swap pointers
 			std::swap(arr_B, arr_B_new);
