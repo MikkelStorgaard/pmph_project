@@ -2707,7 +2707,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					cudaDeviceSynchronize();
 				}
 
-				ZeroArray<<<gridSize,blockSize>>>(d_arr_n_0, totalElements);
 				ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, lambdaP, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
 				cudaDeviceSynchronize();
 				ApplyMovement<<<gridSize,blockSize>>>(d_arr_P_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
