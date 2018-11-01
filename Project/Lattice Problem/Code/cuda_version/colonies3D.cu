@@ -19,7 +19,7 @@
 // Different optimization tests
 #define GPU_REDUCE_ARRAYS true
 
-#define GPU_COPY_TO_SHARED false
+#define GPU_COPY_TO_SHARED true
 
 
 using namespace std;
@@ -1567,7 +1567,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				exit = true;
 			}
 		}
-
 
 		if (!exportAll) {
 
