@@ -8,7 +8,7 @@
 #define GPU_INFECTIONS true         // Works
 #define GPU_NEWINFECTIONS true	    // Works
 #define GPU_PHAGEDECAY true         // Works
-#define GPU_MOVEMENT false          // Works
+#define GPU_MOVEMENT true          // Works
 #define GPU_SWAPZERO true           // Works
 #define GPU_UPDATEOCCUPANCY true    // Works
 #define GPU_NUTRIENTDIFFUSION true  // Works
@@ -2457,10 +2457,10 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				}
 
 				NewInfectionsKernel<<<gridSize, blockSize>>>(d_arr_Occ, d_arr_nC, d_arr_P, d_arr_P_new,
-															d_arr_GrowthModifier, d_arr_B, d_arr_B_new,
+															d_arr_GrowthModifier, d_arr_B,
 															d_arr_M, d_arr_I0_new, d_arr_IsActive,
 															reducedBeta, clustering, shielding,
-															K, alpha, beta, eta, zeta, dT, r, d_rng_state);
+															K, alpha, beta, eta, zeta, dT, r, d_rng_state, totalElements);
 
 				if (GPU_KERNEL_TIMING){
 					cudaDeviceSynchronize();
@@ -2923,8 +2923,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                 std::swap(d_arr_P, d_arr_P_new);
                 cudaDeviceSynchronize();
 
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, totalElements);
-                ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, totalElements);
+  //              ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, totalElements);
+  //              ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, totalElements);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, totalElements);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I2_new, totalElements);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I3_new, totalElements);

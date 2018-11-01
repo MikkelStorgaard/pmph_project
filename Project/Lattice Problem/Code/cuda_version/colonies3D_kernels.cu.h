@@ -373,7 +373,7 @@ __global__ void ComputeBirthEvents(numtype* arr_B, numtype* arr_B_new, numtype* 
   }
 
   // Update count
-  arr_B_new[i] += N;
+  arr_B_new[i] = N;
   arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
 
 }
@@ -437,7 +437,6 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
                                     numtype* arr_P_new,
                                     numtype* arr_GrowthModifier,
                                     numtype* arr_B,
-                                    numtype* arr_B_new,
                                     numtype* arr_M,
                                     numtype* arr_I0_new,
                                     bool* arr_IsActive,
@@ -451,12 +450,14 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
                                     numtype zeta,
                                     numtype dT,
                                     numtype r,
-                                    curandState* rng_state
+                                    curandState* rng_state,
+									int totalElements
                                     ){
 
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   bool isInactive = (!(arr_IsActive[tid]));
   if (isInactive){
+	  if (tid < totalElements)  arr_I0_new[tid] = 0.0;
     return;
   }
 
@@ -525,12 +526,13 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
       // Update the counts
       arr_B[tid] = max(0.0, B - tmp);
       if (r > 0.0) {
-        arr_I0_new[tid] += tmp;
+        arr_I0_new[tid] = tmp;
       } else {
         arr_P_new[tid] += tmp * (1 - alpha) * Beta;
       }
     // }
   }
+  else arr_I0_new[tid] = 0.0;
 }
 
 __global__ void PhageDecay(numtype* arr_P, numtype p,
