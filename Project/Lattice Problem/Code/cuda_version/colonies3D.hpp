@@ -25,7 +25,7 @@
 #include <ctime>            // Time functions
 
 
-#define NUMTYPE_IS_FLOAT true
+#define NUMTYPE_IS_FLOAT false
 #if NUMTYPE_IS_FLOAT
 typedef float numtype;
 #else

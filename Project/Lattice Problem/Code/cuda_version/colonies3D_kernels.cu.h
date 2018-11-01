@@ -629,7 +629,8 @@ __global__ void ApplyMovement(numtype* arr_new,
       arr_new[tid] = tmp;
 
     } else {
-      arr_new[tid] += arr_n_0[tid];
+	if(zero) arr_new[tid] = arr_n_0[tid];
+    else arr_new[tid] += arr_n_0[tid];
     }
 
 }

@@ -1228,21 +1228,21 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                 std::swap(d_arr_I9, d_arr_I9_new);
                 std::swap(d_arr_P, d_arr_P_new);
                 cudaDeviceSynchronize();
-
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, totalElements);
-//				ZeroArray<<<gridSize,blockSize>>>(d_arr_I2_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I3_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I4_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I5_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I6_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I7_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I8_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, totalElements);
-//                ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, totalElements);
-//                cudaDeviceSynchronize();
-
+/*
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, totalElements);
+				ZeroArray<<<gridSize,blockSize>>>(d_arr_I2_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I3_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I4_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I5_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I6_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I7_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I8_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, totalElements);
+                ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, totalElements);
+                cudaDeviceSynchronize();
+*/
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
                   kernel_elapsed = high_resolution_clock::now() - kernel_start;
