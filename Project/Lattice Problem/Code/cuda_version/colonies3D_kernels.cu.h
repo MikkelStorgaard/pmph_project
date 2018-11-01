@@ -570,10 +570,7 @@ __global__ void ApplyMovement(numtype* arr_new,
 							  bool zero,
 							  int totalElements) {
 
-    int index = blockIdx.x*blockDim.x + threadIdx.x;
-    #if false
-    int tid = threadIdx.x;
-    #endif
+    int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
     // Skip empty sites
     if (!arr_IsActive[tid]){
@@ -582,9 +579,9 @@ __global__ void ApplyMovement(numtype* arr_new,
     }
 
     if (lambda > 0) {
-      int k = index % nGridZ;
-      int j = ( (index - k) / nGridZ ) % nGridXY;
-      int i = ( (index - k) / nGridZ ) / nGridXY;
+      int k = tid % nGridZ;
+      int j = ( (tid - k) / nGridZ ) % nGridXY;
+      int i = ( (tid - k) / nGridZ ) / nGridXY;
 
       int ip, jp, kp, im, jm, km;
 
@@ -617,58 +614,15 @@ __global__ void ApplyMovement(numtype* arr_new,
 
       }
 
-      #if false // GPU_COPY_TO_SHARED
-
-        // 1D abstraction
-        int T = blockDim.x; // Tile length
-        int memSize = 5*T;    // Number of tiles
-
-        extern __shared__ numtype shared_n_0[blockDim.x];
-        extern __shared__ numtype shared_n_u[blockDim.x];
-        extern __shared__ numtype shared_n_d[blockDim.x];
-        extern __shared__ numtype shared_n_r[blockDim.x];
-        extern __shared__ numtype shared_n_l[blockDim.x];
-        extern __shared__ numtype shared_n_f[blockDim.x];
-        extern __shared__ numtype shared_n_b[blockDim.x];
-
-        // Copy to shared
-        // Compute the neighbour indicies
-        int ind_0 =  tid;
-        int ind_u = ip*nGridXY*nGridZ +  j*nGridZ + k ;
-        int ind_d = im*nGridXY*nGridZ +  j*nGridZ + k ;
-        int ind_r =  i*nGridXY*nGridZ + jp*nGridZ + k ;
-        int ind_l =  i*nGridXY*nGridZ + jm*nGridZ + k ;
-        int ind_f =  i*nGridXY*nGridZ +  j*nGridZ + kp;
-        int ind_b =  i*nGridXY*nGridZ +  j*nGridZ + km;
-
-        // Copy valies
-        shared_n_0[tid] = arr_n_0[ind_0];
-        shared_n_u[tid] = arr_n_u[ind_u];
-        shared_n_d[tid] = arr_n_d[ind_d];
-        shared_n_r[tid] = arr_n_r[ind_r];
-        shared_n_l[tid] = arr_n_l[ind_l];
-        shared_n_f[tid] = arr_n_f[ind_f];
-        shared_n_b[tid] = arr_n_b[ind_b];
-        __syncthreads();
-
-        // Update counts
-        numtype tmp = 0.0;
-        tmp += shared_n_0[tid];
-        tmp += shared_n_u[tid];
-        tmp += shared_n_d[tid];
-        tmp += shared_n_r[tid];
-        tmp += shared_n_l[tid];
-        tmp += shared_n_f[tid];
-        tmp += shared_n_b[tid];
-        arr_new[tid] = tmp;
-
-        __syncthreads();
-        // Copy back
-
-      #else
-
       // Update counts
-	  
+      arr_new[tid] += arr_n_0[ tid ];
+      arr_new[tid] += arr_n_u[ip*nGridXY*nGridZ +  j*nGridZ + k ];
+      arr_new[tid] += arr_n_d[im*nGridXY*nGridZ +  j*nGridZ + k ];
+      arr_new[tid] += arr_n_r[ i*nGridXY*nGridZ + jp*nGridZ + k ];
+      arr_new[tid] += arr_n_l[ i*nGridXY*nGridZ + jm*nGridZ + k ];
+      arr_new[tid] += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
+      arr_new[tid] += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
+
 	  numtype tmp;
 	  if(zero) tmp = 0.0;
 	  else tmp = arr_new[tid]; 
@@ -680,18 +634,9 @@ __global__ void ApplyMovement(numtype* arr_new,
       tmp += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
       tmp += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
 	  arr_new[tid] = tmp;
-	  
-	  
-/*
-      arr_new[tid] += arr_n_0[ i*nGridXY*nGridZ +  j*nGridZ + k ];
-      arr_new[tid] += arr_n_u[ip*nGridXY*nGridZ +  j*nGridZ + k ];
-      arr_new[tid] += arr_n_d[im*nGridXY*nGridZ +  j*nGridZ + k ];
-      arr_new[tid] += arr_n_r[ i*nGridXY*nGridZ + jp*nGridZ + k ];
-      arr_new[tid] += arr_n_l[ i*nGridXY*nGridZ + jm*nGridZ + k ];
-      arr_new[tid] += arr_n_f[ i*nGridXY*nGridZ +  j*nGridZ + kp];
-      arr_new[tid] += arr_n_b[ i*nGridXY*nGridZ +  j*nGridZ + km];
-*/	
-    #endif
+    } else {
+      arr_new[tid] += arr_n_0[tid];
+    }
 }
 
 
