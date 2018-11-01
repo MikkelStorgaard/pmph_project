@@ -8,7 +8,7 @@
 #define GPU_INFECTIONS true         // Works
 #define GPU_NEWINFECTIONS true	    // Works
 #define GPU_PHAGEDECAY true         // Works
-#define GPU_MOVEMENT false          // Works
+#define GPU_MOVEMENT true           // Works
 #define GPU_SWAPZERO true           // Works
 #define GPU_UPDATEOCCUPANCY true    // Works
 #define GPU_NUTRIENTDIFFUSION true  // Works
@@ -1831,6 +1831,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 	// Get start time
 	high_resolution_clock::time_point kernel_start;
+	high_resolution_clock::time_point small_sampling;
 	high_resolution_clock::duration kernel_elapsed;
 
 
@@ -1865,6 +1866,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			f_kerneltimings << "PhageDecay \t";
 		}
 		if (GPU_MOVEMENT) {
+			f_kerneltimings << "Diffusion \t";
+			f_kerneltimings << "ApplyMovement \t";
 			f_kerneltimings << "DiffusionAndApplyMovement \t";
 		}
 		if (GPU_SWAPZERO) {
@@ -2661,9 +2664,27 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I1_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
 					cudaDeviceSynchronize();
 
-					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+				if (GPU_KERNEL_TIMING){
 					cudaDeviceSynchronize();
+					small_sampling = high_resolution_clock::now();
+				}
+					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_elapsed = high_resolution_clock::now() - small_sampling;
+					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
+					cudaDeviceSynchronize();
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					small_sampling = high_resolution_clock::now();
+				}
 					ApplyMovement<<<gridSize,blockSize>>>(d_arr_I2_new, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridZ, nGridXY, experimentalConditions, d_arr_IsActive);
+				if (GPU_KERNEL_TIMING){
+					cudaDeviceSynchronize();
+					kernel_elapsed = high_resolution_clock::now() - small_sampling;
+					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+				}
 					cudaDeviceSynchronize();
 
 					ComputeDiffusionWeights<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, lambdaB, d_arr_n_0, d_arr_n_u, d_arr_n_d, d_arr_n_l, d_arr_n_r, d_arr_n_f, d_arr_n_b, nGridXY, d_arr_IsActive, totalElements);
