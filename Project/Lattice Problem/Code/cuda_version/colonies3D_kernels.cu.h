@@ -236,6 +236,26 @@ __global__ void SecondKernel(numtype* arr_Occ, numtype* arr_nC, numtype* maxOcc,
   }
 }
 
+__global__ void PartialMax(numtype* arr, numtype* partialMax, int N){
+
+  extern __shared__ numtype shared[];
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  int tid = threadIdx.x;
+
+  shared[tid] = arr[i];
+
+  for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
+    if (tid < s) {
+      shared[tid] = max(shared[tid], shared[tid + s]);
+    }
+    __syncthreads();
+  }
+  // write result for this block to global mem
+  if(tid == 0){
+    partialMax[blockIdx.x] = shared[0];
+  }
+}
+
 __global__ void SequentialReduceMax(numtype* A, int A_len){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
