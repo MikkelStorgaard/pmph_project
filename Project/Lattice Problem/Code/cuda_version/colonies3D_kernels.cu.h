@@ -1,25 +1,25 @@
 inline __device__ numtype gpu_round(numtype x){
-#if NUMTYPE_IS_FLOAT
+ #if NUMTYPE_IS_FLOAT
   return roundf(x);
-#else
+ #else
   return round(x);
-#endif
+ #endif
 }
 
 inline __device__ numtype gpu_exp(numtype x){
-#if NUMTYPE_IS_FLOAT
+ #if NUMTYPE_IS_FLOAT
   return expf(x);
-#else
+ #else
   return exp(x);
-#endif
+ #endif
 }
 
 inline __device__ numtype gpu_pow(numtype x, numtype y){
-#if NUMTYPE_IS_FLOAT
+ #if NUMTYPE_IS_FLOAT
   return powf(x,y);
-#else
+ #else
   return pow(x,y);
-#endif
+ #endif
 }
 
 __device__ numtype RandP(curandState rng_state, numtype lambda) {
@@ -79,85 +79,6 @@ __global__ void initRNG(curandState *state, int N){
   if (i < N) {
     curand_init(i, 0, 0, &state[i]);
   }
-}
-
-__device__ void ComputeDiffusion(curandState state, numtype n, numtype lambda, numtype* n_0, numtype* n_u, numtype* n_d, numtype* n_l, numtype* n_r, numtype* n_f, numtype* n_b, int i, int j, int k, int nGridXY) {
-
-		// Reset positions
-		*n_0 = 0.0;
-		*n_u = 0.0;
-		*n_d = 0.0;
-		*n_l = 0.0;
-		*n_r = 0.0;
-		*n_f = 0.0;
-		*n_b = 0.0;
-
-		// DETERMINITIC CHANGE
-		// if (n < 1) return;
-
-		// Check if diffusion should occur
-		if ((lambda == 0) or (nGridXY == 1)) {
-				*n_0 = n;
-				return;
-		}
-
-    // DETERMINITIC CHANGE
-		// if (lambda*n < 5) {   // Compute all movement individually
-
-		// 		for (int l = 0; l < round(n); l++) {
-
-		// 				numtype r = curand_uniform(&state);
-
-		// 				if       (r <    lambda)                     (*n_u)++;  // Up movement
-		// 				else if ((r >=   lambda) and (r < 2*lambda)) (*n_d)++;  // Down movement
-		// 				else if ((r >= 2*lambda) and (r < 3*lambda)) (*n_l)++;  // Left movement
-		// 				else if ((r >= 3*lambda) and (r < 4*lambda)) (*n_r)++;  // Right movement
-		// 				else if ((r >= 4*lambda) and (r < 5*lambda)) (*n_f)++;  // Forward movement
-		// 				else if ((r >= 5*lambda) and (r < 6*lambda)) (*n_b)++;  // Backward movement
-		// 				else                                         (*n_0)++;  // No movement
-
-		// 		}
-
-
-		// } else {
-
-		// 		// Compute the number of agents which move
-		// 		double N = RandP(state, 3*lambda*n); // Factor of 3 comes from 3D
-
-		// 		*n_u = RandP(state, N/6);
-		// 		*n_d = RandP(state, N/6);
-		// 		*n_l = RandP(state, N/6);
-		// 		*n_r = RandP(state, N/6);
-		// 		*n_f = RandP(state, N/6);
-		// 		*n_b = RandP(state, N/6);
-		// 		*n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-		// }
-
-		// *n_u = round(*n_u);
-		// *n_d = round(*n_d);
-		// *n_l = round(*n_l);
-		// *n_r = round(*n_r);
-		// *n_f = round(*n_f);
-		// *n_b = round(*n_b);
-		// *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-
-    *n_u = 0.5*lambda*n;
-    *n_d = 0.5*lambda*n;
-    *n_l = 0.5*lambda*n;
-    *n_r = 0.5*lambda*n;
-    *n_f = 0.5*lambda*n;
-    *n_b = 0.5*lambda*n;
-    *n_0 = n - (*n_u + *n_d + *n_l + *n_r + *n_f + *n_b);
-
-		// assert(*n_0 >= 0);
-		// assert(*n_u >= 0);
-		// assert(*n_d >= 0);
-		// assert(*n_l >= 0);
-		// assert(*n_r >= 0);
-		// assert(*n_f >= 0);
-		// assert(*n_b >= 0);
-		// assert(fabs(n - (*n_0 + *n_u + *n_d + *n_l + *n_r + *n_f + *n_b)) < 1);
-
 }
 
 __global__ void ComputeDiffusionWeights(curandState* state, numtype* arr, numtype lambda, numtype* arr_n_0, numtype* arr_n_u, numtype* arr_n_d, numtype* arr_n_l, numtype* arr_n_r, numtype* arr_n_f, numtype* arr_n_b, int nGridXY, bool* arr_IsActive, int totalElements) {
@@ -315,7 +236,7 @@ __global__ void SecondKernel(numtype* arr_Occ, numtype* arr_nC, numtype* maxOcc,
   }
 }
 
-__global__ void SequentialReduce(numtype* A, int A_len){
+__global__ void SequentialReduceMax(numtype* A, int A_len){
 
   int i = blockIdx.x*blockDim.x + threadIdx.x;
   if (i > 0){
@@ -635,7 +556,6 @@ __global__ void ApplyMovement(numtype* arr_new,
 
 }
 
-
 ///////////////////////////////
 // Simple end of loop kernels.
 
@@ -791,5 +711,64 @@ __global__ void NutrientDiffusion(numtype* arr_nutrient,
       arr_nutrient_new[i *nGridXY*nGridZ + j *nGridZ + k] = tmp + inflow - outflow;
 
     #endif
+  }
+}
+
+__global__ void PartialSum(numtype* arr, numtype* partialSum, int N){
+
+  extern __shared__ numtype shared[];
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  int tid = threadIdx.x;
+
+  if (i < N) {
+    shared[tid] = arr[i];
+  }
+
+  for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
+    if (tid < s) {
+      shared[tid] = shared[tid] + shared[tid + s];
+    }
+    __syncthreads();
+  }
+  // write result for this block to global mem
+  if(tid == 0){
+    partialSum[blockIdx.x] = shared[0];
+  }
+}
+
+__global__ void SequentialReduceSum(numtype* A, int A_len){
+
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  if (i > 0){
+    return;
+  }
+  numtype tmp = 0.0;
+
+  // the little thread that could
+  for (unsigned int ind=0; ind<A_len; ind++) {
+    tmp += A[ind];
+  }
+  A[0] = tmp;
+}
+
+__global__ void PartialNonZero(numtype* arr, numtype* partialSum, int N){
+
+  extern __shared__ numtype shared[];
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  int tid = threadIdx.x;
+
+  if (i < N) {
+    shared[tid] = (arr[i] > 0) ? 1.0 : 0.0;
+  }
+
+  for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
+    if (tid < s) {
+      shared[tid] = shared[tid] + shared[tid + s];
+    }
+    __syncthreads();
+  }
+  // write result for this block to global mem
+  if(tid == 0){
+    partialSum[blockIdx.x] = shared[0];
   }
 }

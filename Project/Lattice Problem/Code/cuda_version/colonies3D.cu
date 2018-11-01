@@ -17,8 +17,7 @@
 #define GPU_KERNEL_TIMING true
 
 // Different optimization tests
-#define GPU_SKIP_PASSIVE true	// TODO: IMPLEMENT
-#define GPU_REDUCE_ARRAYS true 	// TODO: IMPLEMENT
+#define GPU_REDUCE_ARRAYS true
 
 #define GPU_COPY_TO_SHARED false
 
@@ -184,6 +183,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		if (GPU_SWAPZERO2) {
 			f_kerneltimings << "SwapZero";
 		}
+		if (GPU_REDUCE_ARRAYS) {
+			f_kerneltimings << "ReduceArrays";
+		}
 		f_kerneltimings << "\n";
 	}
 
@@ -199,8 +201,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	cudaError_t err = cudaSuccess;
 
 	// Allocate on GPU
-	numtype *arr_maxOccupancy = new numtype[gridSize]();
-	numtype *d_arr_maxOccupancy;
+	numtype *maxOccupancy = new double;
+	numtype *d_arr_partialSum;
 
 	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_nC on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -211,11 +213,11 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	err = cudaMalloc((void**)&d_arr_IsActive, blockSize*gridSize*sizeof(bool));
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_IsActive on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-	err = cudaMalloc((void**)&d_arr_maxOccupancy, sizeof(numtype)*gridSize);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_maxOccupancy on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+	err = cudaMalloc((void**)&d_arr_partialSum, sizeof(numtype)*gridSize);
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate arr_partialSum on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-	err = cudaMemcpy(d_arr_maxOccupancy, arr_maxOccupancy, sizeof(numtype)*gridSize, cudaMemcpyHostToDevice);
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+	// err = cudaMemcpy(d_arr_partialSum, arr_partialSum, sizeof(numtype)*gridSize, cudaMemcpyHostToDevice);
+	// if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	err = cudaMalloc((void**)&d_rng_state, sizeof(curandState)*totalElements);
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate d_rng_state on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -459,7 +461,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				}
 
 				// Run second Kernel
-				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_nC, d_arr_maxOccupancy, d_arr_IsActive, blockSize);
+				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_nC, d_arr_partialSum, d_arr_IsActive, blockSize);
 
 				if (GPU_KERNEL_TIMING){
 					cudaDeviceSynchronize();
@@ -470,13 +472,15 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SecondKernel! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-				// This places the maximum occupancy in d_arr_maxOccupancy[0]
+				// This places the maximum occupancy in d_arr_partialSum[0]
 				if (GPU_KERNEL_TIMING){
 					cudaDeviceSynchronize();
 					kernel_start = high_resolution_clock::now();
 				}
 
-				SequentialReduce<<<1,1>>>(d_arr_maxOccupancy, gridSize);
+				SequentialReduceMax<<<1,1>>>(d_arr_partialSum, gridSize);
+				err = cudaGetLastError();
+				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceMax! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 				if (GPU_KERNEL_TIMING){
           			cudaDeviceSynchronize();
@@ -489,8 +493,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					CopyAllToHost();
 				}
 
-				err = cudaMemcpy(arr_maxOccupancy, d_arr_maxOccupancy, sizeof(numtype)*gridSize, cudaMemcpyDeviceToHost);
-				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_maxOccupancy to the host! error = %s\n", cudaGetErrorString(err));
+				err = cudaMemcpy(&maxOccupancy, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 					errC--; }
 
 
@@ -1020,44 +1024,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
 				}
 
-                // if (nGridXY > 1) {
-                //     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_B, d_arr_B_new,d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //     if (r > 0.0){
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I0, d_arr_I0_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I1, d_arr_I1_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I2, d_arr_I2_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I3, d_arr_I3_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I4, d_arr_I4_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I5, d_arr_I5_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I6, d_arr_I6_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I7, d_arr_I7_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I8, d_arr_I8_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //         Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_I9, d_arr_I9_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaB);
-                //     }
-                //     Movement1<<<gridSize,blockSize>>>(d_rng_state, d_arr_P, d_arr_P_new, d_arr_IsActive, nGridZ, nGridXY, experimentalConditions, lambdaP);
-                // }
-                // else {
-                //     Movement2<<<gridSize,blockSize>>>(d_arr_B, d_arr_B_new, d_arr_IsActive);
-
-                //     if(r>0.0){
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I0, d_arr_I0_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I1, d_arr_I1_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I2, d_arr_I2_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I3, d_arr_I3_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I4, d_arr_I4_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I5, d_arr_I5_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I6, d_arr_I6_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I7, d_arr_I7_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I8, d_arr_I8_new, d_arr_IsActive);
-                //         Movement2<<<gridSize,blockSize>>>(d_arr_I9, d_arr_I9_new, d_arr_IsActive);
-
-                //     }
-                //     Movement2<<<gridSize,blockSize>>>(d_arr_P, d_arr_P_new, d_arr_IsActive);
-
-
-				// }
-
-				// Copy data back from device
+            	// Copy data back from device
 				if(!GPU_SWAPZERO) {
 					CopyAllToHost();
 				}
@@ -1228,7 +1195,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                 std::swap(d_arr_I9, d_arr_I9_new);
                 std::swap(d_arr_P, d_arr_P_new);
                 cudaDeviceSynchronize();
-/*
+				/*
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_B_new, totalElements);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I0_new, totalElements);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I1_new, totalElements);
@@ -1242,7 +1209,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_I9_new, totalElements);
                 ZeroArray<<<gridSize,blockSize>>>(d_arr_P_new, totalElements);
                 cudaDeviceSynchronize();
-*/
+				*/
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
                   kernel_elapsed = high_resolution_clock::now() - kernel_start;
@@ -1420,7 +1387,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				}
 
                 std::swap(d_arr_nutrient, d_arr_nutrient_new);
- //               ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, totalElements);
+ 				//ZeroArray<<<gridSize,blockSize>>>(d_arr_nutrient_new, totalElements);
 
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
@@ -1488,16 +1455,16 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			for (int i = 0; i < nGridXY; i++) {
 				for (int j = 0; j < nGridXY; j++ ) {
 					for (int k = 0; k < nGridZ; k++ ) {
-						arr_I0[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I1[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I2[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I3[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I4[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I5[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I6[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I7[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I8[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
-						arr_I9[i*nGridXY*nGridZ + j*nGridZ + k] = 0.0;
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I0, totalElements);
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I1, totalElements);
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I2, totalElements);
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I3, totalElements);
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I4, totalElements);
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I5, totalElements);
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I6, totalElements);
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I7, totalElements);
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I8, totalElements);
+						ZeroArray<<<gridSize,blockSize>>>(d_arr_I9, totalElements);
 					}
 				}
 			}
@@ -1544,11 +1511,226 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			}
 		}
 
-		// cudaMemCpy to host
-		CopyAllToHost();
 
-		// Store the state
-		ExportData_arr(T,filename_suffix);
+		if (!exportAll) {
+
+			if (GPU_KERNEL_TIMING){
+				cudaDeviceSynchronize();
+				kernel_start = high_resolution_clock::now();
+			}
+
+			// Reduce arr_B
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_B, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_B[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I0
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I0, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I0)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I0)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I0[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I1
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I1, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I1)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I1)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I1[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I2
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I2, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I2)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I2)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I2[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I3
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I3, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I3)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I3)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I3[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I4
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I4, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I4)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I4)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I4[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I5
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I5, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I5)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I5)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I5[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I6
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I6, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I6)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I6)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I6[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I7
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I7, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I7)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I7)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I7[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I8
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I8, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I8)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I8)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I8[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_I9
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I9, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I9)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I9)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_I9[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_P
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_P, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (P)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (P)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_P[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_Occ
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (Occ)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (Occ)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_Occ[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce arr_nutrient
+			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			err = cudaMemcpy(&arr_nutrient[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			// Reduce nz
+			PartialNonZero<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_B, d_arr_partialSum, blockSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			err = cudaGetLastError();
+			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			numtype *nz = new numtype;
+			err = cudaMemcpy(nz, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+				errC--; }
+
+			if (GPU_KERNEL_TIMING){
+				cudaDeviceSynchronize();
+				kernel_elapsed = high_resolution_clock::now() - kernel_start;
+				f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+			}
+
+			ExportData_arr_reduced(T, *nz, filename_suffix);
+
+		} else {
+
+			// cudaMemCpy to host
+			CopyAllToHost();
+
+			// Store the state
+			ExportData_arr(T,filename_suffix);
+		}
 
 		// Check for nutrient stability
 		assert(accuNutrient >= 0);
@@ -1620,7 +1802,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	cudaFree(d_arr_nC );
 	cudaFree(d_arr_Occ);
 	cudaFree(d_arr_IsActive);
-	cudaFree(d_arr_maxOccupancy);
+	cudaFree(d_arr_partialSum);
 	cudaFree(d_rng_state);
 	cudaFree(d_arr_B);
 	cudaFree(d_arr_B_new);
@@ -4383,6 +4565,32 @@ void Colonies3D::ExportData_arr(numtype t, std::string filename_suffix){
 			}
 		}
 	}
+}
+
+void Colonies3D::ExportData_arr_reduced(numtype t, numtype nz, std::string filename_suffix){
+
+	// Verify the file stream is open
+	string fileName = "PopulationSize_"+filename_suffix;
+	OpenFileStream(f_N, fileName);
+
+
+	numtype accuB = arr_B[0];
+	numtype accuI = arr_I0[0] + arr_I1[0] + arr_I2[0] + arr_I3[0] + arr_I4[0] + arr_I5[0] + arr_I6[0] + arr_I7[0] + arr_I8[0] + arr_I9[0];;
+	numtype accuP = arr_P[0];
+	numtype accuNutrient = arr_nutrient[0];
+	numtype accuClusters = arr_nC[0];
+
+	// Writes the time, number of cells, number of infected cells, number of phages
+	f_N << fixed    << setprecision(2);
+	f_N << setw(6)  << t       << "\t";
+	f_N << setw(12) << cpu_round(accuB)    << "\t";
+	f_N << setw(12) << cpu_round(accuI)    << "\t";
+	f_N << setw(12) << cpu_round(accuP)    << "\t";
+
+	f_N << setw(12) << nz / initialOccupancy << "\t";
+	f_N << setw(12) << cpu_round(n_0 / 1e12 * pow(L, 2) * H - accuNutrient) << "\t";
+	f_N << setw(12) << cpu_round(accuClusters) << endl;
+
 }
 
 
