@@ -180,7 +180,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	cudaError_t err = cudaSuccess;
 
 	// Allocate on GPU
-	numtype *maxOccupancy = new double;
+	numtype *maxOccupancy = new numtype;
 	numtype *d_arr_partialSum;
 
 	err = cudaMalloc((void**)&d_arr_nC , totalMemSize);
