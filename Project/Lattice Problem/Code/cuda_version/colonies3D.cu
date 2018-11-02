@@ -1426,7 +1426,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			f_kerneltimings << "\n";
 
-		if (!OPTIMIZED_MAXOCCUPANCY            ){
+		if (!OPTIMIZED_MAXOCCUPANCY  ){
 			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
 				cout << "\tWarning: Maximum Density Large!" << "\n";
 				f_log  << "Warning: Maximum Density Large!" << "\n";
@@ -1435,6 +1435,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			}
 
 		}
+
+		cudaDeviceSynchronize();
 
         /////////////////////////////
         //Sample loop ends...
@@ -1554,6 +1556,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		err = cudaMemcpy(&accuNutrient, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
 		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 			errC--; }
+
+		cudaDeviceSynchronize();
 
 		PartialMax<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, blockSize);
 		err = cudaGetLastError();
