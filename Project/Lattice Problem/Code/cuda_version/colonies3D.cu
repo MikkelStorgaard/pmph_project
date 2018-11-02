@@ -1384,7 +1384,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
         //Sample loop ends...
         ////////////////////////////
 
-		//CopyAllToHost();
+		#if !GPU_REDUCE_ARRAYS
+		CopyAllToHost();
+		#endif
 
 		// Fast exit conditions
 		// 1) There are no more sucebtible cells
