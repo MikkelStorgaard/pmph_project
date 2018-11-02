@@ -17,8 +17,8 @@
 #define GPU_KERNEL_TIMING true
 
 // Different optimization tests
-#define GPU_REDUCE_ARRAYS true
-#define GPU_REDUCE_ARRAYS_EXPORT true
+#define GPU_REDUCE_ARRAYS false
+#define GPU_REDUCE_ARRAYS_EXPORT false
 
 #define GPU_COPY_TO_SHARED false
 
@@ -486,7 +486,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
       if (GPU_KERNEL_TIMING){
         kernel_start = high_resolution_clock::now();
       }
-      
+
 			if (GPU_BIRTH){
 
 				// Copy to the device
@@ -1123,7 +1123,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
       }
       /////////////////////////////////////
       // Simple end of loop kernels
-      
+
       if (GPU_KERNEL_TIMING){
         kernel_start = high_resolution_clock::now();
       }
@@ -1208,14 +1208,14 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
         kernel_elapsed = high_resolution_clock::now() - kernel_start;
         f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
       }
-      
+
 
       if (GPU_KERNEL_TIMING){
         cudaDeviceSynchronize();
         kernel_start = high_resolution_clock::now();
       }
       if(GPU_UPDATEOCCUPANCY){
-        
+
 				// Copy data back from device
         if(!GPU_SWAPZERO) {
 					CopyAllToDevice();
@@ -1324,7 +1324,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
               kernel_elapsed = high_resolution_clock::now() - kernel_start;
               f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
             }
-            
+
                 if (GPU_KERNEL_TIMING){
                   cudaDeviceSynchronize();
                   kernel_start = high_resolution_clock::now();
@@ -1407,6 +1407,17 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		err = cudaMemcpy(&accuB, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 			errC--; }
+
+		numtype testB = 0.0;
+		for (int i = 0; i < nGridXY; i++) {
+			for (int j = 0; j < nGridXY; j++ ) {
+				for (int k = 0; k < nGridZ; k++ ) {
+					testB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+				}
+			}
+		}
+
+		cout << "accuB - testB = " << accuB - testB << endl;
 
 		#else
 
@@ -2106,7 +2117,7 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
         kernel_elapsed = high_resolution_clock::now() - kernel_start;
         f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
       }
-      
+
 			// Kernel 3: Birth //////////////////////////////////////////////////////////////////////
       if (GPU_KERNEL_TIMING){
         kernel_start = high_resolution_clock::now();
