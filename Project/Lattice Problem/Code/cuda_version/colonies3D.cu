@@ -1465,7 +1465,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		// -> Stop simulation
 
 		numtype accuOcc = 0.0;
-		#if GPU_REDUCE_ARRAYS
+		#if false
 
 			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_partialSum, totalElements);
 			err = cudaGetLastError();
@@ -1504,7 +1504,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 		numtype accuNutrient = 0.0;
 		numtype maxNutrient  = 0.0;
-		#if GPU_REDUCE_ARRAYS
+		#if false
 
 			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, totalElements);
 			err = cudaGetLastError();
