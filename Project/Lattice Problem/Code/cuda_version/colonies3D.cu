@@ -1528,26 +1528,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
-
-			CopyAllToHost();
-			numtype testSum = 0.0;
-			numtype testMax = 0.0;
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-						testSum += tmpN;
-
-						if (tmpN > testMax) {
-							testMax = tmpN;
-						}
-					}
-				}
-			}
-
-			cout << "testSum - accuNutrient = " << testSum - accuNutrient << endl;
-			cout << "testMax - maxNutrient = " << testMax - maxNutrient << endl;
-
 		#else
 
 			for (int i = 0; i < nGridXY; i++) {
@@ -1594,32 +1574,22 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			numtype accuNutrient = 0.0;
 			numtype accuClusters = 0.0;
 			numtype nz = 0.0;
+
+			numtype reducedI0, reducedI1, reducedI2, reducedI3, reducedI4, reducedI5, reducedI6;
+			numtype reducedI7, reducedI8, reducedI9, reducedP, reducedClusters, reduced_nz;
+
+			CopyAllToHost();
+			numtype test = 0.0;
 			for (int i = 0; i < nGridXY; i++) {
 				for (int j = 0; j < nGridXY; j++ ) {
 					for (int k = 0; k < nGridZ; k++ ) {
-						accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI0 += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI1 += arr_I1[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI2 += arr_I2[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI3 += arr_I3[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI4 += arr_I4[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI5 += arr_I5[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI6 += arr_I6[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI7 += arr_I7[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI8 += arr_I8[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuI9 += arr_I9[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuP += arr_P[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuNutrient += arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
-						if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 0.0) {
-							nz++;
-						}
+						numtype test = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
 					}
 				}
 			}
 
-			numtype reducedI0, reducedI1, reducedI2, reducedI3, reducedI4, reducedI5, reducedI6;
-			numtype reducedI7, reducedI8, reducedI9, reducedP, reducedClusters, reduced_nz;
+			cout << "test - accuB = " << test - accuB << endl;
+
 
 			// Reduce arr_I0
 			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I0, d_arr_partialSum, totalElements);
