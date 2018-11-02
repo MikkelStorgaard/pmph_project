@@ -21,6 +21,9 @@
 
 #define GPU_COPY_TO_SHARED false
 
+#define OPTIMIZED_MAXOCCUPANCY false
+
+
 
 using namespace std;
 using namespace std::chrono;
@@ -340,7 +343,10 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	err = cudaMalloc((void**)&d_Warn_delta, sizeof(bool));
-	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_r on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_delta on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+    err = cudaMalloc((void**)&d_Warn_density, sizeof(bool));
+	if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to allocate Warn_density on the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 	initRNG<<<gridSize,blockSize>>>(d_rng_state, totalElements);
 
@@ -457,8 +463,17 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					kernel_start = high_resolution_clock::now();
 				}
 
+				// #if !OPTIMIZED_MAXOCCUPANCY
 				// Run second Kernel
 				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_nC, d_arr_partialSum, d_arr_IsActive, blockSize);
+				//#endif
+				/*
+				#if OPTIMIZED_MAXOCCUPANCY
+					numtype thr = L * L * H / (nGridXY * nGridXY * nGridZ);
+
+					MaxOccupancyOpt<<<gridSize, blockSize>>>(d_arr_Occ, ***, thr,d_arr_IsActive)
+
+				#endif  */
 
 				if (GPU_KERNEL_TIMING){
 					cudaDeviceSynchronize();
@@ -475,9 +490,11 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					kernel_start = high_resolution_clock::now();
 				}
 
+				//#if !OPTIMIZED_MAXOCCUPANCY
 				SequentialReduceMax<<<1,1>>>(d_arr_partialSum, gridSize);
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceMax! error = %s\n", cudaGetErrorString(err)); errC--;}
+				//#endif
 
 				if (GPU_KERNEL_TIMING){
           			cudaDeviceSynchronize();
@@ -490,10 +507,11 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					CopyAllToHost();
 				}
 
-				err = cudaMemcpy(&maxOccupancy, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+				//#if !OPTIMIZED_MAXOCCUPANCY
+				err = cudaMemcpy(&maxOccupancy, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 					errC--; }
-
+				//#endif
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
@@ -1413,11 +1431,13 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 
 			f_kerneltimings << "\n";
+			#if !OPTIMIZED_MAXOCCUPANCY
 			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
 				cout << "\tWarning: Maximum Density Large!" << "\n";
 				f_log  << "Warning: Maximum Density Large!" << "\n";
 				Warn_density = true;
 			}
+			#endif
 		}
 
         /////////////////////////////
@@ -1804,6 +1824,17 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		cout << "\tWarning: Infection Increase Probability Large!" << "\n";
 		f_log  << "Warning: Infection Increase Probability Large!" << "\n";
 	}
+
+	/*
+	#if OPTIMIZED_MAXOCCUPANCY
+
+		if(Warn_density){
+			cout << "\tWarning: Maximum Density Large!" << "\n";
+			f_log  << "Warning: Maximum Density Large!" << "\n";
+		}
+
+	#endif
+	*/
 
 	// Get stop time
 	time_t  toc;
@@ -3786,6 +3817,9 @@ void Colonies3D::CopyAllToDevice(){
 
 	err = cudaMemcpy(d_Warn_fastGrowth, &this->Warn_fastGrowth, sizeof(bool), cudaMemcpyHostToDevice);
 		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_fastGrowth to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+	err = cudaMemcpy(d_Warn_density, &this->Warn_density, sizeof(bool), cudaMemcpyHostToDevice);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy Warn_density to the device! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 
 };
