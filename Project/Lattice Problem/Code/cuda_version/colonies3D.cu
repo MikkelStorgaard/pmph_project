@@ -1410,18 +1410,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 			errC--; }
 
-		CopyAllToHost();
-		numtype testB = 0.0;
-		for (int i = 0; i < nGridXY; i++) {
-			for (int j = 0; j < nGridXY; j++ ) {
-				for (int k = 0; k < nGridZ; k++ ) {
-					testB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-				}
-			}
-		}
-
-		cout << "accuB - testB = " << accuB - testB << endl;
-
 		#else
 
 		for (int i = 0; i < nGridXY; i++) {
