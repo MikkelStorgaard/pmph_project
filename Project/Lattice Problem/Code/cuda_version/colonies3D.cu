@@ -18,7 +18,7 @@
 
 // Different optimization tests
 #define GPU_REDUCE_ARRAYS false
-#define GPU_REDUCE_ARRAYS_EXPORT false
+#define GPU_REDUCE_ARRAYS_EXPORT true
 
 #define GPU_COPY_TO_SHARED false
 
@@ -1556,26 +1556,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 		if (!exportAll) {
 
-			CopyAllToHost();
-			numtype accuB;
-			numtype reducedNutrient = accuNutrient;
-			numtype accuI0 = 0.0;
-			numtype accuI1 = 0.0;
-			numtype accuI2 = 0.0;
-			numtype accuI3 = 0.0;
-			numtype accuI4 = 0.0;
-			numtype accuI5 = 0.0;
-			numtype accuI6 = 0.0;
-			numtype accuI7 = 0.0;
-			numtype accuI8 = 0.0;
-			numtype accuI9 = 0.0;
-			numtype accuP = 0.0;
-			numtype accuNutrient = 0.0;
-			numtype accuClusters = 0.0;
-			numtype nz = 0.0;
-
-			numtype reducedI0, reducedI1, reducedI2, reducedI3, reducedI4, reducedI5, reducedI6;
-			numtype reducedI7, reducedI8, reducedI9, reducedP, reducedClusters, reduced_nz;
+			numtype accuI0, accuI1, accuI2, accuI3, accuI4, accuI5, accuI6;
+			numtype accuI7, accuI8, accuI9, accuP, accuClusters, nz;
+			numtype reducedB;
 
 			// Reduce arr_B
 			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_B, d_arr_partialSum, totalElements);
@@ -1590,21 +1573,21 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&accuB, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&reducedB, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
-			CopyAllToHost();
-			numtype test = 0.0;
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						test = arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-				}
-			}
+				// CopyAllToHost();
+				// numtype test = 0.0;
+				// for (int i = 0; i < nGridXY; i++) {
+				// 	for (int j = 0; j < nGridXY; j++ ) {
+				// 		for (int k = 0; k < nGridZ; k++ ) {
+				// 			test += arr_I0[i*nGridXY*nGridZ + j*nGridZ + k];
+				// 		}
+				// 	}
+				// }
 
-			cout << "test - accuB = " << test - accuB << endl;
+			cout << "accuB - reducedB = " << accuB - reducedB << endl;
 
 
 			// Reduce arr_I0
@@ -1620,7 +1603,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI0, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI0, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1637,7 +1620,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI1, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI1, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1654,7 +1637,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI2, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI2, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1671,7 +1654,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI3, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI3, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1688,7 +1671,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI4, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI4, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1705,7 +1688,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI5, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI5, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1722,7 +1705,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI6, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI6, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1739,7 +1722,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI7, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI7, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1756,7 +1739,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI8, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI8, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1773,7 +1756,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedI9, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuI9, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1790,7 +1773,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedP, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuP, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1807,7 +1790,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reducedClusters, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuClusters, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
@@ -1824,25 +1807,25 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			cudaDeviceSynchronize();
 
-			err = cudaMemcpy(&reduced_nz, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&nz, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
 			numtype accuI = accuI0 + accuI1 + accuI2 + accuI3 + accuI4 + accuI5 + accuI6 + accuI7 + accuI8 + accuI9;
 
-			if (cpu_round(accuB - reducedB) < 1) cout << "reducedB not working" << endl;
-			if (cpu_round(accuP - reducedP) < 1) cout << "reducedP not working" << endl;
-			if (cpu_round(accuI0 - reducedI0) < 1) cout << "reducedI0 not working" << endl;
-			if (cpu_round(accuI1 - reducedI1) < 1) cout << "reducedI1 not working" << endl;
-			if (cpu_round(accuI2 - reducedI2) < 1) cout << "reducedI2 not working" << endl;
-			if (cpu_round(accuI3 - reducedI3) < 1) cout << "reducedI3 not working" << endl;
-			if (cpu_round(accuI4 - reducedI4) < 1) cout << "reducedI4 not working" << endl;
-			if (cpu_round(accuI5 - reducedI5) < 1) cout << "reducedI5 not working" << endl;
-			if (cpu_round(accuI6 - reducedI6) < 1) cout << "reducedI6 not working" << endl;
-			if (cpu_round(accuI7 - reducedI7) < 1) cout << "reducedI7 not working" << endl;
-			if (cpu_round(accuI8 - reducedI8) < 1) cout << "reducedI8 not working" << endl;
-			if (cpu_round(accuNutrient - reducedNutrient) < 1) cout << "reducedNutrient not working" << endl;
-			if (cpu_round(accuClusters - reducedClusters) < 1) cout << "reducedClusters not working" << endl;
+			// if (cpu_round(accuB - accuB) < 1) cout << "accuB not working" << endl;
+			// if (cpu_round(accuP - accuP) < 1) cout << "accuP not working" << endl;
+			// if (cpu_round(accuI0 - accuI0) < 1) cout << "accuI0 not working" << endl;
+			// if (cpu_round(accuI1 - accuI1) < 1) cout << "accuI1 not working" << endl;
+			// if (cpu_round(accuI2 - accuI2) < 1) cout << "accuI2 not working" << endl;
+			// if (cpu_round(accuI3 - accuI3) < 1) cout << "accuI3 not working" << endl;
+			// if (cpu_round(accuI4 - accuI4) < 1) cout << "accuI4 not working" << endl;
+			// if (cpu_round(accuI5 - accuI5) < 1) cout << "accuI5 not working" << endl;
+			// if (cpu_round(accuI6 - accuI6) < 1) cout << "accuI6 not working" << endl;
+			// if (cpu_round(accuI7 - accuI7) < 1) cout << "accuI7 not working" << endl;
+			// if (cpu_round(accuI8 - accuI8) < 1) cout << "accuI8 not working" << endl;
+			// if (cpu_round(accuNutrient - accuNutrient) < 1) cout << "accuNutrient not working" << endl;
+			// if (cpu_round(accuClusters - accuClusters) < 1) cout << "accuClusters not working" << endl;
 
 			ExportData_arr_reduced(T, accuB, accuI, accuP, accuNutrient, accuClusters, nz, filename_suffix);
 
