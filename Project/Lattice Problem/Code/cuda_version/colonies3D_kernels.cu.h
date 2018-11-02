@@ -251,7 +251,11 @@ __global__ void PartialMax(numtype* arr, numtype* partialMax, int N){
   int i = blockIdx.x*blockDim.x + threadIdx.x;
   int tid = threadIdx.x;
 
-  shared[tid] = arr[i];
+  if (i < N) {
+    shared[tid] = arr[i];
+  } else {
+    shared[tid] = 0.0;
+  }
 
   for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
     if (tid < s) {
@@ -752,6 +756,8 @@ __global__ void PartialSum(numtype* arr, numtype* partialSum, int N){
 
   if (i < N) {
     shared[tid] = arr[i];
+  } else {
+    shared[tid] = 0.0;
   }
 
   for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
