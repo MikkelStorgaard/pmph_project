@@ -1412,7 +1412,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				errC--; }
 
 			CopyAllToHost();
-			numtype testB;
+			numtype testB = 0.0;
 			for (int i = 0; i < nGridXY; i++) {
 				for (int j = 0; j < nGridXY; j++ ) {
 					for (int k = 0; k < nGridZ; k++ ) {
