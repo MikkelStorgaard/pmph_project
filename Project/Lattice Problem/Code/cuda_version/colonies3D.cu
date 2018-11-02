@@ -2669,7 +2669,7 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 				std::swap(arr_nutrient, arr_nutrient_new);
       if (GPU_KERNEL_TIMING){
         kernel_elapsed = high_resolution_clock::now() - kernel_start;
-        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\n";
       }
 
 				// Zero the _new arrays
