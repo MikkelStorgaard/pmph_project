@@ -47,6 +47,7 @@
         "ratio": "cpp",
         "string_view": "cpp",
         "thread": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "*.cu": "cpp"
     }
 }
