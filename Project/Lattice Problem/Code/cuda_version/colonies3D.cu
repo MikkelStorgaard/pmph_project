@@ -21,7 +21,7 @@
 
 #define GPU_COPY_TO_SHARED false
 
-#define OPTIMIZED_MAXOCCUPANCY false
+#define OPTIMIZED_MAXOCCUPANCY true // Needs GPU_MAXOCCUPANCY to be true!
 
 
 
@@ -459,18 +459,16 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					cudaDeviceSynchronize();
 					kernel_start = high_resolution_clock::now();
 				}
-
-				// #if !OPTIMIZED_MAXOCCUPANCY
+				if(!OPTIMIZED_MAXOCCUPANCY){
 				// Run second Kernel
 				SecondKernel<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_nC, d_arr_partialSum, d_arr_IsActive, blockSize);
-				//#endif
-				/*
-				#if OPTIMIZED_MAXOCCUPANCY
-					numtype thr = L * L * H / (nGridXY * nGridXY * nGridZ);
+				}
 
-					MaxOccupancyOpt<<<gridSize, blockSize>>>(d_arr_Occ, ***, thr,d_arr_IsActive)
+				if( OPTIMIZED_MAXOCCUPANCY){
+                numtype thr = L * L * H / (nGridXY * nGridXY * nGridZ);
 
-				#endif  */
+                MaxOccupancyOpt<<<gridSize, blockSize>>>(d_arr_Occ, d_Warn_density, thr,d_arr_IsActive);
+				}
 
 				if (GPU_KERNEL_TIMING){
 					cudaDeviceSynchronize();
@@ -486,12 +484,11 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					cudaDeviceSynchronize();
 					kernel_start = high_resolution_clock::now();
 				}
-
-				//#if !OPTIMIZED_MAXOCCUPANCY
+				if( !OPTIMIZED_MAXOCCUPANCY){
 				SequentialReduceMax<<<1,1>>>(d_arr_partialSum, gridSize);
 				err = cudaGetLastError();
 				if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceMax! error = %s\n", cudaGetErrorString(err)); errC--;}
-				//#endif
+				}
 
 				if (GPU_KERNEL_TIMING){
           			cudaDeviceSynchronize();
@@ -503,12 +500,11 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				if(!GPU_BIRTH) {
 					CopyAllToHost();
 				}
-
-				//#if !OPTIMIZED_MAXOCCUPANCY
-				err = cudaMemcpy(&maxOccupancy, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
+				if( !OPTIMIZED_MAXOCCUPANCY){
+				err = cudaMemcpy(&maxOccupancy, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
 				if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 					errC--; }
-				//#endif
+				}
 
 			} else {
 				for (int i = 0; i < nGridXY; i++) {
@@ -1428,13 +1424,15 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 
 			f_kerneltimings << "\n";
-			#if !OPTIMIZED_MAXOCCUPANCY
+            
+		if (!OPTIMIZED_MAXOCCUPANCY            ){
 			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
 				cout << "\tWarning: Maximum Density Large!" << "\n";
 				f_log  << "Warning: Maximum Density Large!" << "\n";
 				Warn_density = true;
+				}
 			}
-			#endif
+			
 		}
 
         /////////////////////////////
@@ -1868,18 +1866,16 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		cout << "\tWarning: Infection Increase Probability Large!" << "\n";
 		f_log  << "Warning: Infection Increase Probability Large!" << "\n";
 	}
+    
+	if (OPTIMIZED_MAXOCCUPANCY    ){
+    
+    if(Warn_density){
+		cout << "\tWarning: Maximum Density Large!" << "\n";
+		f_log  << "Warning: Maximum Density Large!" << "\n";
+	}
+    
 
-	/*
-	#if OPTIMIZED_MAXOCCUPANCY
-
-		if(Warn_density){
-			cout << "\tWarning: Maximum Density Large!" << "\n";
-			f_log  << "Warning: Maximum Density Large!" << "\n";
-		}
-
-	#endif
-	*/
-
+	}
 	// Get stop time
 	time_t  toc;
 	time(&toc);
