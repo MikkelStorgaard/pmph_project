@@ -1446,6 +1446,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		// 1) There are no more sucebtible cells
 		// -> Convert all infected cells to phages and stop simulation
 		numtype accuB = 0.0;
+		#if GPU_REDUCE_ARRAYS
 
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
@@ -1455,28 +1456,23 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			}
 		}
 
-		if (GPU_REDUCE_ARRAYS) {
-			numtype *accuB_reduced = new numtype;
+		#else
 
-			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_B, d_arr_partialSum, blockSize);
-			err = cudaGetLastError();
-			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
+		PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_B, d_arr_partialSum, blockSize);
+		err = cudaGetLastError();
+		if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
+		cudaDeviceSynchronize();
 
-			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
-			err = cudaGetLastError();
-			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
+		SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+		err = cudaGetLastError();
+		if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			err = cudaMemcpy(accuB_reduced, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
-			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
-				errC--; }
+		err = cudaMemcpy(&accuB, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+			errC--; }
 
-
-			if (accuB == *accuB_reduced) {
-				cout << "ReduceSum does not work" << endl;
-			}
-		}
+		#endif
 
 		if ((fastExit) and (accuB < 1)) {
 			// Update the P array
@@ -1506,6 +1502,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		// -> Stop simulation
 
 		numtype accuOcc = 0.0;
+		#if GPU_REDUCE_ARRAYS
+
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
@@ -1514,8 +1512,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			}
 		}
 
-		if (GPU_REDUCE_ARRAYS) {
-			numtype *accuOcc_reduced = new numtype;
+		#else
 
 			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_partialSum, blockSize);
 			err = cudaGetLastError();
@@ -1527,15 +1524,11 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			err = cudaMemcpy(accuOcc_reduced, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(&accuOcc, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
-			if (accuOcc == *accuOcc_reduced) {
-				cout << "ReduceSum does not work" << endl;
-			}
-		}
-
+		#endif
 
 		if ((fastExit) and (accuOcc < 1)) {
 			exit = true;
@@ -1546,6 +1539,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 		numtype accuNutrient = 0.0;
 		numtype maxNutrient  = 0.0;
+		#if GPU_REDUCE_ARRAYS
+
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
@@ -1559,47 +1554,37 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			}
 		}
 
-		if (GPU_REDUCE_ARRAYS) {
-			numtype *accuNutrient_reduced = new numtype;
+		#else
 
-			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, blockSize);
-			err = cudaGetLastError();
-			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
+		PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, blockSize);
+		err = cudaGetLastError();
+		if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
+		cudaDeviceSynchronize();
 
-			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
-			err = cudaGetLastError();
-			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
+		SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+		err = cudaGetLastError();
+		if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			err = cudaMemcpy(accuNutrient_reduced, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
-			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
-				errC--; }
+		err = cudaMemcpy(&accuNutrient, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+			errC--; }
 
-			if (accuNutrient == *accuNutrient_reduced) {
-				cout << "ReduceSum does not work" << endl;
-			}
+		PartialMax<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, blockSize);
+		err = cudaGetLastError();
+		if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
+		cudaDeviceSynchronize();
 
-			numtype *maxNutrient_reduced = new numtype;
-			PartialMax<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, blockSize);
-			err = cudaGetLastError();
-			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
+		SequentialReduceMax<<<1,1>>>(d_arr_partialSum, gridSize);
+		err = cudaGetLastError();
+		if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
+		err = cudaMemcpy(&maxNutrient, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+			errC--; }
 
-			SequentialReduceMax<<<1,1>>>(d_arr_partialSum, gridSize);
-			err = cudaGetLastError();
-			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			err = cudaMemcpy(maxNutrient_reduced, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
-			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
-				errC--; }
-
-			if (maxNutrient == *maxNutrient_reduced) {
-				cout << "ReduceMax does not work" << endl;
-			}
-		}
+		#endif
 
 		if (fastExit) {
 			if  ((accuNutrient < nGridZ*pow(nGridXY,2)) && (maxNutrient < 0.5)) {
@@ -1608,7 +1593,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		}
 
 
-		if ((!exportAll) && (GPU_REDUCE_ARRAYS_EXPORT)) {
+		#if GPU_REDUCE_ARRAYS_EXPORT
+
+		if (!exportAll) {
 
 			if (GPU_KERNEL_TIMING){
 				cudaDeviceSynchronize();
@@ -1879,13 +1866,15 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			ExportData_arr_reduced(T, *nz, filename_suffix);
 
 		} else {
-
+	#endif
 			// cudaMemCpy to host
 			CopyAllToHost();
 
 			// Store the state
 			ExportData_arr(T,filename_suffix);
+	#if GPU_REDUCE_ARRAYS_EXPORT
 		}
+	#endif
 
 		// Check for nutrient stability
 		assert(accuNutrient >= 0);
