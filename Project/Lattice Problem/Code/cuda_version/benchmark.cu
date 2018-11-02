@@ -8,12 +8,12 @@ using namespace std;
 int main(int argc, char** argv){
 
     // Benchmark paramters to loop over
-    double NumberOfGridSizes = 5;
-    int    NumberOfVersions  = 1;     // Loop Distributed CPU, Loop Distributed GPU
-    int    NumberOfRepeats   = 10;
+    double NumberOfGridSizes = 7;
+    int    NumberOfVersions  = 2;     // Loop Distributed CPU, Loop Distributed GPU
+    int    NumberOfRepeats   = 1;
 
-    double minGridSize = 1;
-    double maxGridSize = 25;
+    double minGridSize = 10;
+    double maxGridSize = 80;
 
 
 
@@ -32,18 +32,19 @@ int main(int argc, char** argv){
     version.reserve(NumberOfGridSizes * NumberOfVersions * NumberOfRepeats);
 
 
-    // Make a random permutation of the vectors
-    std::vector<int> index;
-    for (int n = 0; n < NumberOfVersions*NumberOfRepeats*NumberOfGridSizes; n++) {
-        index.push_back(n);
-    }
-    std::random_shuffle( index.begin(), index.end() );
+	for (int k = 0; k < NumberOfRepeats; k++) {
 
-    // Fill the iteration vectors
-    for (int n = 0; n < NumberOfVersions; n++) {
-        for (int k = 0; k < NumberOfRepeats; k++) {
-            for (int i = 0; i < NumberOfGridSizes; i++) {
-                int ind = index[n * NumberOfRepeats * NumberOfGridSizes + k * NumberOfGridSizes + i];
+		// Make a random permutation of the vectors
+		std::vector<int> index;
+		for (int n = 0; n < NumberOfVersions*NumberOfGridSizes; n++) {
+			index.push_back(n);
+		}
+		std::random_shuffle( index.begin(), index.end() );
+
+		// Fill the iteration vectors
+			for (int n = 0; n < NumberOfVersions; n++) {
+                for (int i = 0; i < NumberOfGridSizes; i++) {
+                int ind = index[n * NumberOfGridSizes + i] + k * NumberOfGridSizes * NumberOfVersions;
                 nGrid[ind]   = static_cast<int>(minGridSize + i * (maxGridSize - minGridSize) / NumberOfGridSizes);
                 repeat[ind]  = k;
                 version[ind] = n;
@@ -71,9 +72,10 @@ int main(int argc, char** argv){
 	time_t theTime = time(NULL);
 	struct tm *aTime = localtime(&theTime);
 
+	
 	string streamPath;
-	streamPath = "\tSaving data to file: "+path+"/"+fileName+"_"+std::to_string(aTime->tm_hour)+"_"+std::to_string(aTime->tm_min)+".csv";
-    cout << streamPath << endl << endl;
+	streamPath = path+"/"+fileName+std::to_string(aTime->tm_hour)+"_"+std::to_string(aTime->tm_min)+".csv";
+    cout << "\tSaving data to file:"+ streamPath << endl << endl;
 
 	// Open the file stream
     f_benchmark.open(streamPath, fstream::trunc);

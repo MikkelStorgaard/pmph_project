@@ -51,3 +51,11 @@ Project/Lattice Problem/Code/cuda_version/Qurand_test\.cu
 Project/Lattice Problem/Code/benchmark/
 
 *.png
+
+Project/Lattice Problem/Code/benchmark_results13_51\.csv
+
+Project/Lattice Problem/Code/benchmark_results13_55\.csv
+
+Project/Lattice Problem/Code/benchmark_results14_13\.csv
+
+Project/Lattice Problem/Code/benchmark_results14_52\.csv

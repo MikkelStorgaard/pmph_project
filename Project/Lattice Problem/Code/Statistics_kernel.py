@@ -39,15 +39,18 @@ data = read_csv("kernel_timings_10_19.txt")
 
 
 data = (pd.DataFrame(data, columns = col))
-dataAvg = data.groupby()['MicroSeconds'].mean().reset_index()
-#dataAvg = data.mean()
+#dataAvg = data.groupby()['MicroSeconds'].mean().reset_index()
+
+data['Bursting/NonBurstingEvents'] = data['Bursting/NonBurstingEvents']/10
+data['DiffusionAndApplyMovement'] = data['DiffusionAndApplyMovement']/11
+dataAvg = data.mean()
 dataDevs = data.std()
 
 dataDevs2 = dataDevs / np.sqrt(2500)
 #dataSmall = data[data['Target'] == 'small']
 #dataMedium = data[data['Target'] == 'medium']
 #dataBig = data[data['Target'] == 'big']
-#dataSizeAverages = data.groupby(['Device', 'Target'])['PlacingTime'].mean().reset_index()
+#dataSizeAverages = data.groupby(col)[].mean().reset_index()
 
 print("data averages:")
 #print(dataSizeAverages)
@@ -60,7 +63,7 @@ print("data averages:")
 #FirstKernel = data['FirstKernel']
 #
 print("Plot for average placing times, by target")
-sns.barplot(colShort, data[col].mean(), data = data)
+sns.barplot(colShort, data[col].mean())
 plt.legend(loc=(1.04,0))
 plt.ylabel("Runtime, Microseconds")
 plt.show()
