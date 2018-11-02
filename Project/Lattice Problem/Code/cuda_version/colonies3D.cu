@@ -1471,19 +1471,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
-			CopyAllToHost();
-			numtype test = 0.0;
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						test += arr_Occ[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-				}
-			}
-
-			cout << "test - accuOcc = " << test - accuOcc << endl;
-
-
 		#else
 
 			for (int i = 0; i < nGridXY; i++) {
@@ -1505,7 +1492,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 		numtype accuNutrient = 0.0;
 		numtype maxNutrient  = 0.0;
-		#if false
+		#if GPU_REDUCE_ARRAYS
 
 			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, totalElements);
 			err = cudaGetLastError();
@@ -1540,6 +1527,26 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaMemcpy(&maxNutrient, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
+
+
+			CopyAllToHost();
+			numtype testSum = 0.0;
+			numtype testMax = 0.0;
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+						testSum += tmpN;
+
+						if (tmpN > maxNutrient) {
+							testMax = tmpN;
+						}
+					}
+				}
+			}
+
+			cout << "testSum - accuNutrient = " << testSum - accuNutrient << endl;
+			cout << "testMax - maxNutrient = " << testMax - maxNutrient << endl;
 
 		#else
 
