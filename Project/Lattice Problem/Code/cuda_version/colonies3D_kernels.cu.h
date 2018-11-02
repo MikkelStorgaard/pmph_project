@@ -257,6 +257,7 @@ __global__ void PartialMax(numtype* arr, numtype* partialMax, int N){
   } else {
     shared[tid] = 0.0;
   }
+  __syncthreads();
 
   for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
     if (tid < s) {
@@ -789,7 +790,7 @@ __global__ void SequentialReduceSum(numtype* A, int A_len){
   A[0] = tmp;
 }
 
-__global__ void PartialNonZero(numtype* arr, numtype* partialSum, int N){
+__global__ void PartialNonZero(numtype* arr, numtype* PartialNonZero, int N){
 
   extern __shared__ numtype shared[];
   int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -797,7 +798,10 @@ __global__ void PartialNonZero(numtype* arr, numtype* partialSum, int N){
 
   if (i < N) {
     shared[tid] = (arr[i] > 0) ? 1.0 : 0.0;
+  } else {
+    shared[tid] = 0.0;
   }
+  __syncthreads();
 
   for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
     if (tid < s) {
@@ -807,6 +811,6 @@ __global__ void PartialNonZero(numtype* arr, numtype* partialSum, int N){
   }
   // write result for this block to global mem
   if(tid == 0){
-    partialSum[blockIdx.x] = shared[0];
+    PartialNonZero[blockIdx.x] = shared[0];
   }
 }
