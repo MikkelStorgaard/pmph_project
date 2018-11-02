@@ -1411,18 +1411,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
-			CopyAllToHost();
-			numtype testB;
-			for (int i = 0; i < nGridXY; i++) {
-				for (int j = 0; j < nGridXY; j++ ) {
-					for (int k = 0; k < nGridZ; k++ ) {
-						testB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-					}
-				}
-			}
-
-			cout << "testB - accuB = " << testB - accuB << endl;
-
 		#else
 
 			for (int i = 0; i < nGridXY; i++) {
@@ -1836,19 +1824,19 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			numtype accuI = accuI0 + accuI1 + accuI2 + accuI3 + accuI4 + accuI5 + accuI6 + accuI7 + accuI8 + accuI9;
 
-			if (accuB != reducedB) cout << "reducedB not working" << endl;
-			if (accuP != reducedP) cout << "reducedP not working" << endl;
-			if (accuI0 != reducedI0) cout << "reducedI0 not working" << endl;
-			if (accuI1 != reducedI1) cout << "reducedI1 not working" << endl;
-			if (accuI2 != reducedI2) cout << "reducedI2 not working" << endl;
-			if (accuI3 != reducedI3) cout << "reducedI3 not working" << endl;
-			if (accuI4 != reducedI4) cout << "reducedI4 not working" << endl;
-			if (accuI5 != reducedI5) cout << "reducedI5 not working" << endl;
-			if (accuI6 != reducedI6) cout << "reducedI6 not working" << endl;
-			if (accuI7 != reducedI7) cout << "reducedI7 not working" << endl;
-			if (accuI8 != reducedI8) cout << "reducedI8 not working" << endl;
-			if (accuNutrient != reducedNutrient) cout << "reducedNutrient not working" << endl;
-			if (accuClusters != reducedClusters) cout << "reducedClusters not working" << endl;
+			if (cpu_round(accuB - reducedB) < 1) cout << "reducedB not working" << endl;
+			if (cpu_round(accuP - reducedP) < 1) cout << "reducedP not working" << endl;
+			if (cpu_round(accuI0 - reducedI0) < 1) cout << "reducedI0 not working" << endl;
+			if (cpu_round(accuI1 - reducedI1) < 1) cout << "reducedI1 not working" << endl;
+			if (cpu_round(accuI2 - reducedI2) < 1) cout << "reducedI2 not working" << endl;
+			if (cpu_round(accuI3 - reducedI3) < 1) cout << "reducedI3 not working" << endl;
+			if (cpu_round(accuI4 - reducedI4) < 1) cout << "reducedI4 not working" << endl;
+			if (cpu_round(accuI5 - reducedI5) < 1) cout << "reducedI5 not working" << endl;
+			if (cpu_round(accuI6 - reducedI6) < 1) cout << "reducedI6 not working" << endl;
+			if (cpu_round(accuI7 - reducedI7) < 1) cout << "reducedI7 not working" << endl;
+			if (cpu_round(accuI8 - reducedI8) < 1) cout << "reducedI8 not working" << endl;
+			if (cpu_round(accuNutrient - reducedNutrient) < 1) cout << "reducedNutrient not working" << endl;
+			if (cpu_round(accuClusters - reducedClusters) < 1) cout << "reducedClusters not working" << endl;
 
 			ExportData_arr_reduced(T, accuB, accuI, accuP, accuNutrient, accuClusters, nz, filename_suffix);
 
