@@ -1424,7 +1424,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 
 			f_kerneltimings << "\n";
-            
+
 		if (!OPTIMIZED_MAXOCCUPANCY            ){
 			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
 				cout << "\tWarning: Maximum Density Large!" << "\n";
@@ -1432,7 +1432,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				Warn_density = true;
 				}
 			}
-			
+
 		}
 
         /////////////////////////////
@@ -1583,6 +1583,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				cudaDeviceSynchronize();
 				kernel_start = high_resolution_clock::now();
 			}
+
+			CopyAllToHost();
 
 			numtype accuB = 0.0;
 			numtype accuI0 = 0.0;
@@ -1866,14 +1868,14 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		cout << "\tWarning: Infection Increase Probability Large!" << "\n";
 		f_log  << "Warning: Infection Increase Probability Large!" << "\n";
 	}
-    
+
 	if (OPTIMIZED_MAXOCCUPANCY    ){
-    
+
     if(Warn_density){
 		cout << "\tWarning: Maximum Density Large!" << "\n";
 		f_log  << "Warning: Maximum Density Large!" << "\n";
 	}
-    
+
 
 	}
 	// Get stop time
