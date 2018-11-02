@@ -1538,7 +1538,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 						numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 						testSum += tmpN;
 
-						if (tmpN > maxNutrient) {
+						if (tmpN > testMax) {
 							testMax = tmpN;
 						}
 					}
