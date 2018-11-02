@@ -1651,7 +1651,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 						accuNutrient += arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
 						if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 0.0) {
-							*nz++;
+							*nz = *nz + 1;
 						}
 					}
 				}
@@ -4742,7 +4742,7 @@ void Colonies3D::ExportData_arr_reduced(numtype t, numtype nz, std::string filen
 
 
 	numtype accuB = arr_B[0];
-	numtype accuI = arr_I0[0] + arr_I1[0] + arr_I2[0] + arr_I3[0] + arr_I4[0] + arr_I5[0] + arr_I6[0] + arr_I7[0] + arr_I8[0] + arr_I9[0];;
+	numtype accuI = arr_I0[0] + arr_I1[0] + arr_I2[0] + arr_I3[0] + arr_I4[0] + arr_I5[0] + arr_I6[0] + arr_I7[0] + arr_I8[0] + arr_I9[0];
 	numtype accuP = arr_P[0];
 	numtype accuNutrient = arr_nutrient[0];
 	numtype accuClusters = arr_nC[0];
