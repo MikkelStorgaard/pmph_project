@@ -1577,7 +1577,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		}
 
 
-		if (!exportAll) {
+		if (!exportAll && GPU_REDUCE_ARRAYS) {
 
 			if (GPU_KERNEL_TIMING){
 				cudaDeviceSynchronize();
