@@ -223,6 +223,7 @@ __global__ void SecondKernel(numtype* arr_Occ, numtype* arr_nC, numtype* maxOcc,
   int tid = threadIdx.x;
 
   shared[tid] = arr_IsActive[i] ? arr_Occ[i] : 0.0;
+  __syncthreads();
 
   for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
     if (tid < s) {
@@ -759,6 +760,7 @@ __global__ void PartialSum(numtype* arr, numtype* partialSum, int N){
   } else {
     shared[tid] = 0.0;
   }
+  __syncthreads();
 
   for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
     if (tid < s) {
