@@ -1399,13 +1399,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuB, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1459,13 +1455,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuOcc, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1498,31 +1490,21 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuNutrient, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
-			cudaDeviceSynchronize();
-
 			PartialMax<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, totalElements);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceMax<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&maxNutrient, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1564,13 +1546,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I0)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I0)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI0, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1581,13 +1559,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I1)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I1)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI1, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1598,13 +1572,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I2)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I2)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI2, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1615,13 +1585,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I3)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I3)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI3, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1632,13 +1598,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I4)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I4)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI4, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1649,13 +1611,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I5)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I5)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI5, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1666,13 +1624,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I6)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I6)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI6, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1683,13 +1637,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I7)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I7)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI7, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1700,13 +1650,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I8)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I8)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI8, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1717,13 +1663,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I9)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (I9)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuI9, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1734,13 +1676,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (P)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (P)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuP, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1751,13 +1689,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&accuClusters, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
@@ -1768,33 +1702,15 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			cudaDeviceSynchronize();
-
 			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
 
 			err = cudaMemcpy(&nz, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
 			numtype accuI = accuI0 + accuI1 + accuI2 + accuI3 + accuI4 + accuI5 + accuI6 + accuI7 + accuI8 + accuI9;
-
-			// if (cpu_round(accuB - accuB) < 1) cout << "accuB not working" << endl;
-			// if (cpu_round(accuP - accuP) < 1) cout << "accuP not working" << endl;
-			// if (cpu_round(accuI0 - accuI0) < 1) cout << "accuI0 not working" << endl;
-			// if (cpu_round(accuI1 - accuI1) < 1) cout << "accuI1 not working" << endl;
-			// if (cpu_round(accuI2 - accuI2) < 1) cout << "accuI2 not working" << endl;
-			// if (cpu_round(accuI3 - accuI3) < 1) cout << "accuI3 not working" << endl;
-			// if (cpu_round(accuI4 - accuI4) < 1) cout << "accuI4 not working" << endl;
-			// if (cpu_round(accuI5 - accuI5) < 1) cout << "accuI5 not working" << endl;
-			// if (cpu_round(accuI6 - accuI6) < 1) cout << "accuI6 not working" << endl;
-			// if (cpu_round(accuI7 - accuI7) < 1) cout << "accuI7 not working" << endl;
-			// if (cpu_round(accuI8 - accuI8) < 1) cout << "accuI8 not working" << endl;
-			// if (cpu_round(accuNutrient - accuNutrient) < 1) cout << "accuNutrient not working" << endl;
-			// if (cpu_round(accuClusters - accuClusters) < 1) cout << "accuClusters not working" << endl;
 
 			ExportData_arr_reduced(T, accuB, accuI, accuP, accuNutrient, accuClusters, nz, filename_suffix);
 
