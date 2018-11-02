@@ -1800,6 +1800,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	f_timing.flush();
 	f_timing.close();
 
+	CopyAllToHost();
+
 	// cudaFree here!!
 	cudaFree(d_arr_nC );
 	cudaFree(d_arr_Occ);
@@ -1842,7 +1844,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	cudaFree(d_Warn_delta);
 
 
-	CopyAllToHost();
 	numtype accuB = 0.0;
 	numtype accuI = 0.0;
 	numtype accuP = 0.0;
