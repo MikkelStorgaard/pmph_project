@@ -22,6 +22,14 @@ inline __device__ numtype gpu_pow(numtype x, numtype y){
  #endif
 }
 
+inline __device__ numtype gpu_max(numtype x, numtype y){
+ #if NUMTYPE_IS_FLOAT
+  return fmaxf(x,y);
+ #else
+  return fmax(x,y);
+ #endif
+}
+
 __device__ numtype RandP(curandState rng_state, numtype lambda) {
 
   numtype L = gpu_exp(-lambda);
@@ -261,7 +269,7 @@ __global__ void PartialMax(numtype* arr, numtype* partialMax, int N){
 
   for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
     if (tid < s) {
-      shared[tid] = max(shared[tid], shared[tid + s]);
+      shared[tid] = gpu_max(shared[tid], shared[tid + s]);
     }
     __syncthreads();
   }
@@ -330,7 +338,7 @@ __global__ void ComputeBirthEvents(numtype* arr_B, numtype* arr_B_new, numtype* 
 
   // Update count
   arr_B_new[i] = N;
-  arr_nutrient[i] = max(0.0, arr_nutrient[i] - N);
+  arr_nutrient[i] = gpu_max(0.0, arr_nutrient[i] - N);
 
 }
 
@@ -361,8 +369,8 @@ __global__ void BurstingEvents(numtype* arr_I9, numtype* arr_P_new, numtype* arr
   numtype N = ComputeEvents(arr_I9[i], p, rng_state[i]);
 
   // Update count
-  arr_I9[i]    = max(0.0, arr_I9[i] - N);
-  arr_Occ[i]   = max(0.0, arr_Occ[i] - N);
+  arr_I9[i]    = gpu_max(0.0, arr_I9[i] - N);
+  arr_Occ[i]   = gpu_max(0.0, arr_Occ[i] - N);
   // DETERMINITIC CHANGE
   // arr_P_new[i] += round( (1 - alpha) * beta * N);
   // arr_M[i]     = round(alpha * beta * N);
@@ -384,7 +392,7 @@ __global__ void NonBurstingEvents(numtype* arr_I, numtype* arr_In, numtype* arr_
   numtype N = ComputeEvents(arr_I[i], arr_p[i], rng_state[i]);
 
   // Update count
-  arr_I[i]     = max(0.0, arr_I[i] - N);
+  arr_I[i]     = gpu_max(0.0, arr_I[i] - N);
   arr_In[i]    += N;
 }
 
@@ -461,27 +469,27 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
     // If bacteria were hit, update events
     // if (tmp + M >= 1) {
 
-      arr_P[tid] = max(0.0, P - tmp); // Update count
+      arr_P[tid] = gpu_max(0.0, P - tmp); // Update count
 
       numtype S;
 
       if (shielding) {
         // Absorbing medium model
         numtype d = gpu_pow(Occ / nC, 1.0 / 3.0) - gpu_pow(B / nC, 1.0 / 3.0);
-        S = exp(-zeta * d); // Probability of hitting succebtible target
+        S = gpu_exp(-zeta * d); // Probability of hitting succebtible target
 
       } else {
         // Well mixed model
         S = B / Occ;
       }
 
-      p = max(0.0, min(B / Occ, S)); // Probability of hitting succebtible target
+      p = gpu_max(0.0, min(B / Occ, S)); // Probability of hitting succebtible target
 
       tmp = ComputeEvents(tmp + M, p, rng_state[tid]); // Number of targets hit
       tmp = min(tmp, B); // If more bacteria than present are set to be infeced, round down
 
       // Update the counts
-      arr_B[tid] = max(0.0, B - tmp);
+      arr_B[tid] = gpu_max(0.0, B - tmp);
       if (r > 0.0) {
         arr_I0_new[tid] = tmp;
       } else {
@@ -507,7 +515,7 @@ __global__ void PhageDecay(numtype* arr_P, numtype p,
    *warn_delta = true;
  }
 
- arr_P[i] = max(0.0, arr_P[i] - N);
+ arr_P[i] = gpu_max(0.0, arr_P[i] - N);
 }
 
 __global__ void ApplyMovement(numtype* arr_new,
