@@ -245,7 +245,6 @@ __global__ void MaxOccupancyOpt(numtype* arr_Occ, bool* Warn_density, numtype th
 }
 
 
-
 __global__ void PartialMax(numtype* arr, numtype* partialMax, int N){
 
   extern __shared__ numtype shared[];
