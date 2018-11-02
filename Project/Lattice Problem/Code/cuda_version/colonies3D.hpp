@@ -303,7 +303,7 @@ class Colonies3D {
 
  private:
   void        ExportData_arr(numtype t, std::string filename_suffix);              // Master function to export the data
-  void        ExportData_arr_reduced(numtype t, numtype nz, std::string filename_suffix);
+  void        ExportData_arr_reduced(numtype t, numtype accuB, numtype accuI, numtype accuP, numtype accuNutrient, numtype accuClusters, numtype nz, std::string filename_suffix);
 
   // Data handling
   void        OpenFileStream(std::ofstream& stream,                           // Open filstream if not allready opened

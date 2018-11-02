@@ -1426,7 +1426,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			f_kerneltimings << "\n";
 
-		if (!OPTIMIZED_MAXOCCUPANCY  ){
+		if (!OPTIMIZED_MAXOCCUPANCY){
 			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
 				cout << "\tWarning: Maximum Density Large!" << "\n";
 				f_log  << "Warning: Maximum Density Large!" << "\n";
@@ -1622,8 +1622,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			numtype accuP = 0.0;
 			numtype accuNutrient = 0.0;
 			numtype accuClusters = 0.0;
-			numtype *nz = new numtype;
-			*nz = 0.0;
+			nz = 0.0;
 			for (int i = 0; i < nGridXY; i++) {
 				for (int j = 0; j < nGridXY; j++ ) {
 					for (int k = 0; k < nGridZ; k++ ) {
@@ -1642,7 +1641,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 						accuNutrient += arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
 						if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 0.0) {
-							*nz = *nz + 1;
+							nz++;
 						}
 					}
 				}
@@ -1651,7 +1650,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 
 			// // Reduce arr_I0
-			arr_I0[0] = accuI0;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I0, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I0)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1665,7 +1663,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_I1
-			arr_I1[0] = accuI1;
 
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I1, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
@@ -1680,7 +1677,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_I2
-			arr_I2[0] = accuI2;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I2, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I2)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1694,7 +1690,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_I3
-			arr_I3[0] = accuI3;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I3, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I3)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1708,7 +1703,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_I4
-			arr_I4[0] = accuI4;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I4, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I4)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1722,7 +1716,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_I5
-			arr_I5[0] = accuI5;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I5, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I5)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1736,7 +1729,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_I6
-			arr_I6[0] = accuI6;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I6, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I6)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1750,7 +1742,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_I7
-			arr_I7[0] = accuI7;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I7, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I7)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1764,7 +1755,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_I8
-			arr_I8[0] = accuI8;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I8, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I8)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1778,7 +1768,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_I9
-			arr_I9[0] = accuI9;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I9, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I9)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1792,7 +1781,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_P
-			arr_P[0] = accuP;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_P, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (P)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1806,7 +1794,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_Occ
-			arr_Occ[0] = accuOcc;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (Occ)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1820,7 +1807,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_nutrient
-			arr_nutrient[0] = accuNutrient;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1834,7 +1820,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_nC
-			arr_nC[0] = accuClusters;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nC, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1867,7 +1852,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
 			// }
 
-			ExportData_arr_reduced(T, *nz, filename_suffix);
+			ExportData_arr_reduced(T, accuB, accuI, accuP, accuNutrient, accuClusters, nz, filename_suffix);
 
 		} else {
 	#endif
@@ -4727,18 +4712,11 @@ void Colonies3D::ExportData_arr(numtype t, std::string filename_suffix){
 	}
 }
 
-void Colonies3D::ExportData_arr_reduced(numtype t, numtype nz, std::string filename_suffix){
+void Colonies3D::ExportData_arr_reduced(numtype t, numtype accuB, numtype accuI, numtype accuP, numtype accuNutrient, numtype accuClusters, numtype nz, std::string filename_suffix) {
 
 	// Verify the file stream is open
 	string fileName = "PopulationSize_"+filename_suffix;
 	OpenFileStream(f_N, fileName);
-
-
-	numtype accuB = arr_B[0];
-	numtype accuI = arr_I0[0] + arr_I1[0] + arr_I2[0] + arr_I3[0] + arr_I4[0] + arr_I5[0] + arr_I6[0] + arr_I7[0] + arr_I8[0] + arr_I9[0];
-	numtype accuP = arr_P[0];
-	numtype accuNutrient = arr_nutrient[0];
-	numtype accuClusters = arr_nC[0];
 
 	// Writes the time, number of cells, number of infected cells, number of phages
 	f_N << fixed    << setprecision(2);
