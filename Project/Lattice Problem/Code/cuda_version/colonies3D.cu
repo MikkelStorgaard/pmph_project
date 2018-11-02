@@ -1526,7 +1526,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
-			err = cudaMemcpy(accuB_reduced, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			err = cudaMemcpy(accuOcc_reduced, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
