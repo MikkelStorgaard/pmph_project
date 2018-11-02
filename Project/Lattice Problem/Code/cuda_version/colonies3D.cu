@@ -1618,6 +1618,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
+			cudaDeviceSynchronize();
+
 			// Reduce arr_I1
 			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I1, d_arr_partialSum, totalElements);
 			err = cudaGetLastError();
