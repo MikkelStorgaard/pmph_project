@@ -18,6 +18,7 @@
 
 // Different optimization tests
 #define GPU_REDUCE_ARRAYS true
+#define GPU_REDUCE_ARRAYS_EXPORT true
 
 #define GPU_COPY_TO_SHARED false
 
@@ -1604,7 +1605,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		}
 
 
-		#if GPU_REDUCE_ARRAYS
+		#if GPU_REDUCE_ARRAYS_EXPORT
 
 		if (!exportAll) {
 
@@ -1625,7 +1626,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				errC--; }
 
 			// Reduce arr_I1
-
 			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I1, d_arr_partialSum, blockSize);
 			err = cudaGetLastError();
 			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (I1)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1805,7 +1805,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			// Store the state
 			ExportData_arr(T,filename_suffix);
-	#if GPU_REDUCE_ARRAYS
+	#if GPU_REDUCE_ARRAYS_EXPORT
 		}
 	#endif
 
