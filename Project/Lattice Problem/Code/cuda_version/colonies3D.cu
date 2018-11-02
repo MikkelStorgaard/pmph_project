@@ -18,6 +18,7 @@
 
 // Different optimization tests
 #define GPU_REDUCE_ARRAYS false
+#define GPU_REDUCE_ARRAYS_EXPORT false
 
 #define GPU_COPY_TO_SHARED false
 
@@ -1596,7 +1597,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				errC--; }
 
 			if (maxNutrient == *maxNutrient_reduced) {
-				cout << "ReduceSum does not work" << endl;
+				cout << "ReduceMax does not work" << endl;
 			}
 		}
 
@@ -1607,7 +1608,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		}
 
 
-		if ((!exportAll) && (GPU_REDUCE_ARRAYS)) {
+		if ((!exportAll) && (GPU_REDUCE_ARRAYS_EXPORT)) {
 
 			if (GPU_KERNEL_TIMING){
 				cudaDeviceSynchronize();
@@ -1838,6 +1839,20 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
 
 			// err = cudaMemcpy(&arr_nutrient[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+			// if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+			// 	errC--; }
+
+			// // Reduce arr_nC
+			arr_nC[0] = accuClusters;
+			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nC, d_arr_partialSum, blockSize);
+			// err = cudaGetLastError();
+			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			// SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+			// err = cudaGetLastError();
+			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+			// err = cudaMemcpy(&arr_nC[0], &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
 			// if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 			// 	errC--; }
 
