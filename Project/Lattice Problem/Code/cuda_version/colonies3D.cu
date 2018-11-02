@@ -1598,7 +1598,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			numtype accuP = 0.0;
 			numtype accuNutrient = 0.0;
 			numtype accuClusters = 0.0;
-			numtype nz = 0.0;
+			numtype *nz = new numtype;
+			*nz = 0.0;
 			for (int i = 0; i < nGridXY; i++) {
 				for (int j = 0; j < nGridXY; j++ ) {
 					for (int k = 0; k < nGridZ; k++ ) {
@@ -1617,7 +1618,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 						accuNutrient += arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
 						accuClusters += arr_nC[i*nGridXY*nGridZ + j*nGridZ + k];
 						if (arr_B[i*nGridXY*nGridZ + j*nGridZ + k] > 0.0) {
-							nz++;
+							*nz++;
 						}
 					}
 				}
@@ -1767,6 +1768,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_P
+			arr_P[0] = accuP;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_P, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (P)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1780,6 +1782,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_Occ
+			arr_Occ[0] = accuOcc;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (Occ)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1793,6 +1796,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			// 	errC--; }
 
 			// // Reduce arr_nutrient
+			arr_nutrient[0] = accuNutrient;
 			// PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, blockSize);
 			// err = cudaGetLastError();
 			// if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (nutrient)! error = %s\n", cudaGetErrorString(err)); errC--;}
