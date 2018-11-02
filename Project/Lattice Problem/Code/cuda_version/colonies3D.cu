@@ -17,8 +17,8 @@
 #define GPU_KERNEL_TIMING true
 
 // Different optimization tests
-#define GPU_REDUCE_ARRAYS false
-#define GPU_REDUCE_ARRAYS_EXPORT false
+#define GPU_REDUCE_ARRAYS true
+#define GPU_REDUCE_ARRAYS_EXPORT true
 
 #define GPU_COPY_TO_SHARED false
 
@@ -1622,7 +1622,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			numtype accuP = 0.0;
 			numtype accuNutrient = 0.0;
 			numtype accuClusters = 0.0;
-			nz = 0.0;
+			numtype nz = 0.0;
 			for (int i = 0; i < nGridXY; i++) {
 				for (int j = 0; j < nGridXY; j++ ) {
 					for (int k = 0; k < nGridZ; k++ ) {
@@ -1646,6 +1646,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 					}
 				}
 			}
+			numtype accuI = accuI0 + accuI1 + accuI2 + accuI3 + accuI4 + accuI5 + accuI6 + accuI7 + accuI8 + accuI9;
 
 
 
