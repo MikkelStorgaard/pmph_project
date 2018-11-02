@@ -17,7 +17,7 @@
 #define GPU_KERNEL_TIMING true
 
 // Different optimization tests
-#define GPU_REDUCE_ARRAYS true
+#define GPU_REDUCE_ARRAYS false
 
 #define GPU_COPY_TO_SHARED false
 
