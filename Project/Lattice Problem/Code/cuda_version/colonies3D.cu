@@ -1411,6 +1411,18 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
 
+			CopyAllToHost();
+			numtype testB;
+			for (int i = 0; i < nGridXY; i++) {
+				for (int j = 0; j < nGridXY; j++ ) {
+					for (int k = 0; k < nGridZ; k++ ) {
+						testB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+					}
+				}
+			}
+
+			cout << "testB - accuB = " << testB - accuB << endl;
+
 		#else
 
 			for (int i = 0; i < nGridXY; i++) {
@@ -1617,8 +1629,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			err = cudaMemcpy(&reducedI0, d_arr_partialSum, sizeof(numtype), cudaMemcpyDeviceToHost);
 			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 				errC--; }
-
-			cudaDeviceSynchronize();
 
 			// Reduce arr_I1
 			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_I1, d_arr_partialSum, totalElements);
