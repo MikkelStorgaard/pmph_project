@@ -1368,11 +1368,11 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 			f_kerneltimings << "\n";
 
-		if (!OPTIMIZED_MAXOCCUPANCY){
-			if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
-				cout << "\tWarning: Maximum Density Large!" << "\n";
-				f_log  << "Warning: Maximum Density Large!" << "\n";
-				Warn_density = true;
+			if (!OPTIMIZED_MAXOCCUPANCY){
+				if ((maxOccupancy > L * L * H / (nGridXY * nGridXY * nGridZ)) and (!Warn_density)) {
+					cout << "\tWarning: Maximum Density Large!" << "\n";
+					f_log  << "Warning: Maximum Density Large!" << "\n";
+					Warn_density = true;
 				}
 			}
 
@@ -1384,7 +1384,9 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
         //Sample loop ends...
         ////////////////////////////
 
+		#if !GPU_REDUCE_ARRAYS
 		CopyAllToHost();
+		#endif
 
 		// Fast exit conditions
 		// 1) There are no more sucebtible cells
@@ -1408,6 +1410,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 			errC--; }
 
+		CopyAllToHost();
 		numtype testB = 0.0;
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
@@ -1452,6 +1455,8 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 			ZeroArray<<<gridSize,blockSize>>>(d_arr_I7, totalElements);
 			ZeroArray<<<gridSize,blockSize>>>(d_arr_I8, totalElements);
 			ZeroArray<<<gridSize,blockSize>>>(d_arr_I9, totalElements);
+
+			CopyAllToHost();
 			exit = true;
 		}
 
@@ -1459,7 +1464,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		// -> Stop simulation
 
 		numtype accuOcc = 0.0;
-		#if false
+		#if GPU_REDUCE_ARRAYS
 
 		PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_partialSum, totalElements);;
 		err = cudaGetLastError();
@@ -1498,7 +1503,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 		numtype accuNutrient = 0.0;
 		numtype maxNutrient  = 0.0;
-		#if false
+		#if GPU_REDUCE_ARRAYS
 
 		PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, totalElements);;
 		err = cudaGetLastError();
