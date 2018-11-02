@@ -1448,16 +1448,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		numtype accuB = 0.0;
 		#if GPU_REDUCE_ARRAYS
 
-		for (int i = 0; i < nGridXY; i++) {
-			for (int j = 0; j < nGridXY; j++ ) {
-				for (int k = 0; k < nGridZ; k++ ) {
-					accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
-				}
-			}
-		}
-
-		#else
-
 		PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_B, d_arr_partialSum, blockSize);
 		err = cudaGetLastError();
 		if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
@@ -1471,6 +1461,16 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		err = cudaMemcpy(&accuB, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
 		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 			errC--; }
+
+		#else
+
+		for (int i = 0; i < nGridXY; i++) {
+			for (int j = 0; j < nGridXY; j++ ) {
+				for (int k = 0; k < nGridZ; k++ ) {
+					accuB += arr_B[i*nGridXY*nGridZ + j*nGridZ + k];
+				}
+			}
+		}
 
 		#endif
 
@@ -1504,6 +1504,22 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		numtype accuOcc = 0.0;
 		#if GPU_REDUCE_ARRAYS
 
+		PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_partialSum, blockSize);
+		err = cudaGetLastError();
+		if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+		cudaDeviceSynchronize();
+
+		SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
+		err = cudaGetLastError();
+		if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
+
+		err = cudaMemcpy(&accuOcc, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
+		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
+			errC--; }
+
+		#else
+
 		for (int i = 0; i < nGridXY; i++) {
 			for (int j = 0; j < nGridXY; j++ ) {
 				for (int k = 0; k < nGridZ; k++ ) {
@@ -1511,22 +1527,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 				}
 			}
 		}
-
-		#else
-
-			PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_Occ, d_arr_partialSum, blockSize);
-			err = cudaGetLastError();
-			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in PartialSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			cudaDeviceSynchronize();
-
-			SequentialReduceSum<<<1,1>>>(d_arr_partialSum, gridSize);
-			err = cudaGetLastError();
-			if (err != cudaSuccess && errC > 0) {fprintf(stderr, "Failure in SequentialReduceSum (B)! error = %s\n", cudaGetErrorString(err)); errC--;}
-
-			err = cudaMemcpy(&accuOcc, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
-			if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
-				errC--; }
 
 		#endif
 
@@ -1540,21 +1540,6 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		numtype accuNutrient = 0.0;
 		numtype maxNutrient  = 0.0;
 		#if GPU_REDUCE_ARRAYS
-
-		for (int i = 0; i < nGridXY; i++) {
-			for (int j = 0; j < nGridXY; j++ ) {
-				for (int k = 0; k < nGridZ; k++ ) {
-					numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
-					accuNutrient += tmpN;
-
-					if (tmpN > maxNutrient) {
-						maxNutrient = tmpN;
-					}
-				}
-			}
-		}
-
-		#else
 
 		PartialSum<<<gridSize, blockSize, blockSize*sizeof(numtype)>>>(d_arr_nutrient, d_arr_partialSum, blockSize);
 		err = cudaGetLastError();
@@ -1583,6 +1568,21 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 		err = cudaMemcpy(&maxNutrient, &d_arr_partialSum[0], sizeof(numtype), cudaMemcpyDeviceToHost);
 		if (err != cudaSuccess && errC > 0)	{fprintf(stderr, "Failed to copy arr_partialSum to the host! error = %s\n", cudaGetErrorString(err));
 			errC--; }
+
+		#else
+
+		for (int i = 0; i < nGridXY; i++) {
+			for (int j = 0; j < nGridXY; j++ ) {
+				for (int k = 0; k < nGridZ; k++ ) {
+					numtype tmpN = arr_nutrient[i*nGridXY*nGridZ + j*nGridZ + k];
+					accuNutrient += tmpN;
+
+					if (tmpN > maxNutrient) {
+						maxNutrient = tmpN;
+					}
+				}
+			}
+		}
 
 		#endif
 
