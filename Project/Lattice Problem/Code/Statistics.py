@@ -33,7 +33,7 @@ def read_csv(fname):
        return (data)
 
 col = ['Function','GridSize','Seconds']
-data = read_csv("benchmark_results.csv")
+data = read_csv("benchmark_results14_52.csv")
 
 
 data = (pd.DataFrame(data, columns = col))
@@ -71,6 +71,25 @@ plt.plot(gpuX, gpuY)
 plt.legend(loc=(1.04,0))
 plt.ylabel("Placing time, seconds")
 plt.show()
+
+print("GridSize  CPU   GPU")
+for i in range (0, np.size(cpuY)):
+    print(str(cpuX.values[i]) + "      " + str(cpuY.values[i]) + "   " + str(gpuY.values[i]))
+
+
+
+speedup = []
+print("Speedup factor:")
+print("GridSize  factor")
+for i in range (0, np.size(cpuY)):
+    speedup.append(cpuY.values[i]/gpuY.values[i])
+    print(str(cpuX.values[i]) + "    " + str(cpuY.values[i]/gpuY.values[i]))
+
+sns.barplot(cpuX, speedup)
+plt.legend(loc=(1.04,0))
+plt.ylabel("Speedup factor")
+plt.show()
+
 #
 #
 #print("Plot for average placing times, by target")
