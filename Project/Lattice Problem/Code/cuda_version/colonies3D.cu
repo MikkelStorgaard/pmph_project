@@ -152,7 +152,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 	ExportData_arr(T,filename_suffix);
 
   	if (GPU_KERNEL_TIMING){
-		std::string s = "kernel_timings";
+      std::string s = "kernel_timings_GPU_n" + std::to_string(nGridXY);
 		OpenFileStream(f_kerneltimings, s);
     f_kerneltimings << "NC \t";
     f_kerneltimings << "MAXOCCUPANCY \t";
@@ -2008,7 +2008,7 @@ int Colonies3D::Run_LoopDistributed_GPU(numtype T_end) {
 
 
 int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
-	std::string filename_suffix = "loopDistributedCPU";
+
 
 	this->T_end = T_end;
 
@@ -2021,6 +2021,27 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 
 	// Initilize the simulation matrices
 	Initialize();
+
+	high_resolution_clock::time_point kernel_start;
+	high_resolution_clock::duration kernel_elapsed;
+
+	std::string filename_suffix = "loopDistributedCPU";
+  	if (GPU_KERNEL_TIMING){
+      std::string s = "kernel_timings_CPU_n" + std::to_string(nGridXY);
+		OpenFileStream(f_kerneltimings, s);
+    f_kerneltimings << "NC \t";
+    f_kerneltimings << "MAXOCCUPANCY \t";
+    f_kerneltimings << "BIRTH \t";
+    f_kerneltimings << "INFECTIONS \t";
+    f_kerneltimings << "NEWINFECTIONS \t";
+    f_kerneltimings << "PHAGEDECAY \t";
+    f_kerneltimings << "MOVEMENT \t";
+    f_kerneltimings << "SWAPZERO \t";
+    f_kerneltimings << "UPDATEOCCUPANCY \t";
+    f_kerneltimings << "NUTRIENTDIFFUSION \t";
+    f_kerneltimings << "SWAPZERO2";
+		f_kerneltimings << "\n";
+    }
 
 	// Export data
 	ExportData_arr(T,filename_suffix);
@@ -2056,6 +2077,10 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 			/////////////////////////////////////////////////////
 
 			// Kernel 1-2: nC update and maxOccupancy //////////////////////////////////////////////////////////////////////
+      if (GPU_KERNEL_TIMING){
+        kernel_start = high_resolution_clock::now();
+      }
+
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -2073,7 +2098,14 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 					}
 				}
 			}
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
+      if (GPU_KERNEL_TIMING){
+        kernel_start = high_resolution_clock::now();
+      }
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -2092,7 +2124,16 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 					}
 				}
 			}
+
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
+      
 			// Kernel 3: Birth //////////////////////////////////////////////////////////////////////
+      if (GPU_KERNEL_TIMING){
+        kernel_start = high_resolution_clock::now();
+      }
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -2150,8 +2191,15 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 					}
 				}
 			}
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
 			// Kernel 4: Increase Infections ////////////////////////////////////////////////////////
+      if (GPU_KERNEL_TIMING){
+        kernel_start = high_resolution_clock::now();
+      }
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -2238,8 +2286,15 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 					}
 				}
 			}
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
 			// Kernel 5: New infections ///////////////////////////////////////////////////////////////////
+      if (GPU_KERNEL_TIMING){
+        kernel_start = high_resolution_clock::now();
+      }
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -2326,8 +2381,15 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
  					}
 				}
 			}
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
 			// Kernel 6: Phage decay ///////////////////////////////////////////////////////////////////
+      if (GPU_KERNEL_TIMING){
+        kernel_start = high_resolution_clock::now();
+      }
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -2360,9 +2422,16 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 					}
 				}
 			}
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
 
 			// Movement ///////////////////////////////////////////////////////////////////
+      if (GPU_KERNEL_TIMING){
+        kernel_start = high_resolution_clock::now();
+      }
 			for (int i = 0; i < nGridXY; i++) {
 				if (exit) break;
 
@@ -2530,7 +2599,14 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 					}
 				}
 			}
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
+      if (GPU_KERNEL_TIMING){
+        kernel_start = high_resolution_clock::now();
+      }
 			// Swap pointers
 			std::swap(arr_B, arr_B_new);
 			std::swap(arr_I0, arr_I0_new);
@@ -2564,8 +2640,16 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 					}
 				}
 			}
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
 
+      if (GPU_KERNEL_TIMING){
+        cudaDeviceSynchronize();
+        kernel_start = high_resolution_clock::now();
+      }
 				// Update occupancy
 				for (int i = 0; i < nGridXY; i++) {
 					for (int j = 0; j < nGridXY; j++ ) {
@@ -2574,8 +2658,16 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						}
 					}
 				}
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
 
+      if (GPU_KERNEL_TIMING){
+        cudaDeviceSynchronize();
+        kernel_start = high_resolution_clock::now();
+      }
 				// NUTRIENT DIFFUSION
 				numtype alphaXY = D_n * dT / pow(L / (numtype)nGridXY, 2);
 				numtype alphaZ  = D_n * dT / pow(H / (numtype)nGridZ, 2);
@@ -2628,8 +2720,19 @@ int Colonies3D::Run_LoopDistributed_CPU(numtype T_end) {
 						}
 					}
 				}
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
+      if (GPU_KERNEL_TIMING){
+        kernel_start = high_resolution_clock::now();
+      }
 				std::swap(arr_nutrient, arr_nutrient_new);
+      if (GPU_KERNEL_TIMING){
+        kernel_elapsed = high_resolution_clock::now() - kernel_start;
+        f_kerneltimings << duration_cast<microseconds>(kernel_elapsed).count() << "\t";
+      }
 
 				// Zero the _new arrays
 				for (int i = 0; i < nGridXY; i++) {
