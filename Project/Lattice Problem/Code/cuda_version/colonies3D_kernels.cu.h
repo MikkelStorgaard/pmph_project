@@ -416,7 +416,7 @@ __global__ void NewInfectionsKernel(numtype* arr_Occ,
                                     numtype dT,
                                     numtype r,
                                     curandState* rng_state,
-									int totalElements
+									                  int totalElements
                                     ){
 
   int tid = blockIdx.x*blockDim.x + threadIdx.x;

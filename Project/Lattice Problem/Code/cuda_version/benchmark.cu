@@ -8,12 +8,12 @@ using namespace std;
 int main(int argc, char** argv){
 
     // Benchmark paramters to loop over
-    double NumberOfGridSizes = 7;
+    double NumberOfGridSizes = 20;
     int    NumberOfVersions  = 2;     // Loop Distributed CPU, Loop Distributed GPU
     int    NumberOfRepeats   = 1;
 
     double minGridSize = 10;
-    double maxGridSize = 80;
+    double maxGridSize = 100;
 
 
 
@@ -72,7 +72,7 @@ int main(int argc, char** argv){
 	time_t theTime = time(NULL);
 	struct tm *aTime = localtime(&theTime);
 
-	
+
 	string streamPath;
 	streamPath = path+"/"+fileName+std::to_string(aTime->tm_hour)+"_"+std::to_string(aTime->tm_min)+".csv";
     cout << "\tSaving data to file:"+ streamPath << endl << endl;
